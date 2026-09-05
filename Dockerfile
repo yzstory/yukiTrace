@@ -29,7 +29,10 @@ ENTRYPOINT ["./migrate.sh"]
 FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
-RUN addgroup -S nodejs && adduser -S nextjs -G nodejs && mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
+# tzdata 让容器的 TZ 生效（业务时间一律按旅程时区渲染，这里只影响日志与系统时间）
+RUN apk add --no-cache tzdata \
+ && addgroup -S nodejs && adduser -S nextjs -G nodejs \
+ && mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
 COPY --from=build /app/public ./public
 COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
