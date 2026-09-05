@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/dal";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TabBar } from "@/components/layout/tab-bar";
+import { SyncBadge } from "@/components/offline/sync-badge";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -11,6 +12,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="mx-auto w-full max-w-3xl px-5 pt-6 md:px-8 md:pt-10">{children}</div>
       </main>
       <TabBar />
+      <SyncBadge />
     </div>
   );
 }

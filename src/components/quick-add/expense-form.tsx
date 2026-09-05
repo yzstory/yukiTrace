@@ -12,6 +12,8 @@ import { fmt } from "@/lib/date";
 import { ExpenseCategory } from "@/generated/prisma/enums";
 import { createExpense, type ActionState } from "@/app/(app)/trips/[tripId]/actions";
 import { Field, SelectField, ErrorText } from "./form-bits";
+import { useOfflineForm, useOnline } from "@/lib/offline/use-offline-form";
+import { formatMoney, toMinor } from "@/lib/currency";
 import type { StopOption } from "./entry-form";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +37,17 @@ export function ExpenseForm({
   const [state, action, pending] = useActionState<ActionState, FormData>(createExpense.bind(null, tripId), undefined);
   const [category, setCategory] = useState<ExpenseCategory>("FOOD");
   const [isBaby, setIsBaby] = useState(false);
+  const online = useOnline();
+  const submit = useOfflineForm({
+    kind: "expense",
+    tripId,
+    action,
+    summarize: (fd) => {
+      const cur = String(fd.get("currency") ?? homeCurrency);
+      return `${fd.get("title") ?? "花费"} ${formatMoney(toMinor(String(fd.get("amount") ?? "0"), cur), cur, { showCode: true })}`;
+    },
+    onDoneQueued: onDone,
+  });
 
   useEffect(() => {
     if (state?.ok) {
@@ -44,7 +57,7 @@ export function ExpenseForm({
   }, [state, onDone]);
 
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <form action={submit} className="flex flex-col gap-4">
       <div className="grid grid-cols-[1fr_auto] gap-2">
         <Field label="金额" name="amount" type="number" inputMode="decimal" step="any" min="0" required placeholder="0.00" autoFocus className="[&_input]:text-title-2 [&_input]:h-14" />
         <SelectField label="货币" name="currency" defaultValue={homeCurrency} options={CURRENCIES.map((c) => ({ value: c.code, label: `${c.code} ${c.symbol}` }))} className="[&_select]:h-14" />
@@ -98,7 +111,7 @@ export function ExpenseForm({
 
       <ErrorText>{state?.error}</ErrorText>
       <Button type="submit" disabled={pending} className="h-12 rounded-xl text-body font-semibold">
-        {pending ? <Loader2 className="size-5 animate-spin" /> : "记一笔"}
+        {pending ? <Loader2 className="size-5 animate-spin" /> : online ? "记一笔" : "离线记一笔"}
       </Button>
     </form>
   );

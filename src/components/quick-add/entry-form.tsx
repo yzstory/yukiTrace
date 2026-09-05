@@ -14,6 +14,7 @@ import type { EntryType } from "@/generated/prisma/enums";
 import { createEntry, updateEntry, type ActionState } from "@/app/(app)/trips/[tripId]/actions";
 import type { TEntry } from "@/components/timeline/types";
 import { Field, SelectField, ErrorText } from "./form-bits";
+import { useOfflineForm, useOnline } from "@/lib/offline/use-offline-form";
 
 export type StopOption = { id: string; name: string; arriveAt: Date };
 
@@ -46,6 +47,16 @@ export function EntryForm({
   );
   const [withExpense, setWithExpense] = useState(!initial && type !== "MOMENT");
   const [isBaby, setIsBaby] = useState(false);
+  const online = useOnline();
+  const submit = useOfflineForm({
+    kind: "entry",
+    tripId,
+    action,
+    summarize: (fd) => `${cfg.label}：${fd.get("title") ?? ""}`,
+    onDoneQueued: onDone,
+    // 编辑已有条目不能离线排队（回放接口只支持新建）
+    disabled: Boolean(initial),
+  });
 
   useEffect(() => {
     if (state?.ok) {
@@ -57,7 +68,7 @@ export function EntryForm({
   const metaJson = useMemo(() => JSON.stringify(Object.fromEntries(Object.entries(meta).filter(([, v]) => v !== ""))), [meta]);
 
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <form action={submit} className="flex flex-col gap-4">
       <input type="hidden" name="type" value={type} />
       <input type="hidden" name="meta" value={metaJson} />
       <input type="hidden" name="category" value={cfg.defaultCategory} />
@@ -129,7 +140,7 @@ export function EntryForm({
 
       <ErrorText>{state?.error}</ErrorText>
       <Button type="submit" disabled={pending} className="h-12 rounded-xl text-body font-semibold">
-        {pending ? <Loader2 className="size-5 animate-spin" /> : initial ? "保存" : `记录${cfg.label}`}
+        {pending ? <Loader2 className="size-5 animate-spin" /> : initial ? "保存" : `${online ? "" : "离线"}记录${cfg.label}`}
       </Button>
     </form>
   );

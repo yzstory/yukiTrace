@@ -223,6 +223,11 @@
 - 脚本：`pnpm test`（单测）、`pnpm test:e2e`（浏览器）
 - 关键发现：Playwright 的 iPhone 设备档使用 WebKit，正好是本项目的目标浏览器；dev server 必须用与 webServer 相同的 host（localhost）访问，否则 Next 16 拦截 /_next 资源导致不 hydrate
 
+### 阶段 14：离线记录队列
+- **状态：** complete
+- 设计取舍：不自己实现一套离线校验逻辑，`/api/sync` 直接把 JSON 还原成 FormData 调用原 Server Action，避免在线/离线两套规则漂移
+- 新增：src/lib/offline/{types,queue,sync,use-offline-form}.ts、src/app/api/sync/route.ts、src/components/offline/sync-badge.tsx、e2e/offline.spec.ts
+
 ## 测试结果
 | 测试 | 输入 | 预期结果 | 实际结果 | 状态 |
 |------|------|---------|---------|------|
@@ -230,6 +235,7 @@
 | 全局账本 CNY 汇总 | 混合币种 | 按 amountCnyMinor 求和 | ¥7,246.66 | ✅ |
 | 邀请链接全流程 | 生成→未登录查看→登录→加入→用尽 | 各状态正确 | 全部符合预期，成员数 1→2，角色 EDITOR | ✅ |
 | 权限边界 | 非所有者访问成员页 | 无管理入口、有退出按钮 | 一致 | ✅ |
+| 离线记账全链路 | Playwright setOffline | 入队→回放→落库 | 通过（含浮条状态与自动刷新） | ✅ |
 | 单元测试 | pnpm test | 全绿 | 40 passed | ✅ |
 | 浏览器冒烟 | pnpm test:e2e（WebKit/iPhone 14） | 5 条主线通过 | 5 passed | ✅ |
 | 快速记录抽屉真机交互 | 浏览器点击 FAB → 地点/花费 | 抽屉打开并提交成功 | 通过 | ✅ |

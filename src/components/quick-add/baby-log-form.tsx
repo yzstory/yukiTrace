@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { fmt } from "@/lib/date";
 import { createBabyLog, type ActionState } from "@/app/(app)/trips/[tripId]/actions";
 import { Field, ErrorText } from "./form-bits";
+import { useOfflineForm, useOnline } from "@/lib/offline/use-offline-form";
 import { cn } from "@/lib/utils";
 import type { BabyLogType } from "@/generated/prisma/enums";
 
@@ -22,6 +23,14 @@ export const BABY_LOG_TYPES: Record<BabyLogType, { label: string; icon: typeof M
 export function BabyLogForm({ tripId, defaultTime, onDone, tz }: { tripId: string; defaultTime: Date; onDone: () => void; tz?: string | null }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(createBabyLog.bind(null, tripId), undefined);
   const [type, setType] = useState<BabyLogType>("FEED");
+  const online = useOnline();
+  const submit = useOfflineForm({
+    kind: "babyLog",
+    tripId,
+    action,
+    summarize: (fd) => BABY_LOG_TYPES[(fd.get("type") as BabyLogType) ?? "OTHER"].label,
+    onDoneQueued: onDone,
+  });
   useEffect(() => {
     if (state?.ok) {
       toast.success("已记录");
@@ -29,7 +38,7 @@ export function BabyLogForm({ tripId, defaultTime, onDone, tz }: { tripId: strin
     }
   }, [state, onDone]);
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <form action={submit} className="flex flex-col gap-4">
       <input type="hidden" name="type" value={type} />
       <div className="grid grid-cols-3 gap-2">
         {(Object.keys(BABY_LOG_TYPES) as BabyLogType[]).map((t) => {
@@ -48,7 +57,7 @@ export function BabyLogForm({ tripId, defaultTime, onDone, tz }: { tripId: strin
       <Field label="备注（可选）" name="note" placeholder="180ml / 睁眼就笑" />
       <ErrorText>{state?.error}</ErrorText>
       <Button type="submit" disabled={pending} className="h-12 rounded-xl text-body font-semibold">
-        {pending ? <Loader2 className="size-5 animate-spin" /> : "记录"}
+        {pending ? <Loader2 className="size-5 animate-spin" /> : online ? "记录" : "离线记录"}
       </Button>
     </form>
   );

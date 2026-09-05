@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { SelectField } from "./form-bits";
 import { prepareImages, IMAGE_ACCEPT } from "@/lib/client-image";
+import { enqueuePhoto } from "@/lib/offline/queue";
+import { useOnline } from "@/lib/offline/use-offline-form";
 import type { StopOption } from "./entry-form";
 
 export function PhotoUploader({
@@ -28,6 +30,7 @@ export function PhotoUploader({
   const [stopId, setStopId] = useState(defaultStopId ?? "");
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [stage, setStage] = useState<"idle" | "preparing" | "uploading">("idle");
+  const online = useOnline();
 
   async function upload() {
     if (files.length === 0) return;
@@ -35,6 +38,17 @@ export function PhotoUploader({
     setStage("preparing");
     setProgress({ done: 0, total: files.length });
     const prepared = await prepareImages(files, (done, total) => setProgress({ done, total }));
+
+    // 离线时先存进本地队列，联网后由 SyncBadge 自动回放
+    if (!online && purpose === "photo") {
+      for (const f of prepared) await enqueuePhoto({ tripId, stopId: stopId || undefined, blob: f, filename: f.name });
+      setStage("idle");
+      setProgress(null);
+      toast.success(`已离线保存 ${prepared.length} 张照片，联网后自动上传`);
+      onDone();
+      return;
+    }
+
     setStage("uploading");
     setProgress({ done: 0, total: prepared.length });
     // 分批上传（每批 3 张），避免单次请求过大
@@ -108,7 +122,7 @@ export function PhotoUploader({
       )}
       <Button type="button" onClick={upload} disabled={files.length === 0 || !!progress} className="h-12 rounded-xl text-body font-semibold">
         {progress ? (
-          progress.done === progress.total ? (
+          progress.done === progress.total && stage !== "preparing" ? (
             <Check className="size-5" />
           ) : (
             <>
@@ -116,7 +130,7 @@ export function PhotoUploader({
             </>
           )
         ) : (
-          `上传${files.length ? ` ${files.length} 张` : ""}`
+          `${online ? "上传" : "离线保存"}${files.length ? ` ${files.length} 张` : ""}`
         )}
       </Button>
     </div>
