@@ -77,8 +77,9 @@ test("地图与总结可访问", async ({ page }) => {
 
   await page.getByRole("link", { name: "地图" }).first().click();
   // 境外站点走 MapLibre；国内走高德，未配 Key 时降级为路线示意图
+  // 地图加载期间路线示意图与画布同时存在，取第一个即可
   await expect(
-    page.locator("canvas.maplibregl-canvas").or(page.locator(".amap-container")).or(page.getByRole("img", { name: "路线示意图" }))
+    page.locator("canvas.maplibregl-canvas").or(page.locator(".amap-container")).or(page.getByRole("img", { name: "路线示意图" })).first()
   ).toBeVisible({ timeout: 20_000 });
 
   await page.goBack();
@@ -90,7 +91,8 @@ test("地图与总结可访问", async ({ page }) => {
 test("成员页可访问并能生成邀请链接", async ({ page }) => {
   await login(page);
   await page.getByRole("link", { name: TRIP }).click();
-  await page.getByRole("link", { name: "成员" }).click();
+  await page.getByRole("button", { name: "更多" }).click();
+  await page.getByRole("menuitem", { name: "成员与邀请" }).click();
   await expect(page.getByRole("heading", { name: "成员", exact: true, level: 1 })).toBeVisible();
   await expect(page.getByText("所有者")).toBeVisible();
 

@@ -103,7 +103,7 @@ export function LedgerView({
       <div className="no-scrollbar -mx-5 flex gap-1.5 overflow-x-auto px-5">
         <FilterChip active={!cat && !babyOnly} onClick={() => { setCat(null); setBabyOnly(false); }} label="全部" />
         <FilterChip active={babyOnly} onClick={() => setBabyOnly((v) => !v)} label="宝宝" icon={<Baby className="size-3.5" />} />
-        {byCategory.map(({ category }) => (
+        {byCategory.filter(({ category }) => category !== "BABY").map(({ category }) => (
           <FilterChip key={category} active={cat === category} onClick={() => setCat((c) => (c === category ? null : category))} label={EXPENSE_CATEGORIES[category].label} />
         ))}
       </div>

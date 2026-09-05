@@ -33,6 +33,14 @@ export function RouteSketch({ points, onSelect, selectedId, className }: { point
 
   const path = layout.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
 
+  // 标签避让：距离已标注点太近的站点不再画名字，避免叠字
+  const labeled: Array<{ x: number; y: number }> = [];
+  const showLabel = layout.map((p) => {
+    const clash = labeled.some((q) => Math.hypot(q.x - p.x, q.y - p.y) < 90);
+    if (!clash) labeled.push({ x: p.x, y: p.y });
+    return !clash;
+  });
+
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className={className} role="img" aria-label="路线示意图">
       <defs>
@@ -46,7 +54,7 @@ export function RouteSketch({ points, onSelect, selectedId, className }: { point
         const next = layout[i + 1];
         return next ? <line key={`l${p.id}`} x1={p.x} y1={p.y} x2={next.x} y2={next.y} stroke={p.color} strokeWidth="2.5" strokeLinecap="round" opacity="0.9" /> : null;
       })}
-      {layout.map((p) => {
+      {layout.map((p, i) => {
         const sel = p.id === selectedId;
         return (
           <g key={p.id} onClick={() => onSelect?.(p.id)} className={onSelect ? "cursor-pointer" : ""}>
@@ -54,9 +62,11 @@ export function RouteSketch({ points, onSelect, selectedId, className }: { point
             <text x={p.x} y={p.y + 4.5} textAnchor="middle" fontSize="13" fontWeight="700" fill="white">
               {p.index}
             </text>
-            <text x={p.x} y={p.y - 22} textAnchor="middle" fontSize="13" fontWeight="600" fill="currentColor" opacity="0.8">
-              {p.name.length > 10 ? p.name.slice(0, 10) + "…" : p.name}
-            </text>
+            {(showLabel[i] || sel) && (
+              <text x={p.x} y={p.y - 22} textAnchor="middle" fontSize="13" fontWeight="600" fill="currentColor" opacity="0.8" paintOrder="stroke" stroke="var(--card)" strokeWidth="3">
+                {p.name.length > 10 ? p.name.slice(0, 10) + "…" : p.name}
+              </text>
+            )}
           </g>
         );
       })}

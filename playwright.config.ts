@@ -4,6 +4,8 @@ const PORT = Number(process.env.E2E_PORT ?? 3101);
 
 export default defineConfig({
   testDir: "./e2e",
+  // 截图脚本需要 SHOT_TRIP，未提供时不纳入常规测试
+  testIgnore: process.env.SHOT_TRIP ? [] : ["**/shots.spec.ts"],
   timeout: 60_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,

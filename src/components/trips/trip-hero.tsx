@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Pencil, Footprints, Wallet, Baby, Users, ImagePlus, Route, ListChecks, Sparkle } from "lucide-react";
+import { Pencil, Footprints, Wallet, Baby, Users, ImagePlus, Route, ListChecks, Sparkle, MoreHorizontal, BookImage } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { formatMoney } from "@/lib/currency";
 import { formatDistance } from "@/lib/geo";
@@ -46,25 +47,43 @@ export function TripHero({ trip }: { trip: TripHeroData }) {
           {trip.description && <p className="mt-1 text-subhead text-white/85">{trip.description}</p>}
         </div>
         <div className="absolute right-3 top-3 flex gap-2 safe-top">
-          <Link href={`/trips/${trip.id}/summary`} className="pressable glass rounded-full p-2 text-foreground" aria-label="旅程总结">
-            <Sparkle className="size-4" />
+          <Link href={`/trips/${trip.id}/summary`} className="pressable glass flex h-9 items-center gap-1.5 rounded-full px-3 text-footnote font-medium text-foreground" aria-label="旅程总结">
+            <Sparkle className="size-4" /> 总结
           </Link>
-          <Link href={`/trips/${trip.id}/members`} className="pressable glass rounded-full p-2 text-foreground" aria-label="成员">
-            <Users className="size-4" />
-          </Link>
-          {trip.canEdit && (
-            <>
-            <button type="button" onClick={() => setCoverOpen(true)} className="pressable glass rounded-full p-2 text-foreground" aria-label="更换封面">
-              <ImagePlus className="size-4" />
-            </button>
-            <Link href={`/trips/${trip.id}/checklist`} className="pressable glass rounded-full p-2 text-foreground" aria-label="出行清单">
-              <ListChecks className="size-4" />
-            </Link>
-            <Link href={`/trips/${trip.id}/edit`} className="pressable glass rounded-full p-2 text-foreground" aria-label="编辑旅程">
-              <Pencil className="size-4" />
-            </Link>
-            </>
-          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger className="pressable glass flex size-9 items-center justify-center rounded-full text-foreground" aria-label="更多">
+              <MoreHorizontal className="size-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-44 rounded-xl">
+              <DropdownMenuItem asChild>
+                <Link href={`/trips/${trip.id}/members`}>
+                  <Users className="size-4" /> 成员与邀请
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`/trips/${trip.id}/album`}>
+                  <BookImage className="size-4" /> 打印相册
+                </Link>
+              </DropdownMenuItem>
+              {trip.canEdit && (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link href={`/trips/${trip.id}/checklist`}>
+                      <ListChecks className="size-4" /> 出行清单
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setCoverOpen(true)}>
+                    <ImagePlus className="size-4" /> 更换封面
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href={`/trips/${trip.id}/edit`}>
+                      <Pencil className="size-4" /> 编辑旅程
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

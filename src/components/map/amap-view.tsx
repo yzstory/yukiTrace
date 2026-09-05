@@ -178,7 +178,11 @@ export function AMapView({
   return (
     <div className={`relative ${className ?? ""}`}>
       <div ref={containerRef} className="h-full w-full" />
-      {status === "loading" && <div className="absolute inset-0 animate-pulse bg-fill" />}
+      {status === "loading" && (
+        <div className="absolute inset-0 bg-card text-foreground">
+          <RouteSketch points={points} className="h-full w-full opacity-70" />
+        </div>
+      )}
     </div>
   );
 }

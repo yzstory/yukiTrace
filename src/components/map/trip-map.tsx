@@ -55,7 +55,7 @@ export function TripMap({ tripId, stops, days, homeLabel, timezone }: { tripId: 
       <MapView points={visible} paths={paths} selectedId={selected} onSelect={onSelect} onReady={onReady} className="h-full w-full" />
 
       {/* 顶部：返回 + 天数筛选 */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col gap-2 p-3 safe-top">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col gap-2 p-3 safe-top">
         <div className="pointer-events-auto flex items-center gap-2">
           <Link href={`/trips/${tripId}`} className="glass flex h-9 items-center gap-1 rounded-full pl-2 pr-3 text-callout font-medium">
             <ChevronRight className="size-4 rotate-180" /> {homeLabel}
@@ -73,7 +73,7 @@ export function TripMap({ tripId, stops, days, homeLabel, timezone }: { tripId: 
       </div>
 
       {/* 底部：站点横向卡片 */}
-      <div className="absolute inset-x-0 bottom-0 z-10 pb-3">
+      <div className="absolute inset-x-0 bottom-0 z-20 pb-3">
         <div className="no-scrollbar flex snap-x gap-3 overflow-x-auto px-4">
           {visible.map((s) => (
             <button

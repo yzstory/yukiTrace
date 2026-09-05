@@ -50,9 +50,9 @@ export function MapLibreView({
           style: resolvedTheme === "dark" ? STYLE_DARK : STYLE_LIGHT,
           center: points[0] ? [points[0].lng, points[0].lat] : [139.7, 35.68],
           zoom: 10,
-          attributionControl: { compact: true },
+          // 手机上用双指缩放即可；默认署名控件太占地方，改为下方一行小字
+          attributionControl: false,
         });
-        map.addControl(new maplibre.NavigationControl({ showCompass: false }), "top-right");
         mapRef.current = map;
         map.on("load", () => !cancelled && setStatus("ready"));
         map.on("error", () => !cancelled && setStatus("error"));
@@ -167,7 +167,12 @@ export function MapLibreView({
   return (
     <div className={`relative ${className ?? ""}`}>
       <div ref={containerRef} className="h-full w-full" />
-      {status === "loading" && <div className="absolute inset-0 animate-pulse bg-fill" />}
+      {status === "loading" && (
+        <div className="absolute inset-0 bg-card text-foreground">
+          <RouteSketch points={points} className="h-full w-full opacity-70" />
+        </div>
+      )}
+      <span className="pointer-events-none absolute left-2 top-1 z-0 rounded bg-background/60 px-1.5 py-0.5 text-[10px] text-muted-foreground/80">© OpenFreeMap · OSM</span>
     </div>
   );
 }

@@ -184,12 +184,12 @@ export function SummarySlides({ data }: { data: SummaryData }) {
       </div>
       <div ref={ref} className="flex flex-col gap-3 bg-[#0d0d0d] p-3 md:rounded-3xl">
         {slides.map((s, i) => (
+          // 不用 whileInView：导出长图时未滚到的卡片会停留在 opacity 0
           <motion.div
             key={i}
             initial={{ opacity: 0, transform: "translateY(12px)" }}
-            whileInView={{ opacity: 1, transform: "translateY(0px)" }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+            animate={{ opacity: 1, transform: "translateY(0px)" }}
+            transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1], delay: Math.min(i, 6) * 0.05 }}
           >
             {s}
           </motion.div>

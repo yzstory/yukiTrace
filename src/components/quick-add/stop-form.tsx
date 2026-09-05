@@ -51,7 +51,7 @@ export function StopForm({ tripId, defaultTime, onDone, initial, tripTz }: { tri
         onChange={(e) => setTz(e.target.value)}
         options={[{ value: "", label: `跟随旅程（${TIMEZONES.find((t) => t.value === tripTz)?.label ?? tripTz}）` }, ...TIMEZONES]}
       />
-      <p className="-mt-2 text-caption text-muted-foreground">跨时区旅行时，这一站的时间会按所选时区显示与录入。当前按 {TIMEZONES.find((t) => t.value === activeTz)?.label ?? activeTz}。</p>
+      {tz && <p className="-mt-2 text-caption text-muted-foreground">这一站按 {TIMEZONES.find((t) => t.value === activeTz)?.label ?? activeTz} 显示与录入。</p>}
 
       <div className="flex flex-col gap-1.5">
         <Label className="text-footnote font-medium text-muted-foreground">婴儿友好</Label>

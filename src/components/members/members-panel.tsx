@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useOrigin } from "@/hooks/use-origin";
 import { useRouter } from "next/navigation";
 import { UserPlus, Copy, Trash2, Loader2, Crown, Pencil, Eye, LogOut, Link2 } from "lucide-react";
 import { toast } from "sonner";
@@ -47,7 +48,7 @@ export function MembersPanel({
   const [days, setDays] = useState("7");
   const [uses, setUses] = useState("1");
   const router = useRouter();
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const origin = useOrigin();
 
   return (
     <div className="flex flex-col gap-5">

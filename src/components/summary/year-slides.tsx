@@ -163,12 +163,12 @@ export function YearSlides({ review }: { review: YearReview }) {
 }
 
 function Slide({ children, grad }: { children: React.ReactNode; grad: string }) {
+  // 不用 whileInView：导出长图时未滚到的卡片会停留在 opacity 0
   return (
     <motion.section
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.25 }}
-      transition={{ type: "spring", stiffness: 200, damping: 28 }}
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 220, damping: 28 }}
       className={cn("relative overflow-hidden rounded-3xl bg-gradient-to-br p-6 text-white", grad)}
     >
       {children}

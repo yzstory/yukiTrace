@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { useOrigin } from "@/hooks/use-origin";
 import { Link2, Copy, Trash2, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ export type ShareLinkData = { id: string; token: string; hideExpense: boolean; c
 
 export function ShareSettings({ tripId, links }: { tripId: string; links: ShareLinkData[] }) {
   const [pending, start] = useTransition();
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const origin = useOrigin();
   return (
     <section className="rounded-2xl bg-card p-4 card-shadow">
       <h2 className="mb-1 text-footnote font-semibold uppercase tracking-wide text-muted-foreground">分享给家人</h2>

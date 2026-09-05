@@ -59,13 +59,13 @@ export function ExpenseForm({
   return (
     <form action={submit} className="flex flex-col gap-4">
       <div className="grid grid-cols-[1fr_auto] gap-2">
-        <Field label="金额" name="amount" type="number" inputMode="decimal" step="any" min="0" required placeholder="0.00" autoFocus className="[&_input]:text-title-2 [&_input]:h-14" />
+        <Field label="金额" name="amount" type="number" inputMode="decimal" step="any" min="0" required placeholder="0.00" className="[&_input]:text-title-2 [&_input]:h-14" />
         <SelectField label="货币" name="currency" defaultValue={homeCurrency} options={CURRENCIES.map((c) => ({ value: c.code, label: `${c.code} ${c.symbol}` }))} className="[&_select]:h-14" />
       </div>
 
       <div className="flex flex-col gap-1.5">
         <Label className="text-footnote font-medium text-muted-foreground">分类</Label>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {(Object.keys(EXPENSE_CATEGORIES) as ExpenseCategory[])
             .filter((c) => c !== "BABY")
             .map((c) => {

@@ -29,12 +29,13 @@ export async function tripInsights(tripId: string): Promise<Insight[]> {
     orderBy: { startDate: "desc" },
     include: { expenses: { select: { amountCnyMinor: true } } },
   });
-  if (prev && prev.expenses.length > 0) {
+  // 上一段旅程至少要有 3 笔、总额过 200 元才有可比性；差异超过 3 倍说明不是同类旅程，不比
+  if (prev && prev.expenses.length >= 3) {
     const prevTotal = prev.expenses.reduce((a, e) => a + e.amountCnyMinor, 0);
     const prevPerDay = Math.round(prevTotal / Math.max(tripDays(prev.startDate, prev.endDate), 1));
-    if (prevPerDay > 0) {
+    if (prevPerDay > 0 && prevTotal >= 20000 && trip.expenses.length >= 3) {
       const diff = Math.round(((perDay - prevPerDay) / prevPerDay) * 100);
-      if (Math.abs(diff) >= 15) {
+      if (Math.abs(diff) >= 15 && Math.abs(diff) <= 300) {
         out.push({
           tone: diff > 0 ? "up" : "down",
           text: `日均 ${formatMoney(perDay, "CNY", { compact: true })}，比「${prev.title}」${diff > 0 ? "高" : "低"} ${Math.abs(diff)}%`,

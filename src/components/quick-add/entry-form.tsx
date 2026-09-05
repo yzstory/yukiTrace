@@ -73,7 +73,7 @@ export function EntryForm({
       <input type="hidden" name="meta" value={metaJson} />
       <input type="hidden" name="category" value={cfg.defaultCategory} />
 
-      <Field label="标题" name="title" required placeholder={placeholderFor(type)} autoFocus defaultValue={initial?.title ?? ""} />
+      <Field label="标题" name="title" required placeholder={placeholderFor(type)} defaultValue={initial?.title ?? ""} />
 
       <div className="grid grid-cols-2 gap-3">
         <Field label={type === "HOTEL" ? "入住" : "时间"} name="startAt" type="datetime-local" required defaultValue={fmt.inputDateTime(initial?.startAt ?? defaultTime, tz)} />

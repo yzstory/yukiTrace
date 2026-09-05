@@ -63,7 +63,7 @@ export default async function MapPage() {
 function Kpi({ value, label }: { value: string; label: string }) {
   return (
     <div className="rounded-2xl bg-card px-3 py-3 text-center card-shadow">
-      <p className="text-title-2">{value}</p>
+      <p className="whitespace-nowrap text-[1.25rem] font-semibold leading-tight tracking-tight">{value}</p>
       <p className="text-caption text-muted-foreground">{label}</p>
     </div>
   );
