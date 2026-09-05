@@ -70,6 +70,13 @@ ShareLink(id, tripId, token, hideExpense, expiresAt)
 |------|---------|
 |      |         |
 
+## 服务器现状（2026-09-05）
+- Docker 26.1.3 / Compose v2.27.0，无 rsync，node v10（无用），git 2.43
+- 已占用端口：80/443（mes-ui nginx）、8080（mes-server）、3000（frps）、13306、16379 → 本项目用 **3100**
+- 内存 3.5 GB（可用约 1.8 GB），磁盘 49 GB 用 39%；在服务器上跑 Next 构建有 OOM 风险 → **本机 buildx 构建 linux/amd64 镜像后 docker save/load 传输**
+- 无域名、无 HTTPS：通过 IP:3100 访问，cookie 不能带 Secure（已改为按 APP_URL 判断）；PWA 安装与 Geolocation 需要 HTTPS，后续配域名 + 反代（现有 nginx 占 80/443，可在 mes-ui 里加 server 块或换 Caddy）
+- 公网 3100 端口 curl 超时 → 阿里云安全组很可能未放行，需要用户在控制台放行 TCP 3100
+
 ## 资源
 - 服务器：101.37.37.200（阿里云 ECS，Alibaba Cloud Linux 8），目录 /root/docker-compose/yukiTrace
 - 高德开放平台：https://lbs.amap.com/

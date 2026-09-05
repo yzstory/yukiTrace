@@ -1,6 +1,8 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      target: runner
     image: yukitrace:latest
     container_name: yukitrace-app
     restart: unless-stopped
@@ -9,6 +11,26 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-yukitrace}:${POSTGRES_PASSWORD:-yukitrace}@postgres:5432/${POSTGRES_DB:-yukitrace}?schema=public
     ports:
       - "${APP_PORT:-3000}:3000"
+    volumes:
+      # 未配置 OSS 时图片落在本地卷
+      - uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  migrate:
+    build:
+      context: .
+      target: migrate
+    image: yukitrace-migrate:latest
+    container_name: yukitrace-migrate
+    volumes:
+      # 挂载迁移目录：新增迁移时无需重建 migrate 镜像
+      - ./prisma:/app/prisma:ro
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-yukitrace}:${POSTGRES_PASSWORD:-yukitrace}@postgres:5432/${POSTGRES_DB:-yukitrace}?schema=public
     depends_on:
       postgres:
         condition: service_healthy
@@ -31,3 +53,4 @@ services:
 
 volumes:
   pgdata:
+  uploads:
