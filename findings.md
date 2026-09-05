@@ -102,6 +102,25 @@ ShareLink(id, tripId, token, hideExpense, expiresAt)
 - 最终 Logo 必须为全幅方形底图，让 iOS/Android/PWA 自己应用蒙版；预先绘制圆角会在不同蒙版下露出四角底色
 - 当前自动化环境没有可用 CUA 浏览器；页面视觉走查受限，但生产构建和 HTTP 资源链路可验证，Logo 可通过原图与 192px 资源单独检查
 
+## 阶段 8 生产配置发现
+- `@ai-sdk/openai-compatible@3.0.44` 的 Chat 模型固定将 `/chat/completions` 拼到 `baseURL` 后；用户给出的完整端点必须裁剪为 API 根路径，避免最终请求出现重复路径
+- `hopportunity-agent/.env` 使用 `OSS_ENDPOINT` / `OSS_PUBLIC_ENDPOINT` 命名；yukiTrace 使用 `OSS_REGION` / `OSS_PUBLIC_BASE_URL`，需做字段映射而不是整段原样复制
+- 参考 OSS endpoint 的地域是 `oss-cn-shanghai`，公开图片入口是独立域名；Access Key、Secret 与 Bucket 可直接复用，但不得写入仓库或进度文件
+- 高德前端 JS API 与 Web 服务使用不同类型的 Key；用户本次只提供一个 Key，应先作为 `AMAP_WEB_SERVICE_KEY` 实测。若成功，它不能替代浏览器端的 JS Key 与安全密钥
+- 新高德 Key 已经通过 `/v3/place/text` 真实验证，确定是可用的 Web 服务 Key；浏览器地图仍需独立的 JS API Key 与安全密钥
+- 复用的 OSS 配置可通过 ali-oss `list(max-keys=1)`，证明 region、Bucket 与 Access Key 组合有效
+- AI 网关对给定模型返回 `Model.AccessDenied`；该错误来自业务网关而非 DNS/TLS/404，优先排查 Key 对模型的授权或实际模型标识
+- 同级 `hopportunity-agent` 目录只有 Compose 与环境文件，没有可参考的 AI 网关客户端代码或额外鉴权头配置
+- 阿里云官方 2026-09 文档确认 `qwen3.8-flash` 是有效模型 ID，并支持文本、视觉与 Function Calling；因此当前 403 不是模型名拼写问题，更可能是这枚网关 Key 未获该模型/路由授权（https://help.aliyun.com/en/model-studio/qwen3-8-flash）
+- 企业网关的 API 根路径不提供 `/models`（HTTP 404），无法通过模型列表自动发现该 Key 可用的替代模型
+- OSS Bucket 是私有读：ali-oss 凭据可 list/put/get/delete，但公开域名对新对象返回 403；yukiTrace 当前 `imageUrl()` 在 OSS 模式下直接拼公开 URL，与“私有 bucket 则签名 URL”的注释不一致，需通过受鉴权的 `/api/files` 代理或签名 URL修正
+- `/api/files` 原实现对登录用户只验证 JWT 存在，未验证用户对 `trips/{tripId}/...` 的旅程权限；启用私有 OSS 代理前必须补充 owner/member 查询，否则多用户之间存在越权读取风险
+- `qwen3.7-plus` 在当前企业网关与 Key 下可用：普通 Chat Completions、16×16 图片理解、自动 Function Calling 均实测 HTTP 200；已同时配置为文本和视觉模型
+- 该模型的 thinking mode 不接受将 `tool_choice` 强制设为 object/required，但项目当前使用的自动工具选择能正常返回 `tool_calls`
+- 当前生产仅有 1 用户、1 旅程和约 8 MB 数据库，容量不是近期瓶颈；更急迫的是 HTTP、无备份、公开注册无限流、无测试/CI/监控
+- 数据模型已有 `TripMember` 与 OWNER/EDITOR/VIEWER，但业务层没有成员邀请、加入和角色管理流程；README 中的“多用户与权限”更准确地说是底层已具备、产品流程待补
+- PWA 当前是读缓存，没有离线写入队列、冲突处理和恢复同步；旅行场景的网络不稳定，这是产品差异化价值最高的扩展之一
+
 ## 资源
 - 服务器：101.37.37.200（阿里云 ECS，Alibaba Cloud Linux 8），目录 /root/docker-compose/yukiTrace
 - 高德开放平台：https://lbs.amap.com/

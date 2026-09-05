@@ -51,6 +51,34 @@
 - 发布后 `mes-ui` 的 `nginx -t` 通过；服务器 Host 头 `/login` 200，本机绕过代理直连 `trace.aiyuki.cc` 根路径 307、登录页 200
 - 生产返回的 192px 图标 SHA-256 与本地一致（`358e44c4…321c`），确认新 Logo 已进入生产镜像
 
+### 阶段 8：生产第三方服务配置
+- **状态：** complete
+- 用户提供 AI 网关、模型名与新的高德 Key，并授权参考服务器同级 `hopportunity-agent/.env` 配置 OSS
+- yukiTrace 当前 AI、高德和 OSS 关键凭据均为空；OSS 仅有默认 region，未实际启用
+- 同级配置文件位于 `/root/docker-compose/hopportunity-agent/.env`，包含完整的 OSS Endpoint、Access Key、Secret、Bucket 与公开访问域名
+- 本项目 `@ai-sdk/openai-compatible` 会自动在 `baseURL` 后追加 `/chat/completions`，因此生产 `AI_BASE_URL` 应填写用户地址去掉该尾路径后的 API 根地址
+- hopportunity-agent 的 OSS endpoint 表明地域为 `oss-cn-shanghai`；其公开图片域名可映射到本项目的 `OSS_PUBLIC_BASE_URL`
+- 首次远程更新脚本因服务器旧 Python 不支持 `dict[str, str]` 而在任何写入前退出；随后独立的容器重建仍执行，但只加载了原有空配置，不影响现有服务与数据
+- 兼容脚本成功备份生产 `.env` 到 `.env.bak-services-20260905-101528`，写入 AI、OSS 与高德服务端配置，并保持文件权限 `600 root:root`
+- 应用容器已重建；配置项状态检查全部非空（前端高德 JS Key/安全密钥按设计保持为空）
+- 真实测试：高德 POI API 返回 HTTP 200、`status=1 / OK`；OSS Bucket list 返回 200；应用 3100 与 nginx Host 登录页均返回 200
+- AI 网关最小对话已到达服务端，但返回 HTTP 403 `Model.AccessDenied`；需要继续确认模型授权或网关调用约定
+- OSS 完整探针已验证 SDK 写入与读取成功，临时对象清理成功；但经参考项目公开域名读取返回 403，不能直接把该域名用于 yukiTrace 图片 URL
+- 检查确认 `/api/files/[...key]` 已支持登录会话、分享 token、OSS `getObject` 与 sharp 缩略图；决定修正 `imageUrl()`，让私有 OSS 在未配置公开域名时复用该鉴权代理
+- 私有 OSS 修复通过本地 typecheck/lint/build，已构建并部署新 amd64 镜像；生产 `OSS_PUBLIC_BASE_URL` 已清空，应用与数据库容器正常
+- 首次私有代理探针因 standalone 镜像无法直接动态导入 `jose` 而中断，临时对象仍成功清理；将改用原生 HMAC 生成等价短期会话重试
+- 改用 Node 原生 HMAC 后，私有 OSS 经生产 `/api/files` 鉴权代理返回 `200 image/webp`，缩略图数据有效，临时对象清理成功
+- 复核发现文件路由原先只验证“存在登录会话”，未验证用户是否属于对象路径对应的旅程；私有 OSS 依赖代理后风险更高，已补充 Owner/Member 访问校验
+- 用户要求将生产文本/视觉模型改为 `qwen3.7-plus`；已备份 `.env`、重建应用，普通对话、16×16 图片理解、自动 Function Calling 均返回 HTTP 200
+- 重新部署私有 OSS 权限补丁；线上代理验证 owner=200/image/webp、其他登录用户=403、未登录=401，临时探针对象已删除
+
+### 阶段 9：只读项目评估
+- **状态：** complete（未实施新优化代码）
+- 代码与生产环境检查：功能面已覆盖时间线、地图、账本、照片、宝宝记录、AI、分享、导出与 PWA
+- 生产匿名数据量：1 用户、1 旅程，尚无站点/条目/花费/照片；数据库约 8 MB，应用/数据库内存约 60/36 MiB，当前容量充足
+- 高优先级生产缺口：HTTPS、数据库备份、限流与收紧公开注册、自动化测试/CI、监控告警
+- 高价值产品拓展：离线写入与恢复同步、真正的成员邀请/角色管理、全量 JSON/ZIP/PDF 导出、跨旅程家庭成长回顾
+
 ### 阶段 0：需求与规划
 - **状态：** in_progress（规划文件已建，待用户确认）
 - **开始时间：** 2026-09-05
@@ -190,15 +218,17 @@
 | 服务器部署 | compose up (amd64) | 同上 | migrate 成功；本机 curl /login 200 | ✅ |
 | 公网访问 http://101.37.37.200:3100 | 本机 curl | 200 | 无法判定（本机代理劫持）；推断安全组未放行 | ⏳ |
 | 长图生成 / 离线 SW 行为 | 浏览器 | 下载 PNG / 离线可看 | 未测（无浏览器） | ⏳ |
-| 真实模型对话质量 | 真实 API Key | 合理拆解与工具选择 | 未测（无 Key） | ⏳ |
+| 真实模型对话/视觉/工具 | `qwen3.7-plus` | 普通对话、图片理解、自动工具调用成功 | 三项均 HTTP 200 | ✅ |
 | 高德真实地图渲染 / 回放动画 | 浏览器 + Key | 显示地图 | 未测（无 Key、无浏览器），降级 SVG 已验证 | ⏳ |
-| 高德 Web 服务 Key | 容器内直接请求 POI API | status=1 | `INVALID_USER_KEY (10001)` | ❌ |
+| 高德 Web 服务 Key | 容器内直接请求 POI API | status=1 | status=1 / info=OK | ✅ |
+| 私有 OSS 文件权限 | owner / 其他用户 / 匿名 | 200 / 403 / 401 | 200 / 403 / 401，探针已删除 | ✅ |
 | 注册/登录 Server Action 端到端 | 浏览器 | 成功登录 | 未测（无浏览器，curl 无法直接调用 useActionState 表单） | ⏳ |
 
 ## 错误日志
 | 时间戳 | 错误 | 尝试次数 | 解决方案 |
 |--------|------|---------|---------|
-|        |      |         |         |
+| 2026-09-05 | `qwen3.7-plus` 1×1 图片测试不满足模型尺寸限制 | 1 | 改用 16×16 图片后返回 200，识别为白色 |
+| 2026-09-05 | thinking mode 拒绝 object 形式的强制 `tool_choice` | 1 | 按项目实际用法改测自动选择，正常返回 `tool_calls` |
 
 ## 五问重启检查
 | 问题 | 答案 |

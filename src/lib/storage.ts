@@ -63,17 +63,14 @@ export async function deleteObject(key: string): Promise<void> {
 
 /**
  * 图片访问 URL。
- * - OSS：公共读 bucket 直接拼 URL，并用图片处理参数生成缩略图；
- *        私有 bucket 则签名 URL。
- * - local：走 /api/files/[...key] 路由，宽度参数由路由用 sharp 处理。
+ * - 公共 OSS：配置 OSS_PUBLIC_BASE_URL 后直接拼 URL，并使用 OSS 图片处理。
+ * - 私有 OSS / local：走 /api/files/[...key]，由服务端鉴权读取并用 sharp 缩略。
  */
 export function imageUrl(key: string, opts: { w?: number; q?: number } = {}): string {
-  if (storageMode() === "oss") {
-    const base =
-      process.env.OSS_PUBLIC_BASE_URL?.replace(/\/$/, "") ??
-      `https://${process.env.OSS_BUCKET}.${process.env.OSS_REGION}.aliyuncs.com`;
+  const publicBase = process.env.OSS_PUBLIC_BASE_URL?.replace(/\/$/, "");
+  if (storageMode() === "oss" && publicBase) {
     const process_ = opts.w ? `?x-oss-process=image/resize,w_${opts.w}/quality,q_${opts.q ?? 80}/format,webp` : "";
-    return `${base}/${key}${process_}`;
+    return `${publicBase}/${key}${process_}`;
   }
   const q = new URLSearchParams();
   if (opts.w) q.set("w", String(opts.w));

@@ -82,7 +82,7 @@ pnpm build
 | 站点 | `APP_URL`、`APP_PORT` | 对外地址与 Compose 映射端口 |
 | 认证 | `AUTH_SECRET`、`ALLOW_SIGNUP` | 会话签名密钥与公开注册开关 |
 | 高德地图 | `NEXT_PUBLIC_AMAP_JS_KEY`、`NEXT_PUBLIC_AMAP_SECURITY_CODE`、`AMAP_WEB_SERVICE_KEY` | 浏览器地图与服务端路径/天气/POI 查询 |
-| 对象存储 | `OSS_REGION`、`OSS_BUCKET`、`OSS_ACCESS_KEY_ID`、`OSS_ACCESS_KEY_SECRET` | 图片存储；留空时使用本地 Volume |
+| 对象存储 | `OSS_REGION`、`OSS_BUCKET`、`OSS_ACCESS_KEY_ID`、`OSS_ACCESS_KEY_SECRET` | 图片存储；凭据留空时使用本地 Volume。私有 Bucket 的 `OSS_PUBLIC_BASE_URL` 应留空，由应用鉴权代理读取 |
 | AI | `AI_BASE_URL`、`AI_API_KEY`、`AI_MODEL`、`AI_VISION_MODEL` | OpenAI 兼容文本与视觉模型 |
 
 不要提交真实 `.env`、访问密钥或生产数据库口令。

@@ -10,13 +10,23 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/files/[...ke
   const { key } = await ctx.params;
   const objectKey = key.join("/");
   if (objectKey.includes("..")) return new NextResponse("bad key", { status: 400 });
+  const tripId = objectKey.match(/^trips\/([^/]+)\//)?.[1];
+  if (!tripId) return new NextResponse("bad key", { status: 400 });
 
   const session = await getSession();
-  if (!session?.userId) {
+  if (session?.userId) {
+    const trip = await db.trip.findFirst({
+      where: {
+        id: tripId,
+        OR: [{ ownerId: session.userId }, { members: { some: { userId: session.userId } } }],
+      },
+      select: { id: true },
+    });
+    if (!trip) return new NextResponse("forbidden", { status: 403 });
+  } else {
     // 分享链接访问：token 必须对应该文件所属旅程
     const t = req.nextUrl.searchParams.get("t");
-    const tripId = objectKey.match(/^trips\/([^/]+)\//)?.[1];
-    const link = t && tripId ? await db.shareLink.findUnique({ where: { token: t }, select: { tripId: true, expiresAt: true } }) : null;
+    const link = t ? await db.shareLink.findUnique({ where: { token: t }, select: { tripId: true, expiresAt: true } }) : null;
     if (!link || link.tripId !== tripId || (link.expiresAt && link.expiresAt < new Date())) return new NextResponse("unauthorized", { status: 401 });
   }
 
