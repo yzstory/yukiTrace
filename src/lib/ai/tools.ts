@@ -6,15 +6,37 @@ import { searchPoi, amapConfigured } from "@/lib/amap";
 import { CURRENCIES, toMinor, convertMinor, formatMoney } from "@/lib/currency";
 import { getRate } from "@/app/(app)/trips/[tripId]/actions";
 import { EntryType, ExpenseCategory, StopType } from "@/generated/prisma/enums";
-import { fmt } from "@/lib/date";
+import { fmt, parseInTz } from "@/lib/date";
 import { revalidatePath } from "next/cache";
 
 /**
  * 给 AI 的工具集，全部限定在一个 tripId 内，由调用方鉴权后传入。
  * 工具返回值尽量是简短、可读的对象，方便模型复述。
  */
-export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: string; now: Date; canEdit: boolean; timezone: string }) {
+/**
+ * 解析模型给出的时间。模型常见的两个错误：
+ *  a) 没写时区偏移 → 按旅程时区解析，而不是让 JS 当成 UTC；
+ *  b) 年份写错（照抄时刻却猜年份）→ 若落在旅程日期范围之外，把年份纠正到旅程所在年份；
+ *     若仍越界且「现在」在旅程期间内，则直接用现在。
+ */
+export function parseAiTime(raw: string | undefined, ctx: { now: Date; tz: string; start: Date; end: Date }): Date {
+  const { now, tz, start, end } = ctx;
+  const inRange = (d: Date) => d.getTime() >= start.getTime() - 86400_000 && d.getTime() <= end.getTime() + 2 * 86400_000;
+  if (!raw) return now;
+  const hasOffset = /(Z|[+-]\d{2}:?\d{2})$/i.test(raw);
+  const d = hasOffset ? new Date(raw) : parseInTz(raw.replace(" ", "T").slice(0, 16), tz);
+  if (Number.isNaN(d.getTime())) return now;
+  if (inRange(d)) return d;
+  // 年份纠正：保留月日时分，年份改成旅程开始年
+  const local = fmt.inputDateTime(d, tz); // yyyy-MM-ddTHH:mm
+  const fixed = parseInTz(`${fmt.inputDate(start, tz).slice(0, 4)}${local.slice(4)}`, tz);
+  if (inRange(fixed)) return fixed;
+  return inRange(now) ? now : d;
+}
+
+export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: string; now: Date; canEdit: boolean; timezone: string; startDate: Date; endDate: Date }) {
   const { tripId, userId, homeCurrency, timezone: tz } = ctx;
+  const timeCtx = { now: ctx.now, tz, start: ctx.startDate, end: ctx.endDate };
 
   const readTools = {
     listStops: tool({
@@ -96,7 +118,7 @@ export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: s
 
   const writeTools = {
     createStop: tool({
-      description: "创建一个站点。必须有坐标（先用 searchPlace 拿到 lat/lng）。arriveAt 用 ISO 时间；不确定时间就用当前时间。",
+      description: "创建一个站点。必须有坐标（先用 searchPlace 拿到 lat/lng）。arriveAt 用旅程时区的本地时间 YYYY-MM-DDTHH:mm（带完整年份，不加时区偏移）；不确定时间就用系统提示里的当前时间。",
       inputSchema: z.object({
         name: z.string(),
         lat: z.number(),
@@ -109,7 +131,7 @@ export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: s
       }),
       execute: async (input) => {
         const count = await db.stop.count({ where: { tripId } });
-        const s = await db.stop.create({ data: { tripId, ...input, arriveAt: new Date(input.arriveAt), order: count } });
+        const s = await db.stop.create({ data: { tripId, ...input, arriveAt: parseAiTime(input.arriveAt, timeCtx), order: count } });
         revalidatePath(`/trips/${tripId}`);
         return { id: s.id, name: s.name, arriveAt: fmt.dateTime(s.arriveAt, tz) };
       },
@@ -134,14 +156,15 @@ export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: s
           .optional(),
       }),
       execute: async (input) => {
+        const startAt = parseAiTime(input.startAt, timeCtx);
         const entry = await db.entry.create({
-          data: { tripId, type: input.type, title: input.title, startAt: new Date(input.startAt), endAt: input.endAt ? new Date(input.endAt) : null, stopId: input.stopId ?? null, note: input.note ?? null, meta: input.meta ?? undefined },
+          data: { tripId, type: input.type, title: input.title, startAt, endAt: input.endAt ? parseAiTime(input.endAt, timeCtx) : null, stopId: input.stopId ?? null, note: input.note ?? null, meta: input.meta ?? undefined },
         });
         let expenseText: string | null = null;
         if (input.expense) {
           const cur = CURRENCIES.some((c) => c.code === input.expense!.currency) ? input.expense.currency : homeCurrency;
           const amountMinor = toMinor(input.expense.amount, cur);
-          const rate = await getRate(cur, homeCurrency, new Date(input.startAt));
+          const rate = await getRate(cur, homeCurrency, startAt);
           const defaultCat: Record<EntryType, ExpenseCategory> = { FLIGHT: "TRANSPORT", CAR_RENTAL: "TRANSPORT", TRAIN: "TRANSPORT", TAXI: "TRANSPORT", HOTEL: "ACCOMMODATION", MEAL: "FOOD", ACTIVITY: "ACTIVITY", SHOPPING: "SHOPPING", MOMENT: "OTHER" };
           const e = await db.expense.create({
             data: {
@@ -152,12 +175,12 @@ export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: s
               amountMinor,
               currency: cur,
               amountHomeMinor: convertMinor(amountMinor, cur, homeCurrency, rate),
-              amountCnyMinor: convertMinor(amountMinor, cur, "CNY", cur === "CNY" ? 1 : await getRate(cur, "CNY", new Date(input.startAt))),
+              amountCnyMinor: convertMinor(amountMinor, cur, "CNY", cur === "CNY" ? 1 : await getRate(cur, "CNY", startAt)),
               rate,
               category: input.expense.isBaby ? "BABY" : (input.expense.category ?? defaultCat[input.type]),
               isBaby: input.expense.isBaby,
               title: input.title,
-              paidAt: new Date(input.startAt),
+              paidAt: startAt,
             },
           });
           expenseText = `${formatMoney(e.amountMinor, e.currency, { showCode: true })} ≈ ${formatMoney(e.amountHomeMinor, homeCurrency)}`;
@@ -181,7 +204,7 @@ export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: s
       execute: async (input) => {
         const cur = CURRENCIES.some((c) => c.code === input.currency) ? input.currency : homeCurrency;
         const amountMinor = toMinor(input.amount, cur);
-        const paidAt = new Date(input.paidAt);
+        const paidAt = parseAiTime(input.paidAt, timeCtx);
         const rate = await getRate(cur, homeCurrency, paidAt);
         const e = await db.expense.create({
           data: {
@@ -209,7 +232,7 @@ export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: s
       description: "记录宝宝状态：喂奶 FEED / 换尿布 DIAPER / 入睡 SLEEP / 醒来 WAKE / 吃药 MEDICINE / 其他 OTHER。",
       inputSchema: z.object({ type: z.enum(["FEED", "DIAPER", "SLEEP", "WAKE", "MEDICINE", "OTHER"]), at: z.string().describe("ISO 8601"), note: z.string().optional() }),
       execute: async ({ type, at, note }) => {
-        const l = await db.babyLog.create({ data: { tripId, type, at: new Date(at), note: note ?? null } });
+        const l = await db.babyLog.create({ data: { tripId, type, at: parseAiTime(at, timeCtx), note: note ?? null } });
         revalidatePath(`/trips/${tripId}`);
         return { id: l.id, type: l.type, at: fmt.dateTime(l.at, tz) };
       },
@@ -231,7 +254,7 @@ export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: s
 
 export function systemPrompt(ctx: { tripTitle: string; homeCurrency: string; now: Date; babyName: string | null; babyAge: string | null; timezone: string }) {
   return `你是「Trace」的旅行记录助手，帮一家人在带宝宝旅行时以最低成本记录行程与花费。
-当前旅程：${ctx.tripTitle}。主币种：${ctx.homeCurrency}。现在时间：${fmt.dateTime(ctx.now, ctx.timezone)}（${ctx.timezone}）。写入时间时请使用该时区的本地时间。
+当前旅程：${ctx.tripTitle}。主币种：${ctx.homeCurrency}。现在时间：${fmt.dateFull(ctx.now, ctx.timezone)} ${fmt.time(ctx.now, ctx.timezone)}（${ctx.timezone}）。**今年是 ${fmt.inputDate(ctx.now, ctx.timezone).slice(0, 4)} 年**，写入任何时间都必须带完整年份且使用这一年，格式如 ${fmt.inputDateTime(ctx.now, ctx.timezone)}（该时区本地时间，不要加 Z 或时区偏移）。
 ${ctx.babyName ? `宝宝：${ctx.babyName}${ctx.babyAge ? `，现在 ${ctx.babyAge}` : ""}。` : ""}
 
 原则：

@@ -27,7 +27,7 @@ export async function onThisDay(userId: string, now = new Date()): Promise<OnThi
       arriveAt: { lt: new Date(thisYear, month, date) },
     },
     include: {
-      trip: { select: { id: true, title: true, babyName: true, babyBirthDate: true } },
+      trip: { select: { id: true, title: true, babyName: true, babyBirthDate: true, startDate: true, endDate: true } },
       photos: { where: { NOT: { aiTags: { has: "document" } } }, orderBy: [{ aiScore: "desc" }, { takenAt: "asc" }], take: 1, select: { ossKey: true, aiCaption: true, caption: true } },
     },
   });
@@ -36,6 +36,8 @@ export async function onThisDay(userId: string, now = new Date()): Promise<OnThi
   for (const s of stops) {
     const d = new Date(s.arriveAt);
     if (d.getMonth() !== month || d.getDate() !== date) continue;
+    // 站点时间必须落在所属旅程的日期范围内，否则视为脏数据不展示
+    if (d.getTime() < s.trip.startDate.getTime() - 86400_000 || d.getTime() > s.trip.endDate.getTime() + 2 * 86400_000) continue;
     const year = d.getFullYear();
     const existing = byYear.get(year);
     // 优先保留有照片的那一站

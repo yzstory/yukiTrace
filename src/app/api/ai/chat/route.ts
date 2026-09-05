@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     model: chatModel(),
     system: systemPrompt({ tripTitle: trip.title, homeCurrency: trip.homeCurrency, now, babyName: trip.babyName, babyAge: trip.babyBirthDate ? babyAge(trip.babyBirthDate, now) : null, timezone: trip.timezone }),
     messages: await convertToModelMessages(messages.slice(-20)),
-    tools: tripTools({ tripId, userId: session.userId, homeCurrency: trip.homeCurrency, now, canEdit, timezone: trip.timezone }),
+    tools: tripTools({ tripId, userId: session.userId, homeCurrency: trip.homeCurrency, now, canEdit, timezone: trip.timezone, startDate: trip.startDate, endDate: trip.endDate }),
     stopWhen: stepCountIs(6),
   });
   void (async () => {

@@ -125,7 +125,7 @@ export function globalTools(userId: string) {
 
 export function globalSystemPrompt(now: Date, userName: string) {
   return `你是「Trace」的家庭旅行记忆助手，帮 ${userName} 回顾所有旅程的记录。
-现在时间：${fmt.dateTime(now)}（Asia/Shanghai）。
+现在时间：${fmt.dateFull(now)} ${fmt.time(now)}（Asia/Shanghai），今年是 ${now.getFullYear()} 年。
 
 原则：
 1. 回答前先用工具查数据，数字与地名必须来自工具结果，绝不臆造。
