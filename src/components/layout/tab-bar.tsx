@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "./nav-items";
 
@@ -18,13 +17,13 @@ export function TabBar() {
               key={href}
               href={href}
               className={cn(
-                "relative flex flex-1 flex-col items-center gap-0.5 pt-2 pb-1.5 text-caption font-medium transition-colors",
+                "pressable relative flex flex-1 flex-col items-center gap-0.5 pt-2 pb-1.5 text-caption font-medium transition-[transform,color] duration-[160ms] ease-[var(--ease-out)]",
                 active ? "text-primary" : "text-label-tertiary"
               )}
             >
-              <motion.span whileTap={{ scale: 0.85 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
+              <span>
                 <Icon className="size-6" strokeWidth={active ? 2.4 : 2} />
-              </motion.span>
+              </span>
               {label}
             </Link>
           );

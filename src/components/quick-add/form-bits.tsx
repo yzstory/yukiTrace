@@ -66,7 +66,7 @@ export function Segmented<T extends string>({
           type="button"
           onClick={() => onChange(o.value)}
           className={cn(
-            "flex-1 rounded-lg py-1.5 text-subhead font-medium transition-all",
+            "pressable flex-1 rounded-lg py-1.5 text-subhead font-medium transition-[transform,background-color,color,box-shadow] duration-[160ms] ease-[var(--ease-out)]",
             value === o.value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
           )}
         >

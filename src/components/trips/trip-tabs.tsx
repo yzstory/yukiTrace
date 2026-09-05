@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 
 export function TripTabs({ tripId }: { tripId: string }) {
@@ -18,9 +17,8 @@ export function TripTabs({ tripId }: { tripId: string }) {
       {tabs.map((t) => {
         const active = pathname === t.href;
         return (
-          <Link key={t.href} href={t.href} className={cn("relative flex-1 rounded-lg py-1.5 text-center text-subhead font-medium transition-colors", active ? "text-foreground" : "text-muted-foreground")}>
-            {active && <motion.span layoutId="trip-tab" className="absolute inset-0 rounded-lg bg-card shadow-sm" transition={{ type: "spring", stiffness: 500, damping: 40 }} />}
-            <span className="relative">{t.label}</span>
+          <Link key={t.href} href={t.href} className={cn("pressable flex-1 rounded-lg py-1.5 text-center text-subhead font-medium transition-[transform,background-color,color,box-shadow] duration-[160ms] ease-[var(--ease-out)]", active ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}>
+            {t.label}
           </Link>
         );
       })}

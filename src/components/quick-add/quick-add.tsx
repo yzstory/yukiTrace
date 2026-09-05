@@ -36,17 +36,14 @@ export function QuickAdd({ tripId, stops, homeCurrency, tripStart, tripEnd }: { 
 
   return (
     <>
-      <motion.button
+      <button
         type="button"
         onClick={() => setOpen(true)}
-        whileTap={{ scale: 0.9 }}
-        whileHover={{ scale: 1.05 }}
-        transition={{ type: "spring", stiffness: 400, damping: 25 }}
         aria-label="快速记录"
-        className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-5 z-30 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground float-shadow md:bottom-8 md:right-8"
+        className="pressable float-action fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-5 z-30 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground float-shadow md:bottom-8 md:right-8"
       >
         <Plus className="size-7" strokeWidth={2.4} />
-      </motion.button>
+      </button>
 
       <Drawer open={open} onOpenChange={(o) => (o ? setOpen(true) : close())} repositionInputs={false}>
         <DrawerContent className="max-h-[92dvh] rounded-t-3xl bg-background">
@@ -63,10 +60,10 @@ export function QuickAdd({ tripId, stops, homeCurrency, tripStart, tripEnd }: { 
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={JSON.stringify(mode)}
-                initial={{ opacity: 0, x: mode.kind === "menu" ? -16 : 16 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: mode.kind === "menu" ? 16 : -16 }}
-                transition={{ duration: 0.18, ease: [0.32, 0.72, 0, 1] }}
+                initial={{ opacity: 0, transform: `translateX(${mode.kind === "menu" ? -16 : 16}px)` }}
+                animate={{ opacity: 1, transform: "translateX(0px)" }}
+                exit={{ opacity: 0, transform: `translateX(${mode.kind === "menu" ? 16 : -16}px)` }}
+                transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
               >
                 {mode.kind === "menu" && <Menu onPick={setMode} />}
                 {mode.kind === "stop" && <StopForm tripId={tripId} defaultTime={defaultTime} onDone={close} />}
@@ -116,17 +113,15 @@ function Menu({ onPick }: { onPick: (m: Mode) => void }) {
 
 function Tile({ label, icon: Icon, color, bg, onClick, big }: { label: string; icon: typeof MapPin; color: string; bg: string; onClick: () => void; big?: boolean }) {
   return (
-    <motion.button
+    <button
       type="button"
       onClick={onClick}
-      whileTap={{ scale: 0.93 }}
-      transition={{ type: "spring", stiffness: 500, damping: 30 }}
-      className={cn("flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-card card-shadow", big ? "py-5" : "py-3")}
+      className={cn("pressable flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-card card-shadow", big ? "py-5" : "py-3")}
     >
       <span className={cn("flex items-center justify-center rounded-xl", bg, color, big ? "size-12" : "size-10")}>
         <Icon className={big ? "size-6" : "size-5"} strokeWidth={2.2} />
       </span>
       <span className={cn("font-medium", big ? "text-callout" : "text-caption")}>{label}</span>
-    </motion.button>
+    </button>
   );
 }

@@ -184,7 +184,13 @@ export function SummarySlides({ data }: { data: SummaryData }) {
       </div>
       <div ref={ref} className="flex flex-col gap-3 bg-[#0d0d0d] p-3 md:rounded-3xl">
         {slides.map((s, i) => (
-          <motion.div key={i} initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ type: "spring", stiffness: 200, damping: 28 }}>
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, transform: "translateY(12px)" }}
+            whileInView={{ opacity: 1, transform: "translateY(0px)" }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+          >
             {s}
           </motion.div>
         ))}

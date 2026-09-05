@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Toaster } from "@/components/ui/sonner";
 import { RegisterSW } from "@/components/pwa/register-sw";
+import { MotionProvider } from "@/components/motion/motion-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -27,9 +28,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="zh-CN" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
-        {children}
-        <Toaster position="top-center" />
-        <RegisterSW />
+        <MotionProvider>
+          {children}
+          <Toaster position="top-center" />
+          <RegisterSW />
+        </MotionProvider>
       </body>
     </html>
   );

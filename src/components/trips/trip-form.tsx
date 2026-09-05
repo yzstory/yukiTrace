@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState } from "react";
-import { motion } from "motion/react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,11 +34,8 @@ export function TripForm({
   const today = fmt.inputDate(new Date());
 
   return (
-    <motion.form
+    <form
       action={formAction}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ type: "spring", stiffness: 300, damping: 30 }}
       className="flex flex-col gap-5"
     >
       <Section title="基本信息">
@@ -103,7 +99,7 @@ export function TripForm({
       <Button type="submit" disabled={pending} className="h-12 w-full rounded-xl text-body font-semibold">
         {pending ? <Loader2 className="size-5 animate-spin" /> : submitLabel}
       </Button>
-    </motion.form>
+    </form>
   );
 }
 

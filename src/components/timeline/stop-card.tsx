@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "motion/react";
 import { MapPin, Baby, CloudSun } from "lucide-react";
 import { STOP_TYPES, BABY_TAGS } from "@/lib/entry-types";
 import { fmt, babyAge } from "@/lib/date";
@@ -14,17 +13,12 @@ import { EditDrawer } from "./edit-drawer";
 import { StopForm } from "@/components/quick-add/stop-form";
 import type { TStop, TTrip } from "./types";
 
-export function StopCard({ stop, trip, index, stopOptions = [] }: { stop: TStop; trip: TTrip; index: number; stopOptions?: Array<{ id: string; name: string; arriveAt: Date }> }) {
+export function StopCard({ stop, trip, stopOptions = [] }: { stop: TStop; trip: TTrip; index: number; stopOptions?: Array<{ id: string; name: string; arriveAt: Date }> }) {
   const cfg = STOP_TYPES[stop.type];
   const Icon = cfg.icon;
   const [editing, setEditing] = useState(false);
   return (
-    <motion.article
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ type: "spring", stiffness: 300, damping: 30, delay: Math.min(index, 6) * 0.04 }}
-      className="relative rounded-2xl bg-card p-4 card-shadow"
-    >
+    <article className="relative rounded-2xl bg-card p-4 card-shadow">
       <div className="flex items-start gap-3">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
           <Icon className="size-5" strokeWidth={2.2} />
@@ -89,6 +83,6 @@ export function StopCard({ stop, trip, index, stopOptions = [] }: { stop: TStop;
           <StopForm tripId={trip.id} defaultTime={stop.arriveAt} initial={stop} onDone={() => setEditing(false)} />
         </EditDrawer>
       )}
-    </motion.article>
+    </article>
   );
 }

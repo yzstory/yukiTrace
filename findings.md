@@ -78,11 +78,29 @@ ShareLink(id, tripId, token, hideExpense, expiresAt)
 - 公网 3100 端口 curl 超时 → 阿里云安全组很可能未放行，需要用户在控制台放行 TCP 3100
 - 本次接续核查时 `yukitrace-app` 为 Up、`yukitrace-pg` 为 healthy，服务器本机 `http://127.0.0.1:3100/login` 返回 200；应用本身与容器内链路正常，剩余问题集中在公网入口/安全组/反向代理
 - 服务器高德、OSS、AI 环境变量均已有非空值，容器也已重启加载；但容器内直接请求高德 POI API 返回 `INVALID_USER_KEY (10001)`，需替换为有效的“Web 服务”Key。OSS 与 AI 仅确认已配置，尚未做真实调用验证
+- 边缘 nginx 实际属于 `/root/docker-compose/mes-demo` 的 `mes-ui` 容器，不存在 `/root/docker-compose/kmj-mes`；配置文件为 `nginx/default.conf`，只读挂载到容器 `/etc/nginx/conf.d/default.conf`
+- `mes-ui` 与 yukiTrace 分属不同 Compose 网络；现有 `agent.aiyuki.cc` 通过宿主机内网地址访问另一栈的已发布端口，因此 `trace.aiyuki.cc` 可沿用同一模式回源宿主机 3100
+- nginx 单文件 bind mount 若通过 `install`/原子替换改变宿主文件 inode，运行中容器不会自动看到新文件；需重建容器重新挂载，或未来采用保持 inode 的原地写入方式
+- `agent.aiyuki.cc` 当前 502 的直接原因是宿主机 8000 无监听、agent 容器未运行；其 nginx 配置未被本次变更修改
+- `trace.aiyuki.cc` HTTP 反代已在 `mes-ui` 生效，回源 `172.26.42.141:3100`；根路径 307 到登录页、登录页 200
+- yukiTrace 生产 `APP_URL` 已改为 `http://trace.aiyuki.cc` 并重建 app 容器；公网无需开放 3100，只需 DNS A 记录指向 101.37.37.200 后走 80
 
 ## 版本库现状（2026-09-05）
-- 工作区无未提交改动；阶段 1—6 均有独立提交记录
-- 当前 HEAD：`e316650 docs: 阶段 6 部署记录与待办`
-- `main` 显示 `origin/main [gone]`，继续协作前应确认或重新配置 Git 远端跟踪分支
+- 阶段 1—6 均有提交记录；阶段 7 开始前 HEAD 为 `b663c17`
+- `origin` 为 `git@github.com:yzstory/yukiTrace.git`，本地 `main` 正常跟踪 `origin/main`
+
+## Emil Kowalski skills（外部仓库）
+- `emilkowalski/skills` 是公开的设计与工程 skill 集合，不是单一 skill
+- 仓库包含 12 个：`animate-expo`、`animate`、`animation-vocabulary`、`apple-design`、`ask-sonner`、`emil-design-eng`、`find-animation-opportunities`、`improve-animations`、`pick-ui-library`、`prototype`、`review-animations`、`write-swift`；已全部安装到 `~/.codex/skills`
+- 当前 Next.js Web 项目优先采用 `emil-design-eng`、`apple-design`、`animate`、`find-animation-opportunities`、`improve-animations`、`review-animations`；Expo/Swift 规则不适用
+- 适用于本项目的核心规则：高频导航只做极轻反馈或不动画；按钮按下用 100–160ms、`scale(0.97)`；UI 入场/退出用强 `ease-out` 且通常小于 300ms；只动画 transform/opacity（必要时 clip-path）；避免 `transition: all`、`scale(0)`、Motion `x/y/width`；弹层从触发点/自身路径出现；动效必须附带 reduced-motion 与 hover pointer gating
+
+## 阶段 7 设计结论
+- 最值得保留的动效是快捷记录内部层级切换、AI 新消息、灯箱和总结卡片滚动揭示，它们都在解释对象的出现或空间关系
+- 底部导航、桌面侧栏、旅程四 Tab、时间线站点和账本数据属于高频或数据密集界面，静态状态比弹簧过渡更清晰、更快
+- Motion 13 的 `MotionConfig` 类型明确支持 `reducedMotion: "always" | "never" | "user"`；根布局采用 `user` 后，CSS 仍需覆盖非 Motion 的 transition、animation 与玻璃材质
+- 最终 Logo 必须为全幅方形底图，让 iOS/Android/PWA 自己应用蒙版；预先绘制圆角会在不同蒙版下露出四角底色
+- 当前自动化环境没有可用 CUA 浏览器；页面视觉走查受限，但生产构建和 HTTP 资源链路可验证，Logo 可通过原图与 192px 资源单独检查
 
 ## 资源
 - 服务器：101.37.37.200（阿里云 ECS，Alibaba Cloud Linux 8），目录 /root/docker-compose/yukiTrace
@@ -92,7 +110,7 @@ ShareLink(id, tripId, token, hideExpense, expiresAt)
 - Auth.js：https://authjs.dev/
 
 ## 视觉/浏览器发现
--
+- 第一版生成 Logo 在 192px 下留白过多；第二版主体比例合格但预绘圆角外有黑角；第三版改为全幅渐变方形，192px 下脚印、路线和目的地图钉均保持清晰
 
 ---
 *每执行2次查看/浏览器/搜索操作后更新此文件*

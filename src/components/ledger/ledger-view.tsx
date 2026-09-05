@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { motion } from "motion/react";
 import { Baby, Trash2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { toast } from "sonner";
@@ -85,7 +84,7 @@ export function LedgerView({
   return (
     <div className="flex flex-col gap-5">
       {/* 英雄数字 */}
-      <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-3xl bg-card p-5 card-shadow">
+      <section className="rounded-3xl bg-card p-5 card-shadow">
         <p className="text-footnote font-medium text-muted-foreground">{cat || babyOnly ? "筛选后合计" : "总花费"}</p>
         <p className="mt-1 text-[2.5rem] font-bold leading-none tracking-tight">{formatMoney(total, homeCurrency)}</p>
         {byCurrency.length > 0 && (
@@ -96,7 +95,7 @@ export function LedgerView({
           <Kpi label="宝宝相关" value={formatMoney(babyTotal, homeCurrency, { compact: true })} sub={totalAll ? `${Math.round((babyTotal / totalAll) * 100)}%` : undefined} />
           <Kpi label="笔数" value={String(expenses.length)} />
         </div>
-      </motion.section>
+      </section>
 
       {/* 筛选：一行 */}
       <div className="no-scrollbar -mx-5 flex gap-1.5 overflow-x-auto px-5">
@@ -121,7 +120,7 @@ export function LedgerView({
                   <Icon className="size-4" style={{ color: c.color }} />
                   <span className="text-muted-foreground">{c.label}</span>
                   <span className="h-2 overflow-hidden rounded-full bg-fill">
-                    <motion.span initial={{ width: 0 }} animate={{ width: `${(amount / maxCat) * 100}%` }} transition={{ type: "spring", stiffness: 200, damping: 30 }} className="block h-full rounded-full" style={{ background: c.color }} />
+                    <span className="block h-full rounded-full" style={{ width: `${(amount / maxCat) * 100}%`, background: c.color }} />
                   </span>
                   <span className="tabular-nums">
                     {formatMoney(amount, homeCurrency, { compact: true })} <span className="text-caption text-label-tertiary">{pct}%</span>
@@ -153,7 +152,7 @@ export function LedgerView({
                     ) : null
                   }
                 />
-                <Bar dataKey="amount" radius={[4, 4, 0, 0]} maxBarSize={28} isAnimationActive>
+                <Bar dataKey="amount" radius={[4, 4, 0, 0]} maxBarSize={28} isAnimationActive={false}>
                   {byDay.map((d, i) => (
                     <Cell key={i} fill={d.amount > 0 ? "var(--ios-blue)" : "var(--fill)"} />
                   ))}

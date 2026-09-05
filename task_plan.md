@@ -4,7 +4,7 @@
 用 Next.js 做一个苹果风格的「带娃旅行日记 + 账本」网页应用，能记录行程（航班/租车/住宿/餐饮/游玩）、花费（多币种）、照片与备注，在高德地图上展示路线与站间距离，并内嵌 AI 助手（OpenAI 兼容接口）降低记录成本；第一版部署到阿里云 ECS（Docker Compose），后续可开放注册并演进为 App。
 
 ## 当前阶段
-阶段 6 进行中：已部署到服务器并在服务器本机验证通过；服务器已填入第三方配置，但高德 Web 服务 Key 实测无效；公网访问与真机走查待做
+阶段 7 已完成：Emil Kowalski skills 已安装并用于优化；中文 README、Logo、架构图、生产部署与 Git 交付均完成
 
 ## 各阶段
 
@@ -88,14 +88,26 @@
 - [x] 服务器 `/root/docker-compose/yukiTrace`：.env（随机 AUTH_SECRET / POSTGRES_PASSWORD；AMAP/OSS/AI 已填，仍需验证）、docker-compose.yml、prisma.config.ts、prisma/schema + migrations
 - [x] 镜像 docker save | gzip | ssh docker load（38s），`docker compose up -d`：迁移成功，app Ready，服务器本机 curl /login 200、/ → 307 /login
 - [x] 一键脚本 `deploy/deploy.sh [--with-migrate]`
-- [ ] 公网访问：从本机探测被本地代理（127.0.0.1:7890 TUN）劫持无法判定；对比端口 80 秒回 / 3100 与 8080 均 5s 超时，**判断阿里云安全组未放行 TCP 3100**，需用户在控制台放行
+- [ ] 公网域名访问：nginx 的 `trace.aiyuki.cc` HTTP 反代已生效，等待用户新增/更新 DNS A 记录指向服务器后从公网验证
 - [ ] 手机真机走一遍：新建旅程 → 录站点 → 记花费 → 传照片 → 看地图 → 看账本（需公网可达后进行）
 - [ ] 校验第三方配置：高德 / OSS / AI 已填入并重启，但高德 Web 服务 API 返回 `INVALID_USER_KEY (10001)`；OSS 与 AI 尚未做真实链路验证
 - [ ] 域名 + HTTPS（PWA 安装、定位、剪贴板等能力需要 HTTPS）
+- [x] 配置 `trace.aiyuki.cc` HTTP 反向代理：复用 `mes-ui` 边缘 nginx，转发至 yukiTrace 3100；`nginx -t`、根路径重定向与登录页均验证通过
 - **状态：** in_progress（等待用户侧操作）
 
+### 阶段 7：设计与动效优化、文档与再部署
+- [x] 从 `emilkowalski/skills` 安装仓库内全部 12 个 skills，并读取本项目相关 skill 的完整规则
+- [x] 基于 design/animation skills 审计当前界面，形成明确优化清单
+- [x] 实施高价值 UI、交互与动效优化，兼顾移动端、可访问性和 reduced motion
+- [x] 生成并接入 yukiTrace Logo/品牌资产
+- [x] 重写中文 README，包含产品介绍、功能、技术栈、架构图、配置与部署说明
+- [x] 完成 typecheck、lint、build 与关键页面/交互验证
+- [x] 构建 amd64 生产镜像并部署到 101.37.37.200，验证 `trace.aiyuki.cc`
+- [x] 提交所有改动并推送 `origin/main`
+- **状态：** complete
+
 ## 关键问题
-0. **阿里云安全组放行 TCP 3100**（或配域名走现有 nginx 80/443 反代）
+0. **DNS：为 `trace.aiyuki.cc` 添加 A 记录指向 101.37.37.200**；无需对公网放行 3100，流量统一走 nginx 的 80
 1. 修正高德 Web 服务 Key：当前服务器值实测返回 `INVALID_USER_KEY (10001)`；同时确认 JS API Key 与安全密钥来自正确应用
 2. OSS 已配置但尚未验证真实上传/读取；需真机上传一张照片确认 Bucket、地域和权限
 3. AI 已配置但尚未验证真实模型；需登录后跑一次聊天和票据识别确认模型名、兼容性与视觉能力
@@ -106,7 +118,7 @@
 | 决策 | 理由 |
 |------|------|
 | Next.js 16.3 App Router + TS | 实际脚手架版本；Server Actions 简化 CRUD，并按包内文档适配异步 API 与 `proxy.ts` |
-| Tailwind + shadcn/ui + Motion | 苹果风 UI 与弹簧动效 |
+| Tailwind + shadcn/ui + Motion | 苹果风 UI；高频交互克制，空间过渡使用短时长强 ease-out |
 | PostgreSQL + Prisma | 关系型数据、docker 部署简单、多租户易做 |
 | 高德地图 | 用户选择；国内数据准确 |
 | 阿里云 OSS + 前端直传 | 用户选择；减轻服务器带宽 |
@@ -132,6 +144,11 @@
 | Prisma Json 字段类型不接受 Record<string, unknown> | 1 | 断言为 InputJsonValue |
 | 用 curl 直接 POST Server Action 测注册返回 500 | 1 | useActionState 表单不渲染 ACTION_ID，改为 tsx 脚本种子用户 + jose 签发会话验证受保护页面 |
 | 服务器高德 Web 服务 Key 已填但 API 返回 `INVALID_USER_KEY (10001)` | 1 | 待在高德控制台确认使用的是“Web 服务”Key，替换服务器环境变量并重启应用 |
+| 用户提供的 nginx 目录 `/root/docker-compose/kmj-mes` 不存在 | 1 | 在 `/root/docker-compose` 下定位到实际目录 `/root/docker-compose/mes-demo` |
+| 原子替换 nginx 单文件 bind mount 后 reload 仍读取旧配置 | 1 | Docker 挂载仍指向旧 inode；保留已验证候选与备份，改为仅强制重建 `mes-ui` 以重新挂载 |
+| 清理 `/tmp` 候选文件的删除命令被安全策略拒绝 | 1 | 不重试删除；临时文件不影响服务，由系统临时目录清理机制处理 |
+| `gh api` URL 中的 `?` 被 zsh 当作通配符 | 1 | 用单引号包住 API 路径后成功获取仓库树 |
+| `next build` 与已运行的 `next dev` 共用 `.next`，构建后 HTTP 冒烟连接失败 | 1 | 改为基于最新构建单独启动 production server，四个 HTTP 冒烟项全部通过 |
 
 ## 备注
 - 服务器：101.37.37.200，root，密钥 ~/Downloads/ipad.pem，目录 /root/docker-compose/yukiTrace（已部署运行）

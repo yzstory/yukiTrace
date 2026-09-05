@@ -3,7 +3,6 @@
 import { useCallback, useMemo, useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion } from "motion/react";
 import { Play, MapPin, ChevronRight } from "lucide-react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { AMapView, type AMapViewHandle } from "./amap-view";
@@ -77,12 +76,11 @@ export function TripMap({ tripId, stops, days, homeLabel }: { tripId: string; st
       <div className="absolute inset-x-0 bottom-0 z-10 pb-3">
         <div className="no-scrollbar flex snap-x gap-3 overflow-x-auto px-4">
           {visible.map((s) => (
-            <motion.button
+            <button
               key={s.id}
               type="button"
-              whileTap={{ scale: 0.97 }}
               onClick={() => onSelect(s.id)}
-              className={cn("glass flex w-64 shrink-0 snap-center items-center gap-3 rounded-2xl p-3 text-left", selected === s.id && "ring-2 ring-primary")}
+              className={cn("pressable glass flex w-64 shrink-0 snap-center items-center gap-3 rounded-2xl p-3 text-left", selected === s.id && "ring-2 ring-primary")}
             >
               <span className="flex size-9 shrink-0 items-center justify-center rounded-full text-subhead font-bold text-white" style={{ background: s.color }}>
                 {s.index}
@@ -99,7 +97,7 @@ export function TripMap({ tripId, stops, days, homeLabel }: { tripId: string; st
                   <Image src={s.photos[0].thumbUrl} alt="" fill sizes="44px" className="object-cover" unoptimized />
                 </span>
               )}
-            </motion.button>
+            </button>
           ))}
         </div>
       </div>

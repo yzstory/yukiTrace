@@ -12,6 +12,45 @@
 - 本地复验 `pnpm typecheck`、`pnpm lint`、`pnpm build` 全部通过；构建期间出现 `Couldn't load fs/zlib` 提示，但未影响编译、类型检查或 17 个静态页面生成
 - 确认下一步仍是阶段 6：修正高德 Web 服务 Key，并打通公网/HTTPS，然后按手机验收流程逐项验证 OSS 与真实 AI
 
+### trace.aiyuki.cc HTTP 反向代理
+- **状态：** complete（服务器端已生效，等待 DNS）
+- 用户授权在服务器现有 nginx 中配置 `trace.aiyuki.cc`，当前只要求 HTTP
+- 初始路径 `/root/docker-compose/kmj-mes` 不存在；定位到边缘 nginx 项目 `/root/docker-compose/mes-demo`
+- `mes-ui` 容器占用 80/443；宿主配置 `/root/docker-compose/mes-demo/nginx/default.conf` 以只读方式挂载到 `/etc/nginx/conf.d/default.conf`
+- yukiTrace 应用在 `/root/docker-compose/yukiTrace`，宿主端口为 3100；下一步验证 nginx 容器到该端口的连通性
+- 已确认 `mes-ui` 可访问 `http://172.26.42.141:3100/login`，返回 HTTP 200
+- 候选 nginx 配置已在独立 `nginx:alpine` 容器、`mes-demo_default` 网络中通过 `nginx -t`
+- 已备份原配置到 `/root/docker-compose/mes-demo/nginx/default.conf.bak-yukitrace-20260905`
+- 首次 reload 后新域名未生效：宿主配置采用原子替换产生新 inode，运行中容器的单文件 bind mount 仍指向旧 inode；待仅重建 `mes-ui` 重新挂载
+- 已仅强制重建 `mes-ui` 以重新挂载配置；生效配置中可见 `trace.aiyuki.cc` server 块，`nginx -t` 通过
+- Host 头冒烟：`trace.aiyuki.cc/` 返回 307 到登录页，`/login` 返回 200；原 `mes-test.aiyuki.cc` HTTP 仍返回 301 到 HTTPS
+- 回归检查发现原 `agent.aiyuki.cc` 返回 502；确认宿主机 8000 无进程监听且对应 agent 容器不在运行，属于其后端当前停机，并非本次 nginx 配置回归
+- 已将生产 `APP_URL` 改为 `http://trace.aiyuki.cc`，仅重建 yukiTrace app 容器并确认环境变量生效
+- 最终状态：`mes-ui` Up、`yukitrace-app` Up、`yukitrace-pg` healthy；`nginx -t` 成功
+- 最终 Host 测试：根路径返回 307 到 `http://trace.aiyuki.cc/login?next=%2F`，登录页返回 200
+- 原 nginx 配置备份：`/root/docker-compose/mes-demo/nginx/default.conf.bak-yukitrace-20260905`；原应用环境备份：`/root/docker-compose/yukiTrace/.env.bak-trace-domain-20260905`
+- 本机 DNS 查询受 TUN/fake-IP 代理影响返回 `198.18.1.168`，不作为权威解析结论；等待用户在 DNS 服务商处配置真实 A 记录
+- 尝试清理 `/tmp` 候选文件时删除命令被安全策略拒绝；未重试，不影响运行配置或服务状态
+
+### 阶段 7：设计与动效优化、文档与再部署
+- **状态：** in_progress
+- 用户要求安装 `github.com/emilkowalski/skills`，据此优化项目，补中文 README、Logo、架构图，部署服务器并推送 origin
+- 仓库为公开的 “Skills for Designers and Engineers”，包含 12 个独立 skill；已全部安装到 `~/.codex/skills`，Web 项目重点使用 design/apple/animation/review 相关规则
+- 首次递归树查询因 zsh 展开 `?` 失败；改为引用 API 路径后成功
+- 已完整读取 `emil-design-eng`、`apple-design`、`animate`、`find-animation-opportunities`、`improve-animations`、`review-animations` 及其 AUDIT/STANDARDS/RECIPES/PLAN 模板
+- 初步 recon：项目使用 Next.js 16.3、Tailwind v4、shadcn/Radix、Motion；已有 iOS 视觉 token 和多处 spring，但存在 `transition-all`、Motion `x/y/width` 动画、缺少统一 reduced-motion/hover gating 等高价值审计点
+- 按 `improve-animations` 先完成只读审计，并在 `animation-plans/` 写入审计、3 组实施计划和实施后复核；复核结论为 Approve
+- 加入精确的 ease-out/ease-in-out/drawer Token、160ms pressable 反馈、精细指针 hover gating，以及 reduced motion / transparency / contrast 适配
+- 高频导航改为静态活动态；移除时间线、账本和表单的重复进场；空间过渡统一为 180–220ms、完整 transform 字符串；清单进度改为 `scaleX`
+- 使用 ImageGen 生成并迭代 Trace Logo，最终使用全幅蓝靛渐变、亲子脚印、路线和珊瑚色目的地图钉；接入 PWA 192/512/maskable/180、favicon、登录页、侧栏与 README
+- 重写中文 README，覆盖定位、功能、Mermaid 架构图、本地开发、环境变量、Docker 部署、目录和设计原则，并明确项目无默认账号密码
+- `git diff --check`、`pnpm typecheck`、`pnpm lint`、`pnpm build` 均通过；构建仍出现既有 `Couldn't load fs/zlib` 提示但不影响结果
+- 首次 HTTP 冒烟因 `next build` 终止并行的 dev server 而失败；改用最新 production server 后 `/login`、manifest、icon 均 200，根路径 307 到登录页
+- CUA 环境没有可用浏览器，无法执行页面截图；已用原始尺寸检查最终 192px Logo，清晰且四角无黑边
+- 本机 buildx 成功构建 `linux/amd64` runner 镜像并通过 `deploy/deploy.sh` 上传；服务器迁移任务正常退出，`yukitrace-app` 重建后 Ready，PostgreSQL 保持 healthy
+- 发布后 `mes-ui` 的 `nginx -t` 通过；服务器 Host 头 `/login` 200，本机绕过代理直连 `trace.aiyuki.cc` 根路径 307、登录页 200
+- 生产返回的 192px 图标 SHA-256 与本地一致（`358e44c4…321c`），确认新 Logo 已进入生产镜像
+
 ### 阶段 0：需求与规划
 - **状态：** in_progress（规划文件已建，待用户确认）
 - **开始时间：** 2026-09-05

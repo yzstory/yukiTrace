@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion } from "motion/react";
 import { Pencil, Footprints, Wallet, Baby, Users, ImagePlus, Route, ListChecks, Sparkle } from "lucide-react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { formatMoney } from "@/lib/currency";
@@ -31,12 +30,7 @@ export type TripHeroData = {
 export function TripHero({ trip }: { trip: TripHeroData }) {
   const [coverOpen, setCoverOpen] = useState(false);
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-      className="mb-6 overflow-hidden rounded-3xl bg-card card-shadow"
-    >
+    <section className="mb-6 overflow-hidden rounded-3xl bg-card card-shadow">
       <div className="relative aspect-[16/9] w-full bg-gradient-to-br from-ios-blue/80 to-ios-indigo/80">
         {trip.coverUrl ? (
           <Image src={trip.coverUrl} alt={trip.title} fill sizes="(max-width: 768px) 100vw, 720px" className="object-cover" priority unoptimized />
@@ -51,18 +45,18 @@ export function TripHero({ trip }: { trip: TripHeroData }) {
           {trip.description && <p className="mt-1 text-subhead text-white/85">{trip.description}</p>}
         </div>
         <div className="absolute right-3 top-3 flex gap-2 safe-top">
-          <Link href={`/trips/${trip.id}/summary`} className="glass rounded-full p-2 text-foreground" aria-label="旅程总结">
+          <Link href={`/trips/${trip.id}/summary`} className="pressable glass rounded-full p-2 text-foreground" aria-label="旅程总结">
             <Sparkle className="size-4" />
           </Link>
           {trip.canEdit && (
             <>
-            <button type="button" onClick={() => setCoverOpen(true)} className="glass rounded-full p-2 text-foreground" aria-label="更换封面">
+            <button type="button" onClick={() => setCoverOpen(true)} className="pressable glass rounded-full p-2 text-foreground" aria-label="更换封面">
               <ImagePlus className="size-4" />
             </button>
-            <Link href={`/trips/${trip.id}/checklist`} className="glass rounded-full p-2 text-foreground" aria-label="出行清单">
+            <Link href={`/trips/${trip.id}/checklist`} className="pressable glass rounded-full p-2 text-foreground" aria-label="出行清单">
               <ListChecks className="size-4" />
             </Link>
-            <Link href={`/trips/${trip.id}/edit`} className="glass rounded-full p-2 text-foreground" aria-label="编辑旅程">
+            <Link href={`/trips/${trip.id}/edit`} className="pressable glass rounded-full p-2 text-foreground" aria-label="编辑旅程">
               <Pencil className="size-4" />
             </Link>
             </>
@@ -102,7 +96,7 @@ export function TripHero({ trip }: { trip: TripHeroData }) {
           </div>
         </DrawerContent>
       </Drawer>
-    </motion.section>
+    </section>
   );
 }
 

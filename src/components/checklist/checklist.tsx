@@ -70,7 +70,10 @@ export function Checklist({ tripId, items, canEdit, aiConfigured }: { tripId: st
           )}
         </div>
         <div className="mt-2 h-2 overflow-hidden rounded-full bg-fill">
-          <motion.div className="h-full rounded-full bg-ios-green" animate={{ width: `${(done / optimistic.length) * 100}%` }} transition={{ type: "spring", stiffness: 200, damping: 30 }} />
+          <div
+            className="h-full origin-left rounded-full bg-ios-green transition-transform duration-200 ease-[var(--ease-in-out)]"
+            style={{ transform: `scaleX(${done / optimistic.length})` }}
+          />
         </div>
       </div>
 

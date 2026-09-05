@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { motion } from "motion/react";
 import { CalendarDays, Footprints, Wallet, Baby } from "lucide-react";
 import { formatMoney } from "@/lib/currency";
 import { fmt, tripDays, babyAge } from "@/lib/date";
@@ -32,14 +31,8 @@ const GRADIENTS = [
 export function TripCard({ trip, index }: { trip: TripCardData; index: number }) {
   const gradient = GRADIENTS[index % GRADIENTS.length];
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ type: "spring", stiffness: 300, damping: 30, delay: index * 0.05 }}
-      whileTap={{ scale: 0.98 }}
-    >
-      <Link href={`/trips/${trip.id}`} className="block overflow-hidden rounded-3xl bg-card card-shadow">
-        <div className={`relative aspect-[16/10] w-full bg-gradient-to-br ${gradient}`}>
+    <Link href={`/trips/${trip.id}`} className="pressable block overflow-hidden rounded-3xl bg-card card-shadow">
+      <div className={`relative aspect-[16/10] w-full bg-gradient-to-br ${gradient}`}>
           {trip.coverUrl ? (
             <Image src={trip.coverUrl} alt={trip.title} fill sizes="(max-width: 768px) 100vw, 720px" className="object-cover" unoptimized />
           ) : (
@@ -52,8 +45,8 @@ export function TripCard({ trip, index }: { trip: TripCardData; index: number })
             <h2 className="mt-0.5 text-title-1 text-white">{trip.title}</h2>
             {trip.cities.length > 0 && <p className="mt-0.5 truncate text-subhead text-white/85">{trip.cities.join(" · ")}</p>}
           </div>
-        </div>
-        <div className="flex items-center gap-4 px-5 py-3.5 text-footnote text-muted-foreground">
+      </div>
+      <div className="flex items-center gap-4 px-5 py-3.5 text-footnote text-muted-foreground">
           <Stat icon={Footprints} text={`${trip.stopCount} 站`} />
           <Stat icon={Wallet} text={formatMoney(trip.totalHomeMinor, trip.homeCurrency, { compact: true })} />
           {trip.babyBirthDate && (
@@ -63,9 +56,8 @@ export function TripCard({ trip, index }: { trip: TripCardData; index: number })
             <CalendarDays className="size-3.5" />
             {fmt.monthYear(trip.startDate)}
           </span>
-        </div>
-      </Link>
-    </motion.div>
+      </div>
+    </Link>
   );
 }
 

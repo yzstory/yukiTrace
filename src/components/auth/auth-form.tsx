@@ -2,8 +2,9 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "motion/react";
-import { Footprints, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,14 +18,12 @@ export function AuthForm({ mode, next, allowSignup }: Props) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      initial={{ opacity: 0, transform: "translateY(10px) scale(0.98)" }}
+      animate={{ opacity: 1, transform: "translateY(0px) scale(1)" }}
+      transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
     >
       <div className="mb-8 flex flex-col items-center text-center">
-        <div className="mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground float-shadow">
-          <Footprints className="size-8" strokeWidth={2.2} />
-        </div>
+        <Image src="/icons/icon-192.png" alt="Trace" width={64} height={64} className="mb-4 size-16 rounded-2xl float-shadow" priority />
         <h1 className="text-title-1">{mode === "login" ? "欢迎回来" : "创建账号"}</h1>
         <p className="mt-1 text-subhead text-muted-foreground">
           {mode === "login" ? "继续记录你们的旅程" : "开始记录带宝宝出行的每一站"}
@@ -49,8 +48,9 @@ export function AuthForm({ mode, next, allowSignup }: Props) {
 
         {state?.error && (
           <motion.p
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, transform: "translateY(-4px)" }}
+            animate={{ opacity: 1, transform: "translateY(0px)" }}
+            transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
             className="mt-4 rounded-xl bg-destructive/10 px-3 py-2 text-footnote text-destructive"
           >
             {state.error}

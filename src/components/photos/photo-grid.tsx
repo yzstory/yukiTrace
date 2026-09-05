@@ -40,9 +40,9 @@ export function PhotoGrid({ days, canEdit, onDelete, onSetCover }: { days: Galle
               </h2>
               <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
                 {d.photos.map((p) => (
-                  <motion.button key={p.id} type="button" whileTap={{ scale: 0.96 }} onClick={() => setOpenIdx(flat.indexOf(p))} className="relative aspect-square overflow-hidden rounded-xl bg-fill">
+                  <button key={p.id} type="button" onClick={() => setOpenIdx(flat.indexOf(p))} className="pressable relative aspect-square overflow-hidden rounded-xl bg-fill">
                     <Image src={p.thumbUrl} alt={p.caption ?? ""} fill sizes="(max-width: 640px) 33vw, 180px" className="object-cover" unoptimized />
-                  </motion.button>
+                  </button>
                 ))}
               </div>
             </section>

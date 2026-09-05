@@ -1,5 +1,5 @@
 /* Trace service worker：应用壳缓存 + 页面网络优先 + 离线兜底 */
-const VERSION = "v1";
+const VERSION = "v2";
 const SHELL = `trace-shell-${VERSION}`;
 const PAGES = `trace-pages-${VERSION}`;
 const IMAGES = `trace-images-${VERSION}`;

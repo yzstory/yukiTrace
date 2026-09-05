@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Sparkles, SendHorizonal, Loader2, Camera, Square, Wrench, BookOpenText, ListChecks } from "lucide-react";
 import { toast } from "sonner";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
@@ -30,6 +30,7 @@ export function AiChat({ tripId, homeCurrency, configured, canEdit }: { tripId: 
   const router = useRouter();
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  const reduceMotion = useReducedMotion();
   const [, start] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -42,8 +43,8 @@ export function AiChat({ tripId, homeCurrency, configured, canEdit }: { tripId: 
   const streaming = status === "streaming" || status === "submitted";
 
   useEffect(() => {
-    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, open]);
+    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: reduceMotion ? "auto" : "smooth" });
+  }, [messages, open, reduceMotion]);
 
   function submit(text: string) {
     const t = text.trim();
@@ -114,17 +115,14 @@ export function AiChat({ tripId, homeCurrency, configured, canEdit }: { tripId: 
 
   return (
     <>
-      <motion.button
+      <button
         type="button"
         onClick={() => setOpen(true)}
-        whileTap={{ scale: 0.9 }}
-        whileHover={{ scale: 1.05 }}
-        transition={{ type: "spring", stiffness: 400, damping: 25 }}
         aria-label="AI 助手"
-        className="fixed bottom-[calc(8.5rem+env(safe-area-inset-bottom))] right-5 z-30 flex size-12 items-center justify-center rounded-full glass text-primary md:bottom-[6.5rem] md:right-8"
+        className="pressable float-action fixed bottom-[calc(8.5rem+env(safe-area-inset-bottom))] right-5 z-30 flex size-12 items-center justify-center rounded-full glass text-primary md:bottom-[6.5rem] md:right-8"
       >
         <Sparkles className="size-6" strokeWidth={2.2} />
-      </motion.button>
+      </button>
 
       <Drawer open={open} onOpenChange={setOpen} repositionInputs={false}>
         <DrawerContent className="h-[88dvh] rounded-t-3xl bg-background">
@@ -223,7 +221,12 @@ export function AiChat({ tripId, homeCurrency, configured, canEdit }: { tripId: 
 function Message({ m }: { m: UIMessage }) {
   const isUser = m.role === "user";
   return (
-    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className={cn("flex flex-col gap-1", isUser ? "items-end" : "items-start")}>
+    <motion.div
+      initial={{ opacity: 0, transform: "translateY(6px)" }}
+      animate={{ opacity: 1, transform: "translateY(0px)" }}
+      transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+      className={cn("flex flex-col gap-1", isUser ? "items-end" : "items-start")}
+    >
       {m.parts.map((p, i) => {
         if (p.type === "text") {
           if (!p.text.trim()) return null;

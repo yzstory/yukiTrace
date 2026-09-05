@@ -62,7 +62,7 @@ export function ExpenseForm({
                   key={c}
                   type="button"
                   onClick={() => setCategory(c)}
-                  className={cn("flex flex-col items-center gap-1 rounded-xl py-2.5 text-caption font-medium transition-all", on ? "bg-card shadow-sm ring-2 ring-primary/60" : "bg-fill-secondary text-muted-foreground")}
+                  className={cn("pressable flex flex-col items-center gap-1 rounded-xl py-2.5 text-caption font-medium transition-[transform,background-color,color,box-shadow] duration-[160ms] ease-[var(--ease-out)]", on ? "bg-card shadow-sm ring-2 ring-primary/60" : "bg-fill-secondary text-muted-foreground")}
                 >
                   <Icon className="size-5" style={{ color: cfg.color }} />
                   {cfg.label}

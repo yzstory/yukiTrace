@@ -37,7 +37,7 @@ export function BabyLogForm({ tripId, defaultTime, onDone }: { tripId: string; d
           const Icon = c.icon;
           const on = type === t;
           return (
-            <button key={t} type="button" onClick={() => setType(t)} className={cn("flex flex-col items-center gap-1.5 rounded-2xl py-3 text-footnote font-medium transition-all", on ? "bg-card shadow-sm ring-2 ring-primary/60" : "bg-fill-secondary text-muted-foreground")}>
+            <button key={t} type="button" onClick={() => setType(t)} className={cn("pressable flex flex-col items-center gap-1.5 rounded-2xl py-3 text-footnote font-medium transition-[transform,background-color,color,box-shadow] duration-[160ms] ease-[var(--ease-out)]", on ? "bg-card shadow-sm ring-2 ring-primary/60" : "bg-fill-secondary text-muted-foreground")}>
               <Icon className={cn("size-6", c.color)} />
               {c.label}
             </button>
