@@ -1,0 +1,323 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────── 用户与成员 ─────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  avatarKey    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ownedTrips  Trip[]       @relation("TripOwner")
+  memberships TripMember[]
+  photos      Photo[]
+  expenses    Expense[]
+}
+
+enum MemberRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+model TripMember {
+  tripId String
+  userId String
+  role   MemberRole @default(EDITOR)
+  joinedAt DateTime @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([tripId, userId])
+}
+
+// ───────────────────────── 旅程 ─────────────────────────
+
+model Trip {
+  id            String    @id @default(cuid())
+  ownerId       String
+  title         String
+  description   String?
+  coverKey      String?
+  startDate     DateTime  @db.Date
+  endDate       DateTime  @db.Date
+  homeCurrency  String    @default("CNY")
+  babyName      String?
+  babyBirthDate DateTime? @db.Date
+  travelers     String[]  @default([])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  owner      User            @relation("TripOwner", fields: [ownerId], references: [id])
+  members    TripMember[]
+  stops      Stop[]
+  entries    Entry[]
+  expenses   Expense[]
+  photos     Photo[]
+  babyLogs   BabyLog[]
+  checklist  ChecklistItem[]
+  shareLinks ShareLink[]
+  dailyNotes DailyNote[]
+
+  @@index([ownerId])
+}
+
+// ───────────────────────── 站点 ─────────────────────────
+
+enum StopType {
+  CITY
+  AIRPORT
+  STATION
+  HOTEL
+  RESTAURANT
+  ATTRACTION
+  SHOP
+  PARK
+  OTHER
+}
+
+model Stop {
+  id        String   @id @default(cuid())
+  tripId    String
+  name      String
+  type      StopType @default(OTHER)
+  lat       Float
+  lng       Float
+  address   String?
+  city      String?
+  amapPoiId String?
+  arriveAt  DateTime
+  leaveAt   DateTime?
+  order     Int      @default(0)
+  note      String?
+  /// 天气缓存 { weather, tempMin, tempMax, icon }
+  weather   Json?
+  /// 婴儿友好标签：nursing_room / high_chair / stroller_ok / changing_table ...
+  babyTags  String[] @default([])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  entries  Entry[]
+  expenses Expense[]
+  photos   Photo[]
+  legsFrom StopLeg[] @relation("LegFrom")
+  legsTo   StopLeg[] @relation("LegTo")
+
+  @@index([tripId, arriveAt])
+}
+
+enum TravelMode {
+  DRIVING
+  WALKING
+  TRANSIT
+  STRAIGHT
+}
+
+/// 两站之间的距离/时长缓存（高德路径规划结果）
+model StopLeg {
+  id         String     @id @default(cuid())
+  fromStopId String
+  toStopId   String
+  mode       TravelMode
+  distanceM  Int
+  durationS  Int?
+  polyline   String?
+  createdAt  DateTime   @default(now())
+
+  from Stop @relation("LegFrom", fields: [fromStopId], references: [id], onDelete: Cascade)
+  to   Stop @relation("LegTo", fields: [toStopId], references: [id], onDelete: Cascade)
+
+  @@unique([fromStopId, toStopId, mode])
+}
+
+// ───────────────────────── 条目 ─────────────────────────
+
+enum EntryType {
+  FLIGHT
+  CAR_RENTAL
+  TRAIN
+  TAXI
+  HOTEL
+  MEAL
+  ACTIVITY
+  SHOPPING
+  MOMENT
+}
+
+model Entry {
+  id      String    @id @default(cuid())
+  tripId  String
+  stopId  String?
+  type    EntryType
+  title   String
+  note    String?
+  startAt DateTime
+  endAt   DateTime?
+  /// 类型特定字段：
+  /// FLIGHT: { flightNo, airline, from, to, seat, terminal, gate }
+  /// CAR_RENTAL: { company, carModel, pickupPlace, returnPlace, plate, startKm, endKm }
+  /// TRAIN: { trainNo, from, to, seat }
+  /// HOTEL: { roomType, checkIn, checkOut, bookingRef }
+  meta    Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  stop     Stop?     @relation(fields: [stopId], references: [id], onDelete: SetNull)
+  expenses Expense[]
+  photos   Photo[]
+
+  @@index([tripId, startAt])
+  @@index([stopId])
+}
+
+// ───────────────────────── 花费 ─────────────────────────
+
+enum ExpenseCategory {
+  TRANSPORT
+  ACCOMMODATION
+  FOOD
+  ACTIVITY
+  SHOPPING
+  BABY
+  OTHER
+}
+
+model Expense {
+  id             String          @id @default(cuid())
+  tripId         String
+  stopId         String?
+  entryId        String?
+  paidById       String?
+  /// 原币金额，最小单位整数（分 / 円 / cent）
+  amountMinor    Int
+  currency       String
+  /// 折算主币种（CNY）金额，最小单位整数
+  amountHomeMinor Int
+  rate           Float
+  category       ExpenseCategory @default(OTHER)
+  isBaby         Boolean         @default(false)
+  title          String
+  note           String?
+  receiptKey     String?
+  paidAt         DateTime
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  stop   Stop?  @relation(fields: [stopId], references: [id], onDelete: SetNull)
+  entry  Entry? @relation(fields: [entryId], references: [id], onDelete: SetNull)
+  paidBy User?  @relation(fields: [paidById], references: [id], onDelete: SetNull)
+
+  @@index([tripId, paidAt])
+}
+
+model ExchangeRate {
+  id    String   @id @default(cuid())
+  date  DateTime @db.Date
+  base  String
+  quote String
+  rate  Float
+
+  @@unique([date, base, quote])
+}
+
+// ───────────────────────── 照片 ─────────────────────────
+
+model Photo {
+  id         String    @id @default(cuid())
+  tripId     String
+  stopId     String?
+  entryId    String?
+  uploaderId String?
+  ossKey     String
+  width      Int?
+  height     Int?
+  sizeBytes  Int?
+  takenAt    DateTime?
+  lat        Float?
+  lng        Float?
+  caption    String?
+  isFavorite Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+
+  trip     Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  stop     Stop?  @relation(fields: [stopId], references: [id], onDelete: SetNull)
+  entry    Entry? @relation(fields: [entryId], references: [id], onDelete: SetNull)
+  uploader User?  @relation(fields: [uploaderId], references: [id], onDelete: SetNull)
+
+  @@index([tripId, takenAt])
+}
+
+// ───────────────────────── 日记 / 宝宝 / 清单 / 分享 ─────────────────────────
+
+model DailyNote {
+  id        String   @id @default(cuid())
+  tripId    String
+  date      DateTime @db.Date
+  content   String
+  aiDraft   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, date])
+}
+
+enum BabyLogType {
+  FEED
+  DIAPER
+  SLEEP
+  WAKE
+  MEDICINE
+  OTHER
+}
+
+model BabyLog {
+  id     String      @id @default(cuid())
+  tripId String
+  type   BabyLogType
+  at     DateTime
+  note   String?
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId, at])
+}
+
+model ChecklistItem {
+  id      String  @id @default(cuid())
+  tripId  String
+  group   String  @default("通用")
+  text    String
+  checked Boolean @default(false)
+  order   Int     @default(0)
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId])
+}
+
+model ShareLink {
+  id          String    @id @default(cuid())
+  tripId      String
+  token       String    @unique
+  hideExpense Boolean   @default(true)
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
