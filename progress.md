@@ -2,6 +2,16 @@
 
 ## 会话：2026-09-05
 
+### 项目接续审计
+- **状态：** complete
+- 使用 `planning-with-files-zh` 恢复并核对 `task_plan.md`、`progress.md`、`findings.md`；session-catchup 无未同步上下文
+- Git 工作区干净，HEAD 为 `e316650 docs: 阶段 6 部署记录与待办`，本地 `main` 对应的远端跟踪分支已不存在
+- 只读复核生产服务器：`yukitrace-app` 正常运行，`yukitrace-pg` healthy，服务器本机访问 `/login` 返回 HTTP 200
+- 服务器 `.env` 中高德、OSS、AI 必填项均已有值，`APP_URL=http://101.37.37.200:3100`，公开注册开启；端口 3100 正监听于所有网卡
+- 直接从应用容器请求高德 Web 服务 API，返回 `INVALID_USER_KEY (10001)`；确认“已填配置”不等于“配置有效”
+- 本地复验 `pnpm typecheck`、`pnpm lint`、`pnpm build` 全部通过；构建期间出现 `Couldn't load fs/zlib` 提示，但未影响编译、类型检查或 17 个静态页面生成
+- 确认下一步仍是阶段 6：修正高德 Web 服务 Key，并打通公网/HTTPS，然后按手机验收流程逐项验证 OSS 与真实 AI
+
 ### 阶段 0：需求与规划
 - **状态：** in_progress（规划文件已建，待用户确认）
 - **开始时间：** 2026-09-05
@@ -143,6 +153,7 @@
 | 长图生成 / 离线 SW 行为 | 浏览器 | 下载 PNG / 离线可看 | 未测（无浏览器） | ⏳ |
 | 真实模型对话质量 | 真实 API Key | 合理拆解与工具选择 | 未测（无 Key） | ⏳ |
 | 高德真实地图渲染 / 回放动画 | 浏览器 + Key | 显示地图 | 未测（无 Key、无浏览器），降级 SVG 已验证 | ⏳ |
+| 高德 Web 服务 Key | 容器内直接请求 POI API | status=1 | `INVALID_USER_KEY (10001)` | ❌ |
 | 注册/登录 Server Action 端到端 | 浏览器 | 成功登录 | 未测（无浏览器，curl 无法直接调用 useActionState 表单） | ⏳ |
 
 ## 错误日志

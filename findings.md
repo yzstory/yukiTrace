@@ -39,14 +39,14 @@
 ## 技术决策
 | 决策 | 理由 |
 |------|------|
-| Next.js 15 App Router + Server Actions | 减少 API 样板，同时保留 `/api/*` Route Handlers 供未来 App 调用 |
+| Next.js 16.3 App Router + Server Actions | 减少 API 样板，同时保留 `/api/*` Route Handlers 供未来 App 调用 |
 | Prisma + PostgreSQL 16 | 关系模型清晰，docker 部署简单 |
-| Auth.js v5 Credentials + 预留 OAuth | 多用户注册，先做最简邮箱密码 |
+| bcryptjs + jose 自建会话认证 | 多用户注册，先做最简邮箱密码；避免 Auth.js 与 Next.js 16 的兼容风险 |
 | 金额存整数 minor unit（分/円/cent）+ currency + amountCny | 避免浮点误差，报表统一 |
 | 高德 JS API 2.0 + 服务端代理 Web 服务 API | Key 不暴露，服务端缓存 |
 | OSS STS 直传 | 服务器不承担图片流量 |
 | Vercel AI SDK + openai-compatible | 一处配置切换任意模型服务商 |
-| Framer Motion Spring 预设：stiffness 300 / damping 30 | 接近 iOS 系统动效手感 |
+| Motion Spring 预设：stiffness 300 / damping 30 | 接近 iOS 系统动效手感 |
 | 移动端底部 Tab + 桌面侧边栏 | 记录场景在手机，回顾场景在电脑 |
 
 ## 数据模型草案
@@ -76,6 +76,13 @@ ShareLink(id, tripId, token, hideExpense, expiresAt)
 - 内存 3.5 GB（可用约 1.8 GB），磁盘 49 GB 用 39%；在服务器上跑 Next 构建有 OOM 风险 → **本机 buildx 构建 linux/amd64 镜像后 docker save/load 传输**
 - 无域名、无 HTTPS：通过 IP:3100 访问，cookie 不能带 Secure（已改为按 APP_URL 判断）；PWA 安装与 Geolocation 需要 HTTPS，后续配域名 + 反代（现有 nginx 占 80/443，可在 mes-ui 里加 server 块或换 Caddy）
 - 公网 3100 端口 curl 超时 → 阿里云安全组很可能未放行，需要用户在控制台放行 TCP 3100
+- 本次接续核查时 `yukitrace-app` 为 Up、`yukitrace-pg` 为 healthy，服务器本机 `http://127.0.0.1:3100/login` 返回 200；应用本身与容器内链路正常，剩余问题集中在公网入口/安全组/反向代理
+- 服务器高德、OSS、AI 环境变量均已有非空值，容器也已重启加载；但容器内直接请求高德 POI API 返回 `INVALID_USER_KEY (10001)`，需替换为有效的“Web 服务”Key。OSS 与 AI 仅确认已配置，尚未做真实调用验证
+
+## 版本库现状（2026-09-05）
+- 工作区无未提交改动；阶段 1—6 均有独立提交记录
+- 当前 HEAD：`e316650 docs: 阶段 6 部署记录与待办`
+- `main` 显示 `origin/main [gone]`，继续协作前应确认或重新配置 Git 远端跟踪分支
 
 ## 资源
 - 服务器：101.37.37.200（阿里云 ECS，Alibaba Cloud Linux 8），目录 /root/docker-compose/yukiTrace

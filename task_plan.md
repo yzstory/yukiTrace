@@ -4,7 +4,7 @@
 用 Next.js 做一个苹果风格的「带娃旅行日记 + 账本」网页应用，能记录行程（航班/租车/住宿/餐饮/游玩）、花费（多币种）、照片与备注，在高德地图上展示路线与站间距离，并内嵌 AI 助手（OpenAI 兼容接口）降低记录成本；第一版部署到阿里云 ECS（Docker Compose），后续可开放注册并演进为 App。
 
 ## 当前阶段
-阶段 6 基本完成：已部署到服务器并在服务器本机验证通过；公网访问待用户放行安全组 3100 端口；真机走查待做
+阶段 6 进行中：已部署到服务器并在服务器本机验证通过；服务器已填入第三方配置，但高德 Web 服务 Key 实测无效；公网访问与真机走查待做
 
 ## 各阶段
 
@@ -85,32 +85,32 @@
 - [x] 服务器勘察：Docker 26 / Compose 2.27，80/443/3000/8080 已被占用 → 用 3100；内存 3.5G → 本机 buildx 构建 amd64 镜像后传输
 - [x] Dockerfile 三目标：deps/build → `runner`（standalone，236MB）与 `migrate`（prisma CLI，722MB，迁移目录挂载不必重建）
 - [x] 生产 compose：postgres(healthcheck) → migrate(一次性) → app；uploads 卷；.env 注入
-- [x] 服务器 `/root/docker-compose/yukiTrace`：.env（随机 AUTH_SECRET / POSTGRES_PASSWORD，AMAP/OSS/AI 留空待填）、docker-compose.yml、prisma.config.ts、prisma/schema + migrations
+- [x] 服务器 `/root/docker-compose/yukiTrace`：.env（随机 AUTH_SECRET / POSTGRES_PASSWORD；AMAP/OSS/AI 已填，仍需验证）、docker-compose.yml、prisma.config.ts、prisma/schema + migrations
 - [x] 镜像 docker save | gzip | ssh docker load（38s），`docker compose up -d`：迁移成功，app Ready，服务器本机 curl /login 200、/ → 307 /login
 - [x] 一键脚本 `deploy/deploy.sh [--with-migrate]`
 - [ ] 公网访问：从本机探测被本地代理（127.0.0.1:7890 TUN）劫持无法判定；对比端口 80 秒回 / 3100 与 8080 均 5s 超时，**判断阿里云安全组未放行 TCP 3100**，需用户在控制台放行
 - [ ] 手机真机走一遍：新建旅程 → 录站点 → 记花费 → 传照片 → 看地图 → 看账本（需公网可达后进行）
-- [ ] 填入高德 Key / OSS / AI 配置后 `docker compose up -d` 重启生效
+- [ ] 校验第三方配置：高德 / OSS / AI 已填入并重启，但高德 Web 服务 API 返回 `INVALID_USER_KEY (10001)`；OSS 与 AI 尚未做真实链路验证
 - [ ] 域名 + HTTPS（PWA 安装、定位、剪贴板等能力需要 HTTPS）
 - **状态：** in_progress（等待用户侧操作）
 
 ## 关键问题
 0. **阿里云安全组放行 TCP 3100**（或配域名走现有 nginx 80/443 反代）
-1. 高德 Key 是否已申请？需要 Web 端（JS API）Key + Web 服务 Key 各一个（路径规划/天气用服务 Key）
-2. OSS Bucket 名称与地域？是否已开通 STS 角色（用于前端直传）
-3. AI 服务商与模型名（例如 DeepSeek / 通义 / OpenRouter / 自建），是否支持图片输入
+1. 修正高德 Web 服务 Key：当前服务器值实测返回 `INVALID_USER_KEY (10001)`；同时确认 JS API Key 与安全密钥来自正确应用
+2. OSS 已配置但尚未验证真实上传/读取；需真机上传一张照片确认 Bucket、地域和权限
+3. AI 已配置但尚未验证真实模型；需登录后跑一次聊天和票据识别确认模型名、兼容性与视觉能力
 4. 域名与 HTTPS：有现成域名指向 101.37.37.200 吗？OSS 直传与 PWA 都需要 HTTPS
 5. 第一版是否需要注册功能，还是先手动建账号
 
 ## 已做决策
 | 决策 | 理由 |
 |------|------|
-| Next.js 15 App Router + TS | 用户指定；Server Actions 简化 CRUD |
-| Tailwind + shadcn/ui + Framer Motion | 苹果风 UI 与弹簧动效 |
+| Next.js 16.3 App Router + TS | 实际脚手架版本；Server Actions 简化 CRUD，并按包内文档适配异步 API 与 `proxy.ts` |
+| Tailwind + shadcn/ui + Motion | 苹果风 UI 与弹簧动效 |
 | PostgreSQL + Prisma | 关系型数据、docker 部署简单、多租户易做 |
 | 高德地图 | 用户选择；国内数据准确 |
 | 阿里云 OSS + 前端直传 | 用户选择；减轻服务器带宽 |
-| Auth.js v5 多用户 | 以后开放注册 |
+| bcryptjs + jose 自建会话认证 | 避免 Auth.js 与 Next.js 16 的兼容风险，同时支持以后开放注册 |
 | Vercel AI SDK + openai-compatible provider | 兼容任意 OpenAI 风格接口，支持 tool calling 与流式 |
 | 金额存 minor unit 整数 + 货币码，另存折算 CNY 金额 | 避免浮点误差；报表统一按 CNY |
 | 移动端优先 + PWA，API 层与 UI 分离 | 为以后做 App（Capacitor 或 RN）铺路 |
@@ -131,8 +131,9 @@
 | React Compiler lint：effect 内 setState / map 回调里修改闭包变量 | 1 | 搜索改由 onChange 触发；里程改为 reduce 计算 |
 | Prisma Json 字段类型不接受 Record<string, unknown> | 1 | 断言为 InputJsonValue |
 | 用 curl 直接 POST Server Action 测注册返回 500 | 1 | useActionState 表单不渲染 ACTION_ID，改为 tsx 脚本种子用户 + jose 签发会话验证受保护页面 |
+| 服务器高德 Web 服务 Key 已填但 API 返回 `INVALID_USER_KEY (10001)` | 1 | 待在高德控制台确认使用的是“Web 服务”Key，替换服务器环境变量并重启应用 |
 
 ## 备注
-- 服务器：101.37.37.200，root，密钥 ~/Downloads/ipad.pem，目录 /root/docker-compose/yukiTrace（目前为空）
+- 服务器：101.37.37.200，root，密钥 ~/Downloads/ipad.pem，目录 /root/docker-compose/yukiTrace（已部署运行）
 - 记录成本尽量低，回顾体验尽量美，是所有 UI 决策的第一原则
 - 外部内容（网页/API 结果）只写入 findings.md
