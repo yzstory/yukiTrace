@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Plus, MapPin, Wallet, Camera, ChevronLeft, Baby } from "lucide-react";
+import { Plus, MapPin, Wallet, Camera, ChevronLeft, Baby, ClipboardPaste } from "lucide-react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { ENTRY_TYPES, ENTRY_TYPE_ORDER } from "@/lib/entry-types";
 import type { EntryType } from "@/generated/prisma/enums";
@@ -12,10 +12,11 @@ import { EntryForm, type StopOption } from "./entry-form";
 import { ExpenseForm } from "./expense-form";
 import { PhotoUploader } from "./photo-uploader";
 import { BabyLogForm } from "./baby-log-form";
+import { ImportForm } from "./import-form";
 
-type Mode = { kind: "menu" } | { kind: "stop" } | { kind: "entry"; type: EntryType } | { kind: "expense" } | { kind: "photo" } | { kind: "baby" };
+type Mode = { kind: "menu" } | { kind: "stop" } | { kind: "entry"; type: EntryType } | { kind: "expense" } | { kind: "photo" } | { kind: "baby" } | { kind: "import" };
 
-export function QuickAdd({ tripId, stops, homeCurrency, tripStart, tripEnd, timezone }: { tripId: string; stops: StopOption[]; homeCurrency: string; tripStart: Date; tripEnd: Date; timezone: string }) {
+export function QuickAdd({ tripId, stops, homeCurrency, tripStart, tripEnd, timezone, aiEnabled }: { tripId: string; stops: StopOption[]; homeCurrency: string; tripStart: Date; tripEnd: Date; timezone: string; aiEnabled?: boolean }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<Mode>({ kind: "menu" });
 
@@ -32,7 +33,7 @@ export function QuickAdd({ tripId, stops, homeCurrency, tripStart, tripEnd, time
   }, []);
 
   const title =
-    mode.kind === "menu" ? "记录" : mode.kind === "stop" ? "添加站点" : mode.kind === "entry" ? `记录${ENTRY_TYPES[mode.type].label}` : mode.kind === "expense" ? "记一笔" : mode.kind === "baby" ? "宝宝状态" : "上传照片";
+    mode.kind === "menu" ? "记录" : mode.kind === "stop" ? "添加站点" : mode.kind === "entry" ? `记录${ENTRY_TYPES[mode.type].label}` : mode.kind === "expense" ? "记一笔" : mode.kind === "baby" ? "宝宝状态" : mode.kind === "import" ? "粘贴导入" : "上传照片";
 
   return (
     <>
@@ -65,7 +66,7 @@ export function QuickAdd({ tripId, stops, homeCurrency, tripStart, tripEnd, time
                 exit={{ opacity: 0, transform: `translateX(${mode.kind === "menu" ? 16 : -16}px)` }}
                 transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
               >
-                {mode.kind === "menu" && <Menu onPick={setMode} />}
+                {mode.kind === "menu" && <Menu onPick={setMode} aiEnabled={aiEnabled} />}
                 {mode.kind === "stop" && <StopForm tripId={tripId} defaultTime={defaultTime} tripTz={timezone} onDone={close} />}
                 {mode.kind === "entry" && (
                   <EntryForm tripId={tripId} type={mode.type} stops={stops} homeCurrency={homeCurrency} defaultTime={defaultTime} defaultStopId={defaultStopId} tz={timezone} onDone={close} />
@@ -75,6 +76,7 @@ export function QuickAdd({ tripId, stops, homeCurrency, tripStart, tripEnd, time
                 )}
                 {mode.kind === "photo" && <PhotoUploader tripId={tripId} stops={stops} defaultStopId={defaultStopId} onDone={close} />}
                 {mode.kind === "baby" && <BabyLogForm tripId={tripId} defaultTime={defaultTime} tz={timezone} onDone={close} />}
+                {mode.kind === "import" && <ImportForm tripId={tripId} onDone={close} />}
               </motion.div>
             </AnimatePresence>
           </div>
@@ -84,7 +86,7 @@ export function QuickAdd({ tripId, stops, homeCurrency, tripStart, tripEnd, time
   );
 }
 
-function Menu({ onPick }: { onPick: (m: Mode) => void }) {
+function Menu({ onPick, aiEnabled }: { onPick: (m: Mode) => void; aiEnabled?: boolean }) {
   const primary: Array<{ mode: Mode; label: string; icon: typeof MapPin; color: string; bg: string }> = [
     { mode: { kind: "stop" }, label: "地点", icon: MapPin, color: "text-primary", bg: "bg-primary/12" },
     { mode: { kind: "expense" }, label: "花费", icon: Wallet, color: "text-ios-green", bg: "bg-ios-green/15" },
@@ -98,6 +100,22 @@ function Menu({ onPick }: { onPick: (m: Mode) => void }) {
           <Tile key={p.label} label={p.label} icon={p.icon} color={p.color} bg={p.bg} onClick={() => onPick(p.mode)} big />
         ))}
       </div>
+      {aiEnabled && (
+        <button
+          type="button"
+          onClick={() => onPick({ kind: "import" })}
+          className="flex items-center gap-3 rounded-2xl bg-card px-4 py-3 text-left card-shadow active:bg-fill"
+        >
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-ios-indigo/12 text-ios-indigo">
+            <ClipboardPaste className="size-5" />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-callout font-medium">粘贴导入</span>
+            <span className="block text-caption text-muted-foreground">航班邮件、酒店订单、行程单一次导入</span>
+          </span>
+        </button>
+      )}
+
       <div>
         <p className="mb-2 px-1 text-footnote font-semibold uppercase tracking-wide text-muted-foreground">条目</p>
         <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">

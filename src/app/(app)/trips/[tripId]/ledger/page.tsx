@@ -6,6 +6,8 @@ import { requireTripAccess } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { dayIndex, tripDays, dayDate } from "@/lib/date";
 import { deleteExpense } from "@/app/(app)/trips/[tripId]/actions";
+import { tripInsights } from "@/lib/ai/insights";
+import { InsightsRow } from "@/components/ledger/insights-row";
 import { Download } from "lucide-react";
 
 export const metadata = { title: "账本" };
@@ -18,6 +20,7 @@ export default async function TripLedgerPage(props: PageProps<"/trips/[tripId]/l
     include: { expenses: { orderBy: { paidAt: "desc" }, include: { stop: { select: { name: true } }, entry: { select: { stop: { select: { name: true } } } } } } },
   });
   if (!trip) notFound();
+  const insights = await tripInsights(tripId);
   const n = tripDays(trip.startDate, trip.endDate);
   const days = Array.from({ length: n }, (_, i) => ({ index: i + 1, date: dayDate(trip.startDate, i + 1) }));
   const expenses: LedgerExpense[] = trip.expenses.map((e) => ({
@@ -49,6 +52,9 @@ export default async function TripLedgerPage(props: PageProps<"/trips/[tripId]/l
         </a>
       </div>
       <TripTabs tripId={tripId} />
+      <div className="mb-5">
+        <InsightsRow insights={insights} />
+      </div>
       <LedgerView expenses={expenses} days={days} homeCurrency={trip.homeCurrency} timezone={trip.timezone} canEdit={role !== "VIEWER"} onDelete={onDelete} />
     </>
   );

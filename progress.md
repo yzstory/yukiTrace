@@ -241,6 +241,13 @@
 - 新增：src/lib/ai/{photo,briefing}.ts、src/lib/push.ts、src/app/api/ai/transcribe、api/push/subscribe、api/cron/briefing、src/components/ai/voice-button.tsx、src/components/pwa/push-toggle.tsx、deploy/crontab.example
 - 坑：tsx 脚本里 import 带 `server-only` 的模块会失败，需要打桩 `_resolveFilename`
 
+### 阶段 17：跨旅程记忆
+- **状态：** complete
+- 迁移：`20260905051155_embeddings`
+- 取舍：pgvector 需要换数据库镜像（alpine 不带），而本项目数据量在千级，`Float[]` + 应用层余弦足够；若将来数据量上量再迁 pgvector
+- 洞察刻意用统计而非模型：结果稳定、零成本、可解释，AI 只在用户主动提问时介入
+- 新增：src/lib/ai/{memory,global-tools,on-this-day,insights}.ts、src/app/api/ai/{ask,import}、src/app/(app)/ask、src/components/ai/global-ask.tsx、src/components/trips/on-this-day-card.tsx、src/components/ledger/insights-row.tsx、src/components/quick-add/import-form.tsx
+
 ## 测试结果
 | 测试 | 输入 | 预期结果 | 实际结果 | 状态 |
 |------|------|---------|---------|------|
@@ -258,6 +265,11 @@
 | 简报生成 | 三类简报 | 内容贴合数据 | 早/晚/作息均正确，喂奶间隔按中位数 3.0 小时 | ✅ |
 | 简报接口鉴权 | 无 token / 错 token | 401 | 401 | ✅ |
 | 真机推送送达 | iPhone 添加到主屏幕 | 收到通知 | 未测（需 HTTPS 与真机） | ⏳ |
+| 向量索引与增量 | reindexTrip 连跑两次 | 首次建索引，第二次 0 条 | 一致 | ✅ |
+| 语义搜索 | searchMemories | 返回带分数的结果 | 返回并排序（mock 向量为字符哈希，排序无语义意义） | ✅ |
+| 智能导入 | 粘贴航班+酒店文本 | 解析出 2 条草稿 | FLIGHT + HOTEL，meta 字段齐全 | ✅ |
+| 那年今日 | 去年今天的站点 | 卡片显示地点与月龄 | 「1 年前的今天 小樽运河 1 岁 2 个月」 | ✅ |
+| 消费洞察 | 有花费的旅程 | 分类占比等 | 洞察/日均/餐饮占了/宝宝相关 | ✅ |
 | 单元测试 | pnpm test | 全绿 | 40 passed | ✅ |
 | 浏览器冒烟 | pnpm test:e2e（WebKit/iPhone 14） | 5 条主线通过 | 5 passed | ✅ |
 | 快速记录抽屉真机交互 | 浏览器点击 FAB → 地点/花费 | 抽屉打开并提交成功 | 通过 | ✅ |

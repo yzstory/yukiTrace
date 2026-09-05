@@ -7,6 +7,7 @@ import { makeKey, putObject } from "@/lib/storage";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { analyzePhotos, autoPickCover } from "@/lib/ai/photo";
+import { reindexTrip } from "@/lib/ai/memory";
 import { aiConfigured } from "@/lib/ai/model";
 import { rateLimit, tooManyRequests, LIMITS } from "@/lib/rate-limit";
 import { log } from "@/lib/logger";
@@ -134,6 +135,7 @@ export async function POST(req: NextRequest) {
       try {
         await analyzePhotos(newIds);
         await autoPickCover(tripId);
+        await reindexTrip(tripId);
         revalidatePath(`/trips/${tripId}`);
         revalidatePath("/trips");
       } catch (err) {

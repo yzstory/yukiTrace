@@ -186,6 +186,7 @@ export default async function TripPage(props: PageProps<"/trips/[tripId]">) {
           tripStart={trip.startDate}
           tripEnd={trip.endDate}
           timezone={trip.timezone}
+          aiEnabled={aiConfigured()}
         />
       )}
     </>

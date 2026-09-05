@@ -24,6 +24,7 @@ model User {
   expenses    Expense[]
   invites     TripInvite[]
   pushSubs    PushSubscription[]
+  embeddings  Embedding[]
 }
 
 enum MemberRole {
@@ -73,6 +74,7 @@ model Trip {
   checklist  ChecklistItem[]
   shareLinks ShareLink[]
   invites    TripInvite[]
+  embeddings Embedding[]
   dailyNotes DailyNote[]
 
   @@index([ownerId])
@@ -233,6 +235,32 @@ model Expense {
   paidBy User?  @relation(fields: [paidById], references: [id], onDelete: SetNull)
 
   @@index([tripId, paidAt])
+}
+
+/// 跨旅程语义检索用的向量索引。
+/// 家庭规模的数据量（千级）在应用层算余弦相似度足够快，
+/// 因此不引入 pgvector 扩展，避免数据库镜像与迁移的额外风险。
+model Embedding {
+  id        String   @id @default(cuid())
+  userId    String
+  tripId    String
+  /// stop | entry | note | photo | expense | trip
+  kind      String
+  /// 来源记录 id
+  refId     String
+  /// 被向量化的文本
+  text      String
+  vector    Float[]
+  /// 记录发生时间，便于按时间过滤
+  occurredAt DateTime?
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@unique([kind, refId])
+  @@index([userId])
+  @@index([tripId])
 }
 
 model ExchangeRate {

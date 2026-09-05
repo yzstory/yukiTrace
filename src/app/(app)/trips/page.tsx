@@ -6,11 +6,14 @@ import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
 import { imageUrl } from "@/lib/storage";
+import { onThisDay } from "@/lib/ai/on-this-day";
+import { OnThisDayCard } from "@/components/trips/on-this-day-card";
 
 export const metadata = { title: "旅程" };
 
 export default async function TripsPage() {
   const { userId } = await verifySession();
+  const memories = await onThisDay(userId);
   const trips = await db.trip.findMany({
     where: { OR: [{ ownerId: userId }, { members: { some: { userId } } }] },
     orderBy: { startDate: "desc" },
@@ -50,6 +53,7 @@ export default async function TripsPage() {
           </Button>
         }
       />
+      <OnThisDayCard items={memories} />
       {cards.length === 0 ? (
         <EmptyState />
       ) : (

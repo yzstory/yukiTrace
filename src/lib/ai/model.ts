@@ -29,6 +29,14 @@ export function visionModel() {
   return provider().chatModel(process.env.AI_VISION_MODEL ?? process.env.AI_MODEL ?? "gpt-4o-mini");
 }
 
+export function embeddingsConfigured() {
+  return Boolean(process.env.AI_API_KEY && process.env.AI_BASE_URL && process.env.AI_EMBEDDING_MODEL);
+}
+
+export function embeddingModel() {
+  return provider().embeddingModel(process.env.AI_EMBEDDING_MODEL ?? "text-embedding-3-small");
+}
+
 export function transcribeConfigured() {
   return Boolean(process.env.AI_API_KEY && process.env.AI_BASE_URL && process.env.AI_TRANSCRIBE_MODEL);
 }

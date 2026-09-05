@@ -4,6 +4,8 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { log } from "@/lib/logger";
+import { reindexTrip } from "@/lib/ai/memory";
+import { embeddingsConfigured } from "@/lib/ai/model";
 import { db } from "@/lib/db";
 import { requireTripAccess } from "@/lib/dal";
 import { haversine, suggestMode } from "@/lib/geo";
@@ -17,6 +19,18 @@ import { Prisma } from "@/generated/prisma/client";
 import type { ActionState } from "@/app/(app)/trips/actions";
 
 export type { ActionState };
+
+/** 内容变更后重建向量索引（后台执行，失败只记日志） */
+function scheduleReindex(tripId: string) {
+  if (!embeddingsConfigured()) return;
+  after(async () => {
+    try {
+      await reindexTrip(tripId);
+    } catch (err) {
+      log.error("memory.reindex failed", { tripId, err });
+    }
+  });
+}
 
 /** 条目时区：优先取所属站点覆盖的时区，否则旅程时区 */
 async function entryTz(tripId: string, stopId: string | null) {
@@ -109,6 +123,7 @@ export async function createStop(tripId: string, _prev: ActionState, formData: F
   });
 
   revalidatePath(`/trips/${tripId}`);
+  scheduleReindex(tripId);
   return { ok: true };
 }
 
@@ -148,6 +163,7 @@ export async function updateStop(tripId: string, stopId: string, _prev: ActionSt
     });
   }
   revalidatePath(`/trips/${tripId}`);
+  scheduleReindex(tripId);
   return { ok: true };
 }
 
@@ -264,6 +280,7 @@ export async function createEntry(tripId: string, _prev: ActionState, formData: 
   }
 
   revalidatePath(`/trips/${tripId}`);
+  scheduleReindex(tripId);
   return { ok: true };
 }
 
@@ -294,6 +311,7 @@ export async function updateEntry(tripId: string, entryId: string, _prev: Action
     },
   });
   revalidatePath(`/trips/${tripId}`);
+  scheduleReindex(tripId);
   return { ok: true };
 }
 
@@ -412,6 +430,7 @@ export async function createExpense(tripId: string, _prev: ActionState, formData
   await db.expense.create({ data: r.data });
   revalidatePath(`/trips/${tripId}`);
   revalidatePath("/ledger");
+  scheduleReindex(tripId);
   return { ok: true };
 }
 
@@ -447,6 +466,7 @@ export async function createBabyLog(tripId: string, _prev: ActionState, formData
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   await db.babyLog.create({ data: { tripId, type: parsed.data.type, at: parseInTz(parsed.data.at, await tripTz(tripId)), note: parsed.data.note || null } });
   revalidatePath(`/trips/${tripId}`);
+  scheduleReindex(tripId);
   return { ok: true };
 }
 
@@ -467,4 +487,5 @@ export async function upsertDailyNote(tripId: string, date: string, content: str
     create: { tripId, date: day, content },
   });
   revalidatePath(`/trips/${tripId}`);
+  scheduleReindex(tripId);
 }
