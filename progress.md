@@ -35,6 +35,24 @@
   - Dockerfile, .dockerignore, deploy/entrypoint.sh, docker-compose.yml, docker-compose.dev.yml, .env.example, next.config.ts
 
 ### 阶段 2：核心记录功能
+- **状态：** complete
+- 执行的操作：
+  - 共享库：currency（18 币种/最小单位/格式化/折算）、geo（Haversine/格式化/模式推荐）、amap（服务端 POI/逆地理/路径/天气）、storage（OSS/本地抽象 + imageUrl）、entry-types（类型配置/图标/颜色/字段）、date
+  - 旅程 actions + 列表/新建/编辑页 + TripCard/TripForm/TripHero
+  - 旅程详情 actions：createStop/updateStop/deleteStop（含 leg 计算）、createEntry（可附花费）、createExpense（getRate）、deletePhoto、upsertDailyNote
+  - 路由：/api/upload、/api/files/[...key]、/api/amap/search
+  - 时间线组件 8 个 + 快速记录组件 7 个
+  - 种子脚本造了「北海道 · 秋」示例旅程（4 站/2 条目/3 花费/1 日记），curl 验证渲染与上传
+- 创建/修改的文件：
+  - src/lib/{currency,geo,amap,storage,entry-types,date}.ts
+  - src/app/(app)/trips/{actions.ts,page.tsx,new/page.tsx,[tripId]/page.tsx,[tripId]/actions.ts,[tripId]/edit/page.tsx}
+  - src/app/api/{upload,files/[...key],amap/search}/route.ts
+  - src/components/trips/{trip-card,trip-form,trip-hero,delete-trip-button}.tsx
+  - src/components/timeline/{types,timeline,stop-card,entry-row,leg-divider,daily-note,photo-strip,expense-chip,item-menu}.tsx
+  - src/components/quick-add/{quick-add,stop-form,entry-form,expense-form,photo-uploader,place-search,form-bits}.tsx
+  - src/components/layout/back-button.tsx
+
+### 阶段 3：地图与账本视图
 - **状态：** pending
 
 ## 测试结果
@@ -48,6 +66,12 @@
 | 带会话访问 /trips /me | curl + jose 签发 cookie | 200 且渲染用户名 | 200，渲染「测试妈妈」「test@example.com」 | ✅ |
 | 已登录访问 /login | curl | 307 → /trips | 307 → /trips | ✅ |
 | 伪造 cookie 访问 /trips | curl | 307 → /login | 307 → /login | ✅ |
+| 旅程列表渲染 | 种子 1 个旅程 | 标题/站数/总花费 | 「北海道 · 秋」「4 站」「¥6,992」 | ✅ |
+| 旅程详情时间线 | 4 站 2 条目 3 花费 | Day 1-5、站点、距离、月龄、外币折算 | 全部出现：驾车 43/55 km、直线 2,180 km、1 岁 3 个月、¥2,800 JPY ≈¥134 | ✅ |
+| 照片上传 | curl multipart 640x480 jpg | 200，写入 uploads/，关联站点 | 200，webp 640x480，stopId 正确 | ✅ |
+| 缩略图读取 | /api/files/…?w=300 | 200 image/webp 300px | 200 image/webp 300x225 | ✅ |
+| 文件路由鉴权 | 无 cookie | 401 | 401 | ✅ |
+| 高德搜索未配置降级 | /api/amap/search?q=札幌 | configured:false | {"results":[],"configured":false} | ✅ |
 | 注册/登录 Server Action 端到端 | 浏览器 | 成功登录 | 未测（无浏览器，curl 无法直接调用 useActionState 表单） | ⏳ |
 
 ## 错误日志
@@ -58,7 +82,7 @@
 ## 五问重启检查
 | 问题 | 答案 |
 |------|------|
-| 我在哪里？ | 阶段 1 完成，开始阶段 2 |
+| 我在哪里？ | 阶段 2 完成，开始阶段 3 |
 | 我要去哪里？ | 阶段 1 搭骨架 → 阶段 2 核心记录 → 阶段 3 地图账本 → 阶段 4 AI → 阶段 5 带娃/回顾 → 阶段 6 部署 |
 | 目标是什么？ | 苹果风带娃旅行记录 + 账本 Web 应用，含高德地图与 AI 助手，部署到阿里云 |
 | 我学到了什么？ | 见 findings.md |
