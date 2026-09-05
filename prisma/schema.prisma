@@ -22,6 +22,7 @@ model User {
   memberships TripMember[]
   photos      Photo[]
   expenses    Expense[]
+  invites     TripInvite[]
 }
 
 enum MemberRole {
@@ -70,6 +71,7 @@ model Trip {
   babyLogs   BabyLog[]
   checklist  ChecklistItem[]
   shareLinks ShareLink[]
+  invites    TripInvite[]
   dailyNotes DailyNote[]
 
   @@index([ownerId])
@@ -315,6 +317,25 @@ model ChecklistItem {
   order   Int     @default(0)
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId])
+}
+
+/// 旅程邀请链接：接受后成为成员
+model TripInvite {
+  id         String     @id @default(cuid())
+  tripId     String
+  token      String     @unique
+  role       MemberRole @default(EDITOR)
+  /// 可用次数上限，null 表示不限
+  maxUses    Int?
+  uses       Int        @default(0)
+  expiresAt  DateTime?
+  createdById String
+  createdAt  DateTime   @default(now())
+
+  trip      Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
   @@index([tripId])
 }
