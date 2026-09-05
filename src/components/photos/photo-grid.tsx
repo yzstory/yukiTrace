@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { fmt } from "@/lib/date";
 import type { TPhoto } from "@/components/timeline/types";
 
-export type GalleryDay = { index: number; date: Date; photos: Array<TPhoto & { stopName: string | null }> };
+export type GalleryDay = { index: number; date: Date; photos: Array<TPhoto & { stopName: string | null; firstMoment?: string | null }> };
 
 export function PhotoGrid({ days, canEdit, onDelete, onSetCover, timezone }: { days: GalleryDay[]; canEdit: boolean; onDelete: (id: string) => Promise<void>; onSetCover: (id: string) => Promise<void>; timezone?: string }) {
   const flat = days.flatMap((d) => d.photos);
@@ -92,7 +92,7 @@ export function PhotoGrid({ days, canEdit, onDelete, onSetCover, timezone }: { d
               <button type="button" disabled={openIdx === 0} onClick={() => setOpenIdx((i) => (i ?? 0) - 1)} className="rounded-full bg-white/15 p-2 disabled:opacity-30" aria-label="上一张">
                 <ChevronLeft className="size-5" />
               </button>
-              <p className="flex-1 truncate px-3 text-center text-subhead text-white/90">{open.stopName ?? open.caption ?? ""}</p>
+              <p className="flex-1 truncate px-3 text-center text-subhead text-white/90">{open.caption ?? open.stopName ?? ""}</p>
               <button type="button" disabled={openIdx === flat.length - 1} onClick={() => setOpenIdx((i) => (i ?? 0) + 1)} className="rounded-full bg-white/15 p-2 disabled:opacity-30" aria-label="下一张">
                 <ChevronRight className="size-5" />
               </button>

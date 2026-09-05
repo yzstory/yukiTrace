@@ -23,6 +23,7 @@ model User {
   photos      Photo[]
   expenses    Expense[]
   invites     TripInvite[]
+  pushSubs    PushSubscription[]
 }
 
 enum MemberRole {
@@ -260,6 +261,16 @@ model Photo {
   lat        Float?
   lng        Float?
   caption    String?
+  /// AI 生成的一句话说明
+  aiCaption  String?
+  /// AI 标签：宝宝/风景/食物/合影/文档 等
+  aiTags     String[]  @default([])
+  /// AI 评分 0-100，用于挑封面与总结页精选
+  aiScore    Int?
+  /// AI 判定的「第一次」时刻描述
+  firstMoment String?
+  /// AI 分析状态：pending / done / failed / skipped
+  aiStatus   String    @default("pending")
   isFavorite Boolean   @default(false)
   createdAt  DateTime  @default(now())
 
@@ -338,6 +349,26 @@ model TripInvite {
   createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
   @@index([tripId])
+}
+
+/// Web Push 订阅（每个设备一条）
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  /// 是否接收每日简报
+  briefing  Boolean  @default(true)
+  /// 是否接收宝宝作息提醒
+  babyAlert Boolean  @default(true)
+  createdAt DateTime @default(now())
+  lastSentAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model ShareLink {

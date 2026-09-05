@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Baby, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { PushToggle } from "@/components/pwa/push-toggle";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/dal";
 import { logout } from "@/app/(auth)/actions";
@@ -80,6 +81,7 @@ export default async function MePage() {
 
       <h2 className="mb-2 mt-6 px-1 text-footnote font-semibold uppercase tracking-wide text-muted-foreground">设置</h2>
       <div className="divide-y divide-border/60 rounded-2xl bg-card card-shadow">
+        {process.env.VAPID_PUBLIC_KEY && <PushToggle publicKey={process.env.VAPID_PUBLIC_KEY} />}
         <Link href="/trips" className="flex items-center justify-between px-4 py-3 text-callout">
           添加到主屏幕使用 <span className="text-caption text-muted-foreground">Safari 分享 → 添加到主屏幕</span>
           <ChevronRight className="size-4 text-label-tertiary" />

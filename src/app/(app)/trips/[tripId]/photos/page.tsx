@@ -30,7 +30,8 @@ export default async function TripPhotosPage(props: PageProps<"/trips/[tripId]/p
       thumbUrl: imageUrl(p.ossKey, { w: 400 }),
       width: p.width,
       height: p.height,
-      caption: p.caption,
+      caption: p.caption ?? p.aiCaption,
+      firstMoment: p.firstMoment,
       takenAt: p.takenAt,
       stopName: p.stop?.name ?? null,
     });

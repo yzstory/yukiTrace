@@ -6,7 +6,7 @@ import { TripTabs } from "@/components/trips/trip-tabs";
 import { Timeline } from "@/components/timeline/timeline";
 import { QuickAdd } from "@/components/quick-add/quick-add";
 import { AiChat } from "@/components/ai/ai-chat";
-import { aiConfigured } from "@/lib/ai/model";
+import { aiConfigured, transcribeConfigured } from "@/lib/ai/model";
 import { requireTripAccess } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { imageUrl } from "@/lib/storage";
@@ -177,7 +177,7 @@ export default async function TripPage(props: PageProps<"/trips/[tripId]">) {
       />
       <TripTabs tripId={trip.id} />
       <Timeline days={days} trip={ttrip} />
-      <AiChat tripId={trip.id} homeCurrency={trip.homeCurrency} configured={aiConfigured()} canEdit={canEdit} />
+      <AiChat tripId={trip.id} homeCurrency={trip.homeCurrency} configured={aiConfigured()} canEdit={canEdit} voiceEnabled={transcribeConfigured()} />
       {canEdit && (
         <QuickAdd
           tripId={trip.id}

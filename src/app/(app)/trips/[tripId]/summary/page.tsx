@@ -21,7 +21,7 @@ export default async function SummaryPage(props: PageProps<"/trips/[tripId]/summ
       stops: { orderBy: [{ arriveAt: "asc" }, { order: "asc" }], include: { legsTo: true, _count: { select: { entries: true, photos: true } } } },
       entries: true,
       expenses: true,
-      photos: { orderBy: [{ isFavorite: "desc" }, { takenAt: "asc" }], take: 6, select: { ossKey: true } },
+      photos: { where: { NOT: { aiTags: { has: "document" } } }, orderBy: [{ isFavorite: "desc" }, { aiScore: "desc" }, { takenAt: "asc" }], take: 6, select: { ossKey: true } },
       _count: { select: { photos: true } },
       dailyNotes: true,
     },
@@ -44,8 +44,15 @@ export default async function SummaryPage(props: PageProps<"/trips/[tripId]/summ
   const top = Array.from(byCat.entries()).sort((a, b) => b[1] - a[1])[0];
   const babyTotal = trip.expenses.filter((e) => e.isBaby).reduce((a, e) => a + e.amountHomeMinor, 0);
 
-  // 「第一次」：从条目 / 站点备注 / 日记里找含「第一次」的句子
-  const firsts = [
+  // 「第一次」：优先用照片视觉识别出的时刻，不足时再从文本里找
+  const aiFirsts = await db.photo.findMany({
+    where: { tripId, firstMoment: { not: null } },
+    orderBy: { takenAt: "asc" },
+    select: { firstMoment: true },
+    take: 4,
+  });
+
+  const textFirsts = [
     ...trip.entries.map((e) => [e.title, e.note].filter(Boolean).join(" ")),
     ...trip.stops.map((s) => s.note ?? ""),
     ...trip.dailyNotes.map((d) => d.content),
@@ -55,6 +62,8 @@ export default async function SummaryPage(props: PageProps<"/trips/[tripId]/summ
     .map((s) => s.trim())
     .filter((s) => s.includes("第一次") && s.length <= 40)
     .slice(0, 4);
+
+  const firsts = Array.from(new Set([...aiFirsts.map((p) => p.firstMoment!), ...textFirsts])).slice(0, 4);
 
   // 最丰富的一天：站点 + 条目 + 照片数最多
   const dayScore = new Map<number, number>();

@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
 import { prepareImage, IMAGE_ACCEPT, isProbablyHeic } from "@/lib/client-image";
+import { VoiceButton } from "./voice-button";
 import { generateTripSummary, generatePackingList } from "@/app/(app)/trips/[tripId]/ai-actions";
 import type { ReceiptResult } from "@/app/api/ai/receipt/route";
 
@@ -28,7 +29,7 @@ const TOOL_LABELS: Record<string, string> = {
 
 const MAX_RECEIPT_BYTES = 15 * 1024 * 1024;
 
-export function AiChat({ tripId, homeCurrency, configured, canEdit }: { tripId: string; homeCurrency: string; configured: boolean; canEdit: boolean }) {
+export function AiChat({ tripId, homeCurrency, configured, canEdit, voiceEnabled }: { tripId: string; homeCurrency: string; configured: boolean; canEdit: boolean; voiceEnabled?: boolean }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const [input, setInput] = useState("");
@@ -242,6 +243,16 @@ export function AiChat({ tripId, homeCurrency, configured, canEdit }: { tripId: 
                       <ImagePlus className="size-5" />
                     </button>
                   </div>
+                )}
+                {voiceEnabled && (
+                  <VoiceButton
+                    disabled={streaming}
+                    onText={(t) => {
+                      // 直接发出去，省掉再点一次发送
+                      setInput("");
+                      sendMessage({ text: t });
+                    }}
+                  />
                 )}
                 <textarea
                   value={input}

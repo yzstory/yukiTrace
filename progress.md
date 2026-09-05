@@ -234,6 +234,13 @@
 - 坑：`docker compose down -v` 会连开发库一起停（同一 CLI 不同 compose 文件），之后要记得 `docker compose -f docker-compose.dev.yml up -d`
 - 新增：src/components/map/{map-view,maplibre-view,map-view-types}.tsx、src/components/{theme-provider,theme-toggle}.tsx、deploy/migrate.sh、e2e/theme-map.spec.ts
 
+### 阶段 16：AI 第一档
+- **状态：** complete
+- 迁移：`20260905050523_photo_ai`、`20260905050744_push_subscriptions`
+- 设计：作息提醒用中位间隔而非平均，避免一次异常喂奶拉偏基线；简报在接口内按旅程时区判断小时，crontab 只需每小时调一次
+- 新增：src/lib/ai/{photo,briefing}.ts、src/lib/push.ts、src/app/api/ai/transcribe、api/push/subscribe、api/cron/briefing、src/components/ai/voice-button.tsx、src/components/pwa/push-toggle.tsx、deploy/crontab.example
+- 坑：tsx 脚本里 import 带 `server-only` 的模块会失败，需要打桩 `_resolveFilename`
+
 ## 测试结果
 | 测试 | 输入 | 预期结果 | 实际结果 | 状态 |
 |------|------|---------|---------|------|
@@ -245,6 +252,12 @@
 | 迁移脚本（psql 版） | 全新库执行 + 重复执行 | 4 个迁移 / 0 个 | 一致，15 张表 | ✅ |
 | 深色模式 | 系统深色 + 手动切浅色 + 刷新 | 类与背景亮度随之变化并持久 | 通过 | ✅ |
 | 境外地图 | 东京站点 | 加载 MapLibre canvas | 通过 | ✅ |
+| 照片视觉分析 | mock 网关 + 上传 | caption/tags/score/firstMoment 落库 | 全部写入，aiStatus=done | ✅ |
+| 自动封面 | 分析后无封面旅程 | 选中高分照片 | hasCover=true | ✅ |
+| 语音转写 | mock /audio/transcriptions | 返回文本 | 200 + 中文文本 | ✅ |
+| 简报生成 | 三类简报 | 内容贴合数据 | 早/晚/作息均正确，喂奶间隔按中位数 3.0 小时 | ✅ |
+| 简报接口鉴权 | 无 token / 错 token | 401 | 401 | ✅ |
+| 真机推送送达 | iPhone 添加到主屏幕 | 收到通知 | 未测（需 HTTPS 与真机） | ⏳ |
 | 单元测试 | pnpm test | 全绿 | 40 passed | ✅ |
 | 浏览器冒烟 | pnpm test:e2e（WebKit/iPhone 14） | 5 条主线通过 | 5 passed | ✅ |
 | 快速记录抽屉真机交互 | 浏览器点击 FAB → 地点/花费 | 抽屉打开并提交成功 | 通过 | ✅ |

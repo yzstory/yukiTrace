@@ -177,10 +177,14 @@
 - **状态：** complete
 
 ### 阶段 16：AI 第一档（随身助理）
-- [ ] 语音记录（OpenAI 兼容 transcriptions）
-- [ ] 照片智能：caption / 第一次识别 / 精选封面
-- [ ] 早晚简报 + Web Push；宝宝作息提醒
-- **状态：** pending
+- [x] 语音记录：`/api/ai/transcribe` 直连 OpenAI 兼容 `/audio/transcriptions`（AI SDK 的 openai-compatible 未暴露转写模型）；AI 抽屉里按住说话、松开自动转写并发送，60 秒上限、滑出取消
+- [x] 照片智能：上传后 `after()` 后台跑视觉分析，写入 aiCaption / aiTags / aiScore / firstMoment / aiStatus；票据类自动压分不进精选
+- [x] 自动封面：旅程未设封面且有 60 分以上照片时自动选一张
+- [x] 「第一次」时刻：总结页优先用视觉识别结果，不足再回退到文本关键词；照片墙角标显示
+- [x] Web Push：PushSubscription 模型、VAPID、`/api/push/subscribe`、sw.js 的 push/notificationclick、`/me` 开关（失效订阅自动清理）
+- [x] 早/晚简报与宝宝作息提醒：`/api/cron/briefing` 由服务器 crontab 每小时调用，按各旅程时区判断 8 点/21 点；喂奶提醒用最近 8 次的中位间隔作基线
+- [x] 验证：mock 网关跑通照片分析（caption/score/firstMoment 落库、自动封面）与语音转写；三种简报文案生成正确
+- **状态：** complete
 
 ### 阶段 17：AI 第二档（跨旅程记忆）
 - [ ] pgvector + embeddings，全局问答

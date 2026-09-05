@@ -5,6 +5,9 @@ import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { makeKey, putObject } from "@/lib/storage";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { analyzePhotos, autoPickCover } from "@/lib/ai/photo";
+import { aiConfigured } from "@/lib/ai/model";
 import { rateLimit, tooManyRequests, LIMITS } from "@/lib/rate-limit";
 import { log } from "@/lib/logger";
 import { wgs84ToGcj02 } from "@/lib/geo";
@@ -123,6 +126,21 @@ export async function POST(req: NextRequest) {
   revalidatePath(`/trips/${tripId}`);
   revalidatePath("/trips");
   log.info("upload.done", { userId: session.userId, tripId, ok: results.length, failed: failures.length });
+
+  // 响应先返回，照片理解放到后台跑
+  const newIds = results.map((r) => r.id).filter((id): id is string => Boolean(id));
+  if (aiConfigured() && newIds.length > 0) {
+    after(async () => {
+      try {
+        await analyzePhotos(newIds);
+        await autoPickCover(tripId);
+        revalidatePath(`/trips/${tripId}`);
+        revalidatePath("/trips");
+      } catch (err) {
+        log.error("photo.analyze batch failed", { tripId, err });
+      }
+    });
+  }
   if (results.length === 0 && failures.length > 0) return NextResponse.json({ error: failures.join("；") }, { status: 415 });
   return NextResponse.json({ results, failures });
 }
