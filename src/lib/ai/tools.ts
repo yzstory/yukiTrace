@@ -8,6 +8,9 @@ import { getRate } from "@/app/(app)/trips/[tripId]/actions";
 import { EntryType, ExpenseCategory, StopType } from "@/generated/prisma/enums";
 import { fmt, parseInTz } from "@/lib/date";
 import { revalidatePath } from "next/cache";
+import { storeTripPhoto, storeImageOnly } from "@/lib/photos";
+import { analyzePhotos } from "@/lib/ai/photo";
+import { after } from "next/server";
 
 /**
  * 给 AI 的工具集，全部限定在一个 tripId 内，由调用方鉴权后传入。
@@ -34,9 +37,40 @@ export function parseAiTime(raw: string | undefined, ctx: { now: Date; tz: strin
   return inRange(now) ? now : d;
 }
 
-export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: string; now: Date; canEdit: boolean; timezone: string; startDate: Date; endDate: Date }) {
+export type Attachment = { buffer: Buffer; mediaType: string };
+
+export function tripTools(ctx: {
+  tripId: string;
+  userId: string;
+  homeCurrency: string;
+  now: Date;
+  canEdit: boolean;
+  timezone: string;
+  startDate: Date;
+  endDate: Date;
+  /** 用户这条消息里附带的图片，按顺序编号从 0 开始 */
+  attachments?: Attachment[];
+}) {
   const { tripId, userId, homeCurrency, timezone: tz } = ctx;
   const timeCtx = { now: ctx.now, tz, start: ctx.startDate, end: ctx.endDate };
+  const attachments = ctx.attachments ?? [];
+  const pickAttachments = (indexes?: number[]) => (indexes && indexes.length ? indexes : attachments.map((_, i) => i)).map((i) => attachments[i]).filter(Boolean);
+
+  /** 把附件存成旅程照片，并在后台跑视觉分析 */
+  async function saveAttachmentsAsPhotos(indexes: number[] | undefined, opts: { stopId?: string | null; entryId?: string | null; caption?: string | null; firstMoment?: string | null }) {
+    const ids: string[] = [];
+    for (const a of pickAttachments(indexes)) {
+      const p = await storeTripPhoto({ tripId, buffer: a.buffer, uploaderId: userId, ...opts });
+      ids.push(p.id);
+    }
+    if (ids.length) {
+      after(async () => {
+        await analyzePhotos(ids).catch(() => {});
+        revalidatePath(`/trips/${tripId}`);
+      });
+    }
+    return ids;
+  }
 
   const readTools = {
     listStops: tool({
@@ -154,6 +188,7 @@ export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: s
             category: z.nativeEnum(ExpenseCategory).optional(),
           })
           .optional(),
+        photoAttachmentIndexes: z.array(z.number().int().min(0)).optional().describe("把用户附带的哪几张图片存为这条条目的照片（下标从 0 起）；票据类图片不要存为照片"),
       }),
       execute: async (input) => {
         const startAt = parseAiTime(input.startAt, timeCtx);
@@ -185,8 +220,9 @@ export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: s
           });
           expenseText = `${formatMoney(e.amountMinor, e.currency, { showCode: true })} ≈ ${formatMoney(e.amountHomeMinor, homeCurrency)}`;
         }
+        const photoIds = input.photoAttachmentIndexes?.length ? await saveAttachmentsAsPhotos(input.photoAttachmentIndexes, { stopId: input.stopId ?? null, entryId: entry.id }) : [];
         revalidatePath(`/trips/${tripId}`);
-        return { id: entry.id, title: entry.title, type: entry.type, at: fmt.dateTime(entry.startAt, tz), expense: expenseText };
+        return { id: entry.id, title: entry.title, type: entry.type, at: fmt.dateTime(entry.startAt, tz), expense: expenseText, photosSaved: photoIds.length };
       },
     }),
     addExpense: tool({
@@ -200,9 +236,12 @@ export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: s
         paidAt: z.string().describe("ISO 8601"),
         stopId: z.string().optional(),
         note: z.string().optional(),
+        receiptAttachmentIndex: z.number().int().min(0).optional().describe("若用户附带了这笔花费的票据/账单图片，填其下标以保存为凭证"),
       }),
       execute: async (input) => {
         const cur = CURRENCIES.some((c) => c.code === input.currency) ? input.currency : homeCurrency;
+        const receipt = input.receiptAttachmentIndex != null ? attachments[input.receiptAttachmentIndex] : undefined;
+        const receiptKey = receipt ? await storeImageOnly(tripId, receipt.buffer).catch(() => null) : null;
         const amountMinor = toMinor(input.amount, cur);
         const paidAt = parseAiTime(input.paidAt, timeCtx);
         const rate = await getRate(cur, homeCurrency, paidAt);
@@ -221,11 +260,26 @@ export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: s
             title: input.title,
             note: input.note ?? null,
             paidAt,
+            receiptKey,
           },
         });
         revalidatePath(`/trips/${tripId}`);
         revalidatePath("/ledger");
-        return { id: e.id, title: e.title, amount: formatMoney(e.amountMinor, e.currency, { showCode: true }), home: formatMoney(e.amountHomeMinor, homeCurrency) };
+        return { id: e.id, title: e.title, amount: formatMoney(e.amountMinor, e.currency, { showCode: true }), home: formatMoney(e.amountHomeMinor, homeCurrency), receiptSaved: Boolean(receiptKey) };
+      },
+    }),
+    savePhotos: tool({
+      description: "把用户这条消息附带的图片存为旅程照片（生活照、风景、宝宝的瞬间）。可关联站点、写一句说明、标注「第一次」。票据/订单截图不要用这个，那些走 addExpense 或 createEntry。",
+      inputSchema: z.object({
+        indexes: z.array(z.number().int().min(0)).optional().describe("要保存的图片下标，省略表示全部"),
+        stopId: z.string().optional().describe("关联站点，可用 listStops 查；不确定就省略，会按 GPS 自动匹配"),
+        caption: z.string().optional().describe("一句话说明，可以直接用用户的原话"),
+        firstMoment: z.string().optional().describe("若用户提到这是某个「第一次」，写一句话，如「第一次看海」"),
+      }),
+      execute: async ({ indexes, stopId, caption, firstMoment }) => {
+        if (attachments.length === 0) return { saved: 0, hint: "这条消息没有附带图片" };
+        const ids = await saveAttachmentsAsPhotos(indexes, { stopId: stopId ?? null, caption: caption ?? null, firstMoment: firstMoment ?? null });
+        return { saved: ids.length, ids };
       },
     }),
     logBaby: tool({
@@ -262,5 +316,10 @@ ${ctx.babyName ? `宝宝：${ctx.babyName}${ctx.babyAge ? `，现在 ${ctx.babyA
 2. 记完用一两句话确认写了什么，金额带货币；不要输出 JSON，不要复述工具细节。
 3. 回答花费/行程问题时先用查询工具拿数据，再给结论，数字要来自工具结果。
 4. 语气轻松、简洁、中文，像一个细心的朋友。不要用 emoji 堆砌。
-5. 创建站点前必须有坐标：先 searchPlace；搜不到就告诉用户可以手动添加。`;
+5. 创建站点前必须有坐标：先 searchPlace；搜不到就告诉用户可以手动添加。
+6. 用户可能附带图片（按顺序编号从 0 开始）。**用途以用户的文字为准**：
+   - 说是账单/收据/订单/机票/酒店确认 → 直接读图里的金额、时间、商家，调用 addExpense（用 receiptAttachmentIndex 保存凭证）或 createEntry；
+   - 说是照片/宝宝/风景/第一次… → 调用 savePhotos 存进旅程，caption 用用户原话；
+   - 只是提问（「这是什么」「帮我看看菜单」「翻译一下」）→ 直接回答，不要保存；
+   - 没有文字只有图片 → 一句话说出你看到了什么，问用户想记账还是存照片，不要自作主张。`;
 }

@@ -51,6 +51,18 @@ export async function prepareImage(file: File): Promise<File> {
   }
 }
 
+/** 聊天附件：图片以 data URL 放进消息体，压得更狠一些（1600px / ≤1MB） */
+export async function prepareChatImage(file: File): Promise<File> {
+  const base = await prepareImage(file);
+  try {
+    const out = await imageCompression(base, { maxSizeMB: 1, maxWidthOrHeight: 1600, useWebWorker: true, preserveExif: true, fileType: "image/jpeg", initialQuality: 0.85 });
+    // 压缩库在部分浏览器返回的是 Blob，统一包成 File
+    return out instanceof File ? out : new File([out], base.name.replace(/\.\w+$/, ".jpg"), { type: "image/jpeg", lastModified: base.lastModified });
+  } catch {
+    return base;
+  }
+}
+
 export async function prepareImages(files: File[], onProgress?: (done: number, total: number) => void): Promise<File[]> {
   const out: File[] = [];
   for (const [i, f] of files.entries()) {

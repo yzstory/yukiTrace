@@ -2,17 +2,16 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import { DefaultChatTransport, type UIMessage, type FileUIPart } from "ai";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Sparkles, SendHorizonal, Loader2, Camera, ImagePlus, Square, Wrench, BookOpenText, ListChecks } from "lucide-react";
+import { Sparkles, SendHorizonal, Loader2, Camera, ImagePlus, Square, Wrench, BookOpenText, ListChecks, X } from "lucide-react";
 import { toast } from "sonner";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
-import { prepareImage, IMAGE_ACCEPT, isProbablyHeic } from "@/lib/client-image";
+import { prepareChatImage, IMAGE_ACCEPT, isProbablyHeic } from "@/lib/client-image";
 import { VoiceButton } from "./voice-button";
 import { generateTripSummary, generatePackingList } from "@/app/(app)/trips/[tripId]/ai-actions";
-import type { ReceiptResult } from "@/app/api/ai/receipt/route";
 
 const TOOL_LABELS: Record<string, string> = {
   listStops: "查站点",
@@ -25,15 +24,18 @@ const TOOL_LABELS: Record<string, string> = {
   addExpense: "记账",
   logBaby: "记宝宝状态",
   saveDailyNote: "写日记",
+  savePhotos: "存照片",
 };
 
-const MAX_RECEIPT_BYTES = 15 * 1024 * 1024;
+const MAX_ATTACHMENTS = 6;
+type Pending = { id: string; file: File; url: string };
 
-export function AiChat({ tripId, homeCurrency, configured, canEdit, voiceEnabled }: { tripId: string; homeCurrency: string; configured: boolean; canEdit: boolean; voiceEnabled?: boolean }) {
+export function AiChat({ tripId, configured, canEdit, voiceEnabled }: { tripId: string; configured: boolean; canEdit: boolean; voiceEnabled?: boolean }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  const [pending, setPending] = useState<Pending[]>([]);
   const reduceMotion = useReducedMotion();
   const [, start] = useTransition();
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -51,49 +53,46 @@ export function AiChat({ tripId, homeCurrency, configured, canEdit, voiceEnabled
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: reduceMotion ? "auto" : "smooth" });
   }, [messages, open, reduceMotion]);
 
-  function submit(text: string) {
+  async function submit(text: string) {
     const t = text.trim();
-    if (!t || streaming) return;
-    sendMessage({ text: t });
+    if (streaming) return;
+    if (!t && pending.length === 0) return;
+    // 图片以附件形式随文字一起发出去，由模型根据文字判断用途
+    const files = pending.length ? await toFileParts(pending.map((p) => p.file)) : [];
+    sendMessage(files.length ? { text: t, files } : { text: t });
+    pending.forEach((p) => URL.revokeObjectURL(p.url));
+    setPending([]);
     setInput("");
   }
 
-  async function onReceipt(original: File) {
+  async function addFiles(list: FileList | null) {
+    if (!list) return;
+    const incoming = Array.from(list).slice(0, MAX_ATTACHMENTS - pending.length);
+    if (incoming.length === 0) {
+      toast.error(`一次最多 ${MAX_ATTACHMENTS} 张图片`);
+      return;
+    }
     setBusy("正在处理图片…");
-    const file = await prepareImage(original).catch(() => original);
-    if (!file.type.startsWith("image/") && !isProbablyHeic(original)) {
-      setBusy(null);
-      toast.error("请选择图片文件");
-      return;
-    }
-    if (file.size > MAX_RECEIPT_BYTES) {
-      toast.error("图片不能超过 15MB");
-      return;
-    }
-    setBusy("正在识别票据…");
     try {
-      const fd = new FormData();
-      fd.set("file", file);
-      fd.set("homeCurrency", homeCurrency);
-      const res = await fetch("/api/ai/receipt", { method: "POST", body: fd });
-      const json = (await res.json()) as ReceiptResult & { error?: string };
-      if (!res.ok || json.error) throw new Error(json.error ?? "识别失败");
-      const lines = [
-        `我拍了一张${json.kind === "receipt" ? "收据" : json.kind === "flight" ? "航班确认单" : json.kind === "hotel" ? "酒店预订单" : json.kind === "car_rental" ? "租车合同" : json.kind === "train" ? "车票" : "票据"}，识别结果如下，请帮我记录：`,
-        `名称：${json.title}`,
-        json.amount != null ? `金额：${json.amount} ${json.currency ?? homeCurrency}` : "",
-        json.paidAt ? `时间：${json.paidAt}` : "",
-        json.entryType ? `条目类型：${json.entryType}` : json.category ? `分类：${json.category}` : "",
-        Object.keys(json.meta ?? {}).length ? `字段：${Object.entries(json.meta).map(([k, v]) => `${k}=${v}`).join("，")}` : "",
-        json.items?.length ? `明细：${json.items.map((i) => `${i.name}${i.amount != null ? ` ${i.amount}` : ""}`).join("；")}` : "",
-        json.note ? `备注：${json.note}` : "",
-      ].filter(Boolean);
-      sendMessage({ text: lines.join("\n") });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "识别失败");
+      const prepared: Pending[] = [];
+      for (const f of incoming) {
+        if (!f.type.startsWith("image/") && !isProbablyHeic(f)) continue;
+        const file = await prepareChatImage(f).catch(() => f);
+        prepared.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, file, url: URL.createObjectURL(file) });
+      }
+      if (prepared.length === 0) toast.error("请选择图片文件");
+      setPending((p) => [...p, ...prepared]);
     } finally {
       setBusy(null);
     }
+  }
+
+  function removePending(id: string) {
+    setPending((p) => {
+      const hit = p.find((x) => x.id === id);
+      if (hit) URL.revokeObjectURL(hit.url);
+      return p.filter((x) => x.id !== id);
+    });
   }
 
   function runSummary() {
@@ -195,8 +194,23 @@ export function AiChat({ tripId, homeCurrency, configured, canEdit, voiceEnabled
                   e.preventDefault();
                   submit(input);
                 }}
-                className="flex items-end gap-2 border-t border-border/60 px-3 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
+                className="border-t border-border/60 px-3 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
               >
+                {pending.length > 0 && (
+                  <div className="no-scrollbar mb-2 flex gap-2 overflow-x-auto">
+                    {pending.map((p) => (
+                      <span key={p.id} className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-fill">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={p.url} alt="" className="size-full object-cover" />
+                        <button type="button" onClick={() => removePending(p.id)} aria-label="移除图片" className="absolute right-0.5 top-0.5 flex size-5 items-center justify-center rounded-full bg-black/60 text-white">
+                          <X className="size-3" />
+                        </button>
+                      </span>
+                    ))}
+                    <span className="flex items-center px-1 text-caption text-muted-foreground">说说这些图片是什么，比如「今天的账单」或「宝宝第一次看海」</span>
+                  </div>
+                )}
+                <div className="flex items-end gap-2">
                 <input
                   ref={cameraRef}
                   type="file"
@@ -204,20 +218,21 @@ export function AiChat({ tripId, homeCurrency, configured, canEdit, voiceEnabled
                   capture="environment"
                   className="hidden"
                   onChange={(e) => {
-                    const file = e.currentTarget.files?.[0];
+                    const files = e.currentTarget.files;
+                    void addFiles(files);
                     e.currentTarget.value = "";
-                    if (file) void onReceipt(file);
                   }}
                 />
                 <input
                   ref={photoRef}
                   type="file"
                   accept={IMAGE_ACCEPT}
+                  multiple
                   className="hidden"
                   onChange={(e) => {
-                    const file = e.currentTarget.files?.[0];
+                    const files = e.currentTarget.files;
+                    void addFiles(files);
                     e.currentTarget.value = "";
-                    if (file) void onReceipt(file);
                   }}
                 />
                 {canEdit && (
@@ -227,8 +242,8 @@ export function AiChat({ tripId, homeCurrency, configured, canEdit, voiceEnabled
                       onClick={() => cameraRef.current?.click()}
                       disabled={!!busy || streaming}
                       className="flex size-10 items-center justify-center rounded-full bg-fill text-primary disabled:opacity-40"
-                      aria-label="拍照识别"
-                      title="拍照识别"
+                      aria-label="拍照"
+                      title="拍照"
                     >
                       <Camera className="size-5" />
                     </button>
@@ -237,8 +252,8 @@ export function AiChat({ tripId, homeCurrency, configured, canEdit, voiceEnabled
                       onClick={() => photoRef.current?.click()}
                       disabled={!!busy || streaming}
                       className="flex size-10 items-center justify-center rounded-full bg-fill text-primary disabled:opacity-40"
-                      aria-label="从相册或本地选择照片"
-                      title="从相册或本地选择"
+                      aria-label="添加图片"
+                      title="添加图片"
                     >
                       <ImagePlus className="size-5" />
                     </button>
@@ -264,7 +279,7 @@ export function AiChat({ tripId, homeCurrency, configured, canEdit, voiceEnabled
                     }
                   }}
                   rows={1}
-                  placeholder={canEdit ? "比如：刚打车去了小樽，3200 日元" : "问问这趟的花费或行程"}
+                  placeholder={pending.length ? "这些图片是…" : canEdit ? "比如：刚打车去了小樽，3200 日元" : "问问这趟的花费或行程"}
                   className="max-h-32 min-h-10 flex-1 resize-none rounded-2xl bg-fill-secondary px-4 py-2.5 text-body outline-none focus:ring-2 focus:ring-ring/50"
                 />
                 {streaming ? (
@@ -272,16 +287,35 @@ export function AiChat({ tripId, homeCurrency, configured, canEdit, voiceEnabled
                     <Square className="size-4 fill-current" />
                   </button>
                 ) : (
-                  <button type="submit" disabled={!input.trim()} className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-40" aria-label="发送">
+                  <button type="submit" disabled={(!input.trim() && pending.length === 0) || !!busy} className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-40" aria-label="发送">
                     <SendHorizonal className="size-5" />
                   </button>
                 )}
+                </div>
               </form>
             </>
           )}
         </DrawerContent>
       </Drawer>
     </>
+  );
+}
+
+/**
+ * 把 File 读成 data URL 组成 FileUIPart。
+ * 不走 DataTransfer/FileList：WebKit 要求 add() 的参数必须是原生 File，压缩库返回的 Blob 会报错。
+ */
+async function toFileParts(files: File[]): Promise<FileUIPart[]> {
+  return Promise.all(
+    files.map(
+      (f) =>
+        new Promise<FileUIPart>((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve({ type: "file", mediaType: f.type || "image/jpeg", url: String(r.result), filename: f.name });
+          r.onerror = () => reject(r.error);
+          r.readAsDataURL(f);
+        })
+    )
   );
 }
 
@@ -294,6 +328,16 @@ function Message({ m }: { m: UIMessage }) {
       transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
       className={cn("flex flex-col gap-1", isUser ? "items-end" : "items-start")}
     >
+      {m.parts.some((p) => p.type === "file" && p.mediaType?.startsWith("image/")) && (
+        <div className={cn("flex max-w-[85%] flex-wrap gap-1.5", isUser ? "justify-end" : "justify-start")}>
+          {m.parts
+            .filter((p) => p.type === "file" && p.mediaType?.startsWith("image/"))
+            .map((p, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={i} src={(p as { url: string }).url} alt="" className="size-24 rounded-xl object-cover" />
+            ))}
+        </div>
+      )}
       {m.parts.map((p, i) => {
         if (p.type === "text") {
           if (!p.text.trim()) return null;
