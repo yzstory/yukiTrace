@@ -101,7 +101,15 @@
   - src/app/manifest.ts, public/sw.js, public/offline.html, public/icons/*, src/app/icon.png, src/components/pwa/register-sw.tsx, src/app/layout.tsx, src/proxy.ts
 
 ### 阶段 6：部署与验证
-- **状态：** pending
+- **状态：** in_progress（服务器侧完成，等待安全组放行）
+- 执行的操作：
+  - 本地先用 arm64 跑通生产 compose（发现 pnpm 符号链接导致 prisma CLI 缺 @prisma/config → 拆出 npm 扁平安装的 migrate 镜像；`# syntax=` 指令拉取 docker.io 失败 → 删除）
+  - buildx 构建 linux/amd64 runner + migrate，save/load 到服务器，compose up
+  - 服务器本机验证：migrate 成功、/login 200、/ 307
+  - 公网探测失败排查：本机 curl connect 2ms（TUN 代理劫持）；通过代理探测 80 秒回、3100/8080 5s 超时 → 安全组未放行
+- 创建/修改的文件：
+  - Dockerfile, docker-compose.yml, deploy/deploy.sh, .env.example, src/lib/session.ts
+  - 服务器：/root/docker-compose/yukiTrace/{.env,docker-compose.yml,prisma.config.ts,prisma/}
 
 ## 测试结果
 | 测试 | 输入 | 预期结果 | 实际结果 | 状态 |
@@ -129,6 +137,9 @@
 | 总结页 | /trips/[id]/summary | 统计与「第一次」 | 200，坐了 1 次飞机、第一次坐飞机、最丰富的一天 | ✅ |
 | CSV 导出 | /api/export/[id] | 200 text/csv 带 BOM | 200，3 行含表头，中文文件名 | ✅ |
 | PWA 资产 | manifest / sw.js / offline.html / icon | 全 200 | 修 proxy 后全 200 | ✅ |
+| 生产镜像本地启动 | compose up (arm64) | migrate 成功 + /login 200 | 成功；runner 232MB | ✅ |
+| 服务器部署 | compose up (amd64) | 同上 | migrate 成功；本机 curl /login 200 | ✅ |
+| 公网访问 http://101.37.37.200:3100 | 本机 curl | 200 | 无法判定（本机代理劫持）；推断安全组未放行 | ⏳ |
 | 长图生成 / 离线 SW 行为 | 浏览器 | 下载 PNG / 离线可看 | 未测（无浏览器） | ⏳ |
 | 真实模型对话质量 | 真实 API Key | 合理拆解与工具选择 | 未测（无 Key） | ⏳ |
 | 高德真实地图渲染 / 回放动画 | 浏览器 + Key | 显示地图 | 未测（无 Key、无浏览器），降级 SVG 已验证 | ⏳ |
@@ -142,7 +153,7 @@
 ## 五问重启检查
 | 问题 | 答案 |
 |------|------|
-| 我在哪里？ | 阶段 5 完成，开始阶段 6 部署 |
+| 我在哪里？ | 阶段 6：已部署，等待用户放行安全组并真机走查 |
 | 我要去哪里？ | 阶段 1 搭骨架 → 阶段 2 核心记录 → 阶段 3 地图账本 → 阶段 4 AI → 阶段 5 带娃/回顾 → 阶段 6 部署 |
 | 目标是什么？ | 苹果风带娃旅行记录 + 账本 Web 应用，含高德地图与 AI 助手，部署到阿里云 |
 | 我学到了什么？ | 见 findings.md |

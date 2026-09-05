@@ -4,7 +4,7 @@
 用 Next.js 做一个苹果风格的「带娃旅行日记 + 账本」网页应用，能记录行程（航班/租车/住宿/餐饮/游玩）、花费（多币种）、照片与备注，在高德地图上展示路线与站间距离，并内嵌 AI 助手（OpenAI 兼容接口）降低记录成本；第一版部署到阿里云 ECS（Docker Compose），后续可开放注册并演进为 App。
 
 ## 当前阶段
-阶段 5 完成，进入阶段 6（部署与验证）
+阶段 6 基本完成：已部署到服务器并在服务器本机验证通过；公网访问待用户放行安全组 3100 端口；真机走查待做
 
 ## 各阶段
 
@@ -82,14 +82,20 @@
 - **状态：** complete
 
 ### 阶段 6：部署与验证
-- [ ] 服务器 `/root/docker-compose/yukiTrace` 部署 docker-compose（app + postgres + 可选 caddy 反代 HTTPS）
-- [ ] 环境变量：DATABASE_URL、AUTH_SECRET、AMAP_KEY(web/js)、OSS_*、AI_BASE_URL/AI_API_KEY/AI_MODEL
-- [ ] 数据库迁移、种子数据、备份策略
-- [ ] 手机端真机走一遍：新建旅程 → 录站点 → 记花费 → 传照片 → 看地图 → 看账本
-- [ ] 记录测试结果到 progress.md
-- **状态：** pending
+- [x] 服务器勘察：Docker 26 / Compose 2.27，80/443/3000/8080 已被占用 → 用 3100；内存 3.5G → 本机 buildx 构建 amd64 镜像后传输
+- [x] Dockerfile 三目标：deps/build → `runner`（standalone，236MB）与 `migrate`（prisma CLI，722MB，迁移目录挂载不必重建）
+- [x] 生产 compose：postgres(healthcheck) → migrate(一次性) → app；uploads 卷；.env 注入
+- [x] 服务器 `/root/docker-compose/yukiTrace`：.env（随机 AUTH_SECRET / POSTGRES_PASSWORD，AMAP/OSS/AI 留空待填）、docker-compose.yml、prisma.config.ts、prisma/schema + migrations
+- [x] 镜像 docker save | gzip | ssh docker load（38s），`docker compose up -d`：迁移成功，app Ready，服务器本机 curl /login 200、/ → 307 /login
+- [x] 一键脚本 `deploy/deploy.sh [--with-migrate]`
+- [ ] 公网访问：从本机探测被本地代理（127.0.0.1:7890 TUN）劫持无法判定；对比端口 80 秒回 / 3100 与 8080 均 5s 超时，**判断阿里云安全组未放行 TCP 3100**，需用户在控制台放行
+- [ ] 手机真机走一遍：新建旅程 → 录站点 → 记花费 → 传照片 → 看地图 → 看账本（需公网可达后进行）
+- [ ] 填入高德 Key / OSS / AI 配置后 `docker compose up -d` 重启生效
+- [ ] 域名 + HTTPS（PWA 安装、定位、剪贴板等能力需要 HTTPS）
+- **状态：** in_progress（等待用户侧操作）
 
 ## 关键问题
+0. **阿里云安全组放行 TCP 3100**（或配域名走现有 nginx 80/443 反代）
 1. 高德 Key 是否已申请？需要 Web 端（JS API）Key + Web 服务 Key 各一个（路径规划/天气用服务 Key）
 2. OSS Bucket 名称与地域？是否已开通 STS 角色（用于前端直传）
 3. AI 服务商与模型名（例如 DeepSeek / 通义 / OpenRouter / 自建），是否支持图片输入
