@@ -76,8 +76,10 @@ test("地图与总结可访问", async ({ page }) => {
   await page.getByRole("link", { name: TRIP }).click();
 
   await page.getByRole("link", { name: "地图" }).first().click();
-  // 未配置高德 Key 时降级为路线示意图，仍应渲染站点
-  await expect(page.getByRole("img", { name: "路线示意图" }).or(page.locator(".amap-container"))).toBeVisible();
+  // 境外站点走 MapLibre；国内走高德，未配 Key 时降级为路线示意图
+  await expect(
+    page.locator("canvas.maplibregl-canvas").or(page.locator(".amap-container")).or(page.getByRole("img", { name: "路线示意图" }))
+  ).toBeVisible({ timeout: 20_000 });
 
   await page.goBack();
   await page.getByRole("link", { name: "旅程总结" }).click();

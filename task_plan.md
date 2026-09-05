@@ -169,9 +169,12 @@
 - **状态：** complete
 
 ### 阶段 15：地图与外观
-- [ ] 海外坐标切 MapLibre；深色模式跟随系统
-- [ ] 部署体积：去掉独立 migrate 镜像
-- **状态：** pending
+- [x] `MapView` 按站点位置自动选源：多数站点在境外时用 MapLibre + OpenFreeMap 免费瓦片，否则用高德；两者暴露同一 handle（replay/focus）
+- [x] MapLibre 支持深浅两套样式、标记与按天着色路线、fitBounds、逐站回放；加载失败降级到 SVG 路线图
+- [x] 深色模式：next-themes 跟随系统 + `/me` 三档手动切换（浅色/深色/跟随系统），已有的深色 token 全部生效
+- [x] 部署瘦身：migrate 镜像从 prisma CLI（722MB）换成 postgres:16-alpine + psql 脚本（288MB），自研 `deploy/migrate.sh` 按 `_prisma_migrations` 顺序执行且事务内幂等
+- [x] 验证：全新库跑出 4 个迁移 15 张表，二次执行应用 0 个；浏览器验证深色跟随系统与手动切换持久化、东京旅程加载 MapLibre canvas
+- **状态：** complete
 
 ### 阶段 16：AI 第一档（随身助理）
 - [ ] 语音记录（OpenAI 兼容 transcriptions）

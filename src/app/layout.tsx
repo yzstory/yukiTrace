@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Toaster } from "@/components/ui/sonner";
 import { RegisterSW } from "@/components/pwa/register-sw";
+import { ThemeProvider } from "@/components/theme-provider";
 import { MotionProvider } from "@/components/motion/motion-provider";
 import "./globals.css";
 
@@ -26,13 +27,15 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="zh-CN" className="h-full antialiased">
+    <html lang="zh-CN" className="h-full antialiased" suppressHydrationWarning>
       <body className="min-h-full flex flex-col">
+        <ThemeProvider>
         <MotionProvider>
           {children}
           <Toaster position="top-center" />
           <RegisterSW />
         </MotionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

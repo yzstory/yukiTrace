@@ -17,14 +17,13 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm prisma generate && pnpm build
 
-# ── 迁移镜像：只装 prisma CLI（npm 扁平安装，避免 pnpm 符号链接问题）──
-FROM node:22-alpine AS migrate
+# ── 迁移镜像：postgres:16-alpine 自带 psql，比装 prisma CLI 小一个数量级 ──
+FROM postgres:16-alpine AS migrate
 WORKDIR /app
-COPY prisma ./prisma
-COPY prisma.config.ts ./
-RUN npm init -y >/dev/null && npm install --no-audit --no-fund prisma@7.10.0 dotenv@17 \
- && npx prisma --version >/dev/null
-CMD ["npx", "prisma", "migrate", "deploy"]
+COPY prisma/migrations ./migrations
+COPY deploy/migrate.sh ./migrate.sh
+RUN chmod +x ./migrate.sh
+ENTRYPOINT ["./migrate.sh"]
 
 # ── 运行镜像：仅 standalone 输出 ──
 FROM node:22-alpine AS runner

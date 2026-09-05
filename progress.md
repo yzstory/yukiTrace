@@ -228,6 +228,12 @@
 - 设计取舍：不自己实现一套离线校验逻辑，`/api/sync` 直接把 JSON 还原成 FormData 调用原 Server Action，避免在线/离线两套规则漂移
 - 新增：src/lib/offline/{types,queue,sync,use-offline-form}.ts、src/app/api/sync/route.ts、src/components/offline/sync-badge.tsx、e2e/offline.spec.ts
 
+### 阶段 15：地图与外观
+- **状态：** complete
+- 坑：psql 不接受 Prisma 连接串里的 `?schema=public`，migrate.sh 需要先剥掉查询串
+- 坑：`docker compose down -v` 会连开发库一起停（同一 CLI 不同 compose 文件），之后要记得 `docker compose -f docker-compose.dev.yml up -d`
+- 新增：src/components/map/{map-view,maplibre-view,map-view-types}.tsx、src/components/{theme-provider,theme-toggle}.tsx、deploy/migrate.sh、e2e/theme-map.spec.ts
+
 ## 测试结果
 | 测试 | 输入 | 预期结果 | 实际结果 | 状态 |
 |------|------|---------|---------|------|
@@ -236,6 +242,9 @@
 | 邀请链接全流程 | 生成→未登录查看→登录→加入→用尽 | 各状态正确 | 全部符合预期，成员数 1→2，角色 EDITOR | ✅ |
 | 权限边界 | 非所有者访问成员页 | 无管理入口、有退出按钮 | 一致 | ✅ |
 | 离线记账全链路 | Playwright setOffline | 入队→回放→落库 | 通过（含浮条状态与自动刷新） | ✅ |
+| 迁移脚本（psql 版） | 全新库执行 + 重复执行 | 4 个迁移 / 0 个 | 一致，15 张表 | ✅ |
+| 深色模式 | 系统深色 + 手动切浅色 + 刷新 | 类与背景亮度随之变化并持久 | 通过 | ✅ |
+| 境外地图 | 东京站点 | 加载 MapLibre canvas | 通过 | ✅ |
 | 单元测试 | pnpm test | 全绿 | 40 passed | ✅ |
 | 浏览器冒烟 | pnpm test:e2e（WebKit/iPhone 14） | 5 条主线通过 | 5 passed | ✅ |
 | 快速记录抽屉真机交互 | 浏览器点击 FAB → 地点/花费 | 抽屉打开并提交成功 | 通过 | ✅ |

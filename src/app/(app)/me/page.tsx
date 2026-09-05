@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Baby, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/dal";
 import { logout } from "@/app/(auth)/actions";
@@ -71,6 +72,11 @@ export default async function MePage() {
           ))}
         </div>
       )}
+
+      <h2 className="mb-2 mt-6 px-1 text-footnote font-semibold uppercase tracking-wide text-muted-foreground">外观</h2>
+      <div className="rounded-2xl bg-card p-3 card-shadow">
+        <ThemeToggle />
+      </div>
 
       <h2 className="mb-2 mt-6 px-1 text-footnote font-semibold uppercase tracking-wide text-muted-foreground">设置</h2>
       <div className="divide-y divide-border/60 rounded-2xl bg-card card-shadow">

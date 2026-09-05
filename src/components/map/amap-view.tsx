@@ -11,7 +11,9 @@ declare global {
   }
 }
 
-export type AMapViewHandle = { replay: () => void; focus: (id: string) => void };
+import type { MapViewHandle } from "./map-view-types";
+
+export type AMapViewHandle = MapViewHandle;
 
 export function AMapView({
   points,
