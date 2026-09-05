@@ -29,6 +29,7 @@ export default async function TripsPage() {
     startDate: t.startDate,
     endDate: t.endDate,
     homeCurrency: t.homeCurrency,
+    timezone: t.timezone,
     babyName: t.babyName,
     babyBirthDate: t.babyBirthDate,
     stopCount: t._count.stops,

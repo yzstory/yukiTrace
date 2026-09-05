@@ -18,6 +18,7 @@ export type TripHeroData = {
   startDate: Date;
   endDate: Date;
   homeCurrency: string;
+  timezone: string;
   babyName: string | null;
   babyBirthDate: Date | null;
   travelers: string[];
@@ -39,7 +40,7 @@ export function TripHero({ trip }: { trip: TripHeroData }) {
         )}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent p-5 pt-20 text-white">
           <p className="text-footnote font-medium text-white/80">
-            {fmt.dateFull(trip.startDate)} – {fmt.date(trip.endDate)} · {tripDays(trip.startDate, trip.endDate)} 天
+            {fmt.dateFull(trip.startDate, trip.timezone)} – {fmt.date(trip.endDate, trip.timezone)} · {tripDays(trip.startDate, trip.endDate)} 天
           </p>
           <h1 className="mt-0.5 text-large-title text-white">{trip.title}</h1>
           {trip.description && <p className="mt-1 text-subhead text-white/85">{trip.description}</p>}

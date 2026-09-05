@@ -21,8 +21,8 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/export/[trip
   const rows = [
     ["日期", "时间", "名称", "分类", "宝宝相关", "金额", "货币", `折算 ${trip.homeCurrency}`, "汇率", "站点", "付款人", "备注"],
     ...trip.expenses.map((e) => [
-      fmt.inputDate(e.paidAt),
-      fmt.time(e.paidAt),
+      fmt.inputDate(e.paidAt, trip.timezone),
+      fmt.time(e.paidAt, trip.timezone),
       e.title,
       EXPENSE_CATEGORIES[e.category].label,
       e.isBaby ? "是" : "",

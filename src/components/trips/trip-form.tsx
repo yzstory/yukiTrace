@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CURRENCIES } from "@/lib/currency";
-import { fmt } from "@/lib/date";
+import { fmt, TIMEZONES, DEFAULT_TZ } from "@/lib/date";
 import type { ActionState } from "@/app/(app)/trips/actions";
 
 export type TripFormValues = {
@@ -16,6 +16,7 @@ export type TripFormValues = {
   startDate?: Date | string;
   endDate?: Date | string;
   homeCurrency?: string;
+  timezone?: string;
   babyName?: string | null;
   babyBirthDate?: Date | string | null;
   travelers?: string[];
@@ -43,6 +44,21 @@ export function TripForm({
         <div className="grid grid-cols-2 gap-3">
           <Field label="开始日期" name="startDate" type="date" required defaultValue={initial?.startDate ? fmt.inputDate(initial.startDate) : today} />
           <Field label="结束日期" name="endDate" type="date" required defaultValue={initial?.endDate ? fmt.inputDate(initial.endDate) : today} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-footnote font-medium text-muted-foreground">时区</Label>
+          <select
+            name="timezone"
+            defaultValue={initial?.timezone ?? DEFAULT_TZ}
+            className="h-11 rounded-xl border border-input bg-fill-secondary px-3 text-body outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            {TIMEZONES.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+          <p className="text-caption text-muted-foreground">所有时间按这个时区显示。个别站点可单独设置时区。</p>
         </div>
         <div className="flex flex-col gap-1.5">
           <Label className="text-footnote font-medium text-muted-foreground">主币种</Label>

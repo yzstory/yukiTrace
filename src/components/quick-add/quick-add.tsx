@@ -15,7 +15,7 @@ import { BabyLogForm } from "./baby-log-form";
 
 type Mode = { kind: "menu" } | { kind: "stop" } | { kind: "entry"; type: EntryType } | { kind: "expense" } | { kind: "photo" } | { kind: "baby" };
 
-export function QuickAdd({ tripId, stops, homeCurrency, tripStart, tripEnd }: { tripId: string; stops: StopOption[]; homeCurrency: string; tripStart: Date; tripEnd: Date }) {
+export function QuickAdd({ tripId, stops, homeCurrency, tripStart, tripEnd, timezone }: { tripId: string; stops: StopOption[]; homeCurrency: string; tripStart: Date; tripEnd: Date; timezone: string }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<Mode>({ kind: "menu" });
 
@@ -66,15 +66,15 @@ export function QuickAdd({ tripId, stops, homeCurrency, tripStart, tripEnd }: { 
                 transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
               >
                 {mode.kind === "menu" && <Menu onPick={setMode} />}
-                {mode.kind === "stop" && <StopForm tripId={tripId} defaultTime={defaultTime} onDone={close} />}
+                {mode.kind === "stop" && <StopForm tripId={tripId} defaultTime={defaultTime} tripTz={timezone} onDone={close} />}
                 {mode.kind === "entry" && (
-                  <EntryForm tripId={tripId} type={mode.type} stops={stops} homeCurrency={homeCurrency} defaultTime={defaultTime} defaultStopId={defaultStopId} onDone={close} />
+                  <EntryForm tripId={tripId} type={mode.type} stops={stops} homeCurrency={homeCurrency} defaultTime={defaultTime} defaultStopId={defaultStopId} tz={timezone} onDone={close} />
                 )}
                 {mode.kind === "expense" && (
-                  <ExpenseForm tripId={tripId} stops={stops} homeCurrency={homeCurrency} defaultTime={defaultTime} defaultStopId={defaultStopId} onDone={close} />
+                  <ExpenseForm tripId={tripId} stops={stops} homeCurrency={homeCurrency} defaultTime={defaultTime} defaultStopId={defaultStopId} tz={timezone} onDone={close} />
                 )}
                 {mode.kind === "photo" && <PhotoUploader tripId={tripId} stops={stops} defaultStopId={defaultStopId} onDone={close} />}
-                {mode.kind === "baby" && <BabyLogForm tripId={tripId} defaultTime={defaultTime} onDone={close} />}
+                {mode.kind === "baby" && <BabyLogForm tripId={tripId} defaultTime={defaultTime} tz={timezone} onDone={close} />}
               </motion.div>
             </AnimatePresence>
           </div>

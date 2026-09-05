@@ -12,7 +12,7 @@ import { EditDrawer } from "./edit-drawer";
 import { EntryForm, type StopOption } from "@/components/quick-add/entry-form";
 import type { TEntry } from "./types";
 
-export function EntryRow({ entry, tripId, homeCurrency, canEdit, nested, stops = [], stopId }: { entry: TEntry; tripId: string; homeCurrency: string; canEdit: boolean; nested?: boolean; stops?: StopOption[]; stopId?: string | null }) {
+export function EntryRow({ entry, tripId, homeCurrency, canEdit, nested, stops = [], stopId, tz }: { entry: TEntry; tripId: string; homeCurrency: string; canEdit: boolean; nested?: boolean; stops?: StopOption[]; stopId?: string | null; tz?: string | null }) {
   const cfg = ENTRY_TYPES[entry.type];
   const Icon = cfg.icon;
   const metaLine = summarizeMeta(entry);
@@ -27,8 +27,8 @@ export function EntryRow({ entry, tripId, homeCurrency, canEdit, nested, stops =
           <div className="min-w-0">
             <p className="truncate text-callout font-medium">{entry.title}</p>
             <p className="text-caption text-muted-foreground">
-              {cfg.label} · {fmt.time(entry.startAt)}
-              {entry.endAt ? ` – ${fmt.time(entry.endAt)}` : ""}
+              {cfg.label} · {fmt.time(entry.startAt, tz)}
+              {entry.endAt ? ` – ${fmt.time(entry.endAt, tz)}` : ""}
               {metaLine ? ` · ${metaLine}` : ""}
             </p>
           </div>
@@ -46,7 +46,7 @@ export function EntryRow({ entry, tripId, homeCurrency, canEdit, nested, stops =
       </div>
       {canEdit && (
         <EditDrawer open={editing} onOpenChange={setEditing} title={`编辑${cfg.label}`}>
-          <EntryForm tripId={tripId} type={entry.type} stops={stops} homeCurrency={homeCurrency} defaultTime={entry.startAt} initial={{ ...entry, stopId }} onDone={() => setEditing(false)} />
+          <EntryForm tripId={tripId} type={entry.type} stops={stops} homeCurrency={homeCurrency} defaultTime={entry.startAt} initial={{ ...entry, stopId }} tz={tz} onDone={() => setEditing(false)} />
         </EditDrawer>
       )}
     </div>

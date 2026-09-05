@@ -37,7 +37,7 @@ export function Timeline({ days, trip }: { days: TDay[]; trip: TTrip }) {
               <h2 className="text-title-2">
                 Day {day.index}
                 <span className="ml-2 text-subhead font-normal text-muted-foreground">
-                  {fmt.date(day.date)} {fmt.weekday(day.date)}
+                  {fmt.date(day.date, trip.timezone)} {fmt.weekday(day.date, trip.timezone)}
                 </span>
               </h2>
               {day.totalHomeMinor > 0 && (
@@ -45,8 +45,8 @@ export function Timeline({ days, trip }: { days: TDay[]; trip: TTrip }) {
               )}
             </header>
 
-            <DailyNote tripId={trip.id} date={day.date} note={day.note} aiDraft={day.aiDraft} canEdit={trip.canEdit} aiConfigured={trip.aiConfigured} hasContent={!empty} />
-            <BabyStrip logs={day.babyLogs} tripId={trip.id} canEdit={trip.canEdit} babyName={trip.babyName} />
+            <DailyNote tripId={trip.id} date={day.date} note={day.note} aiDraft={day.aiDraft} canEdit={trip.canEdit} aiConfigured={trip.aiConfigured} hasContent={!empty} tz={trip.timezone} />
+            <BabyStrip logs={day.babyLogs} tripId={trip.id} canEdit={trip.canEdit} babyName={trip.babyName} tz={trip.timezone} />
 
             {empty ? (
               <p className="rounded-2xl border border-dashed border-border px-4 py-5 text-center text-footnote text-label-tertiary">这一天还没有记录</p>
@@ -62,7 +62,7 @@ export function Timeline({ days, trip }: { days: TDay[]; trip: TTrip }) {
                 {day.looseEntries.length > 0 && (
                   <div className={day.stops.length ? "mt-3 flex flex-col gap-3" : "flex flex-col gap-3"}>
                     {day.looseEntries.map((e) => (
-                      <EntryRow key={e.id} entry={e} tripId={trip.id} homeCurrency={trip.homeCurrency} canEdit={trip.canEdit} stops={stopOptions} />
+                      <EntryRow key={e.id} entry={e} tripId={trip.id} homeCurrency={trip.homeCurrency} canEdit={trip.canEdit} stops={stopOptions} tz={trip.timezone} />
                     ))}
                   </div>
                 )}

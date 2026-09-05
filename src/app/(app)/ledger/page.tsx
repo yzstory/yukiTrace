@@ -15,17 +15,17 @@ export default async function LedgerPage() {
   const trips = await db.trip.findMany({
     where: { OR: [{ ownerId: userId }, { members: { some: { userId } } }] },
     orderBy: { startDate: "desc" },
-    include: { expenses: { select: { amountHomeMinor: true, category: true, isBaby: true, paidAt: true } } },
+    include: { expenses: { select: { amountHomeMinor: true, amountCnyMinor: true, category: true, isBaby: true, paidAt: true } } },
   });
 
-  // 全部按 CNY 汇总（若旅程主币种非 CNY，这里用其主币种金额近似；跨币种旅程较少）
+  // 跨旅程统一按人民币汇总（每笔花费落库时已折算 amountCnyMinor）
   const year = new Date().getFullYear();
-  const all = trips.flatMap((t) => t.expenses.map((e) => ({ ...e, homeCurrency: t.homeCurrency })));
-  const total = all.reduce((a, e) => a + e.amountHomeMinor, 0);
-  const thisYear = all.filter((e) => e.paidAt.getFullYear() === year).reduce((a, e) => a + e.amountHomeMinor, 0);
-  const baby = all.filter((e) => e.isBaby).reduce((a, e) => a + e.amountHomeMinor, 0);
+  const all = trips.flatMap((t) => t.expenses);
+  const total = all.reduce((a, e) => a + e.amountCnyMinor, 0);
+  const thisYear = all.filter((e) => e.paidAt.getFullYear() === year).reduce((a, e) => a + e.amountCnyMinor, 0);
+  const baby = all.filter((e) => e.isBaby).reduce((a, e) => a + e.amountCnyMinor, 0);
   const byCat = new Map<ExpenseCategory, number>();
-  all.forEach((e) => byCat.set(e.category, (byCat.get(e.category) ?? 0) + e.amountHomeMinor));
+  all.forEach((e) => byCat.set(e.category, (byCat.get(e.category) ?? 0) + e.amountCnyMinor));
   const cats = Array.from(byCat.entries()).sort((a, b) => b[1] - a[1]);
   const maxCat = cats[0]?.[1] ?? 1;
 

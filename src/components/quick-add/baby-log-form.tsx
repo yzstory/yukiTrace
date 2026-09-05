@@ -19,7 +19,7 @@ export const BABY_LOG_TYPES: Record<BabyLogType, { label: string; icon: typeof M
   OTHER: { label: "其他", icon: MoreHorizontal, color: "text-ios-gray" },
 };
 
-export function BabyLogForm({ tripId, defaultTime, onDone }: { tripId: string; defaultTime: Date; onDone: () => void }) {
+export function BabyLogForm({ tripId, defaultTime, onDone, tz }: { tripId: string; defaultTime: Date; onDone: () => void; tz?: string | null }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(createBabyLog.bind(null, tripId), undefined);
   const [type, setType] = useState<BabyLogType>("FEED");
   useEffect(() => {
@@ -44,7 +44,7 @@ export function BabyLogForm({ tripId, defaultTime, onDone }: { tripId: string; d
           );
         })}
       </div>
-      <Field label="时间" name="at" type="datetime-local" required defaultValue={fmt.inputDateTime(defaultTime)} />
+      <Field label="时间" name="at" type="datetime-local" required defaultValue={fmt.inputDateTime(defaultTime, tz)} />
       <Field label="备注（可选）" name="note" placeholder="180ml / 睁眼就笑" />
       <ErrorText>{state?.error}</ErrorText>
       <Button type="submit" disabled={pending} className="h-12 rounded-xl text-body font-semibold">

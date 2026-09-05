@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { MapPin, Baby, CloudSun } from "lucide-react";
 import { STOP_TYPES, BABY_TAGS } from "@/lib/entry-types";
-import { fmt, babyAge } from "@/lib/date";
+import { fmt, babyAge, timezoneLabel } from "@/lib/date";
 import { deleteStop } from "@/app/(app)/trips/[tripId]/actions";
 import { EntryRow } from "./entry-row";
 import { ExpenseChip } from "./expense-chip";
@@ -17,6 +17,8 @@ export function StopCard({ stop, trip, stopOptions = [] }: { stop: TStop; trip: 
   const cfg = STOP_TYPES[stop.type];
   const Icon = cfg.icon;
   const [editing, setEditing] = useState(false);
+  const tz = stop.timezone || trip.timezone;
+  const crossTz = Boolean(stop.timezone && stop.timezone !== trip.timezone);
   return (
     <article className="relative rounded-2xl bg-card p-4 card-shadow">
       <div className="flex items-start gap-3">
@@ -28,8 +30,9 @@ export function StopCard({ stop, trip, stopOptions = [] }: { stop: TStop; trip: 
             <div className="min-w-0">
               <h3 className="truncate text-headline">{stop.name}</h3>
               <p className="text-caption text-muted-foreground">
-                {fmt.time(stop.arriveAt)}
-                {stop.leaveAt ? ` – ${fmt.time(stop.leaveAt)}` : ""}
+                {fmt.time(stop.arriveAt, tz)}
+                {stop.leaveAt ? ` – ${fmt.time(stop.leaveAt, tz)}` : ""}
+                {crossTz ? ` (${timezoneLabel(tz).replace(/ \(.*\)$/, "")})` : ""}
                 {stop.city ? ` · ${stop.city}` : ""}
                 {stop.weather?.weather ? (
                   <span className="ml-1 inline-flex items-center gap-0.5">
@@ -74,13 +77,13 @@ export function StopCard({ stop, trip, stopOptions = [] }: { stop: TStop; trip: 
       {stop.entries.length > 0 && (
         <div className="mt-3 divide-y divide-border/60 border-t border-border/60">
           {stop.entries.map((e) => (
-            <EntryRow key={e.id} entry={e} tripId={trip.id} homeCurrency={trip.homeCurrency} canEdit={trip.canEdit} nested stops={stopOptions} stopId={stop.id} />
+            <EntryRow key={e.id} entry={e} tripId={trip.id} homeCurrency={trip.homeCurrency} canEdit={trip.canEdit} nested stops={stopOptions} stopId={stop.id} tz={tz} />
           ))}
         </div>
       )}
       {trip.canEdit && (
         <EditDrawer open={editing} onOpenChange={setEditing} title="编辑站点">
-          <StopForm tripId={trip.id} defaultTime={stop.arriveAt} initial={stop} onDone={() => setEditing(false)} />
+          <StopForm tripId={trip.id} defaultTime={stop.arriveAt} initial={stop} tripTz={trip.timezone} onDone={() => setEditing(false)} />
         </EditDrawer>
       )}
     </article>

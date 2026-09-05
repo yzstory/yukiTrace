@@ -59,7 +59,7 @@ export default async function SummaryPage(props: PageProps<"/trips/[tripId]/summ
   // 最丰富的一天：站点 + 条目 + 照片数最多
   const dayScore = new Map<number, number>();
   trip.stops.forEach((s) => {
-    const di = Math.min(Math.max(dayIndex(trip.startDate, s.arriveAt), 1), n);
+    const di = Math.min(Math.max(dayIndex(trip.startDate, s.arriveAt, trip.timezone), 1), n);
     dayScore.set(di, (dayScore.get(di) ?? 0) + 2 + s._count.entries + s._count.photos * 0.5);
   });
   const bestIdx = Array.from(dayScore.entries()).sort((a, b) => b[1] - a[1])[0]?.[0];
@@ -70,7 +70,7 @@ export default async function SummaryPage(props: PageProps<"/trips/[tripId]/summ
 
   const data: SummaryData = {
     title: trip.title,
-    dateRange: `${fmt.dateFull(trip.startDate)} – ${fmt.date(trip.endDate)}`,
+    dateRange: `${fmt.dateFull(trip.startDate, trip.timezone)} – ${fmt.date(trip.endDate, trip.timezone)}`,
     days: n,
     coverUrl: trip.coverKey ? imageUrl(trip.coverKey, { w: 1200 }) : null,
     stopCount: trip.stops.length,
@@ -87,7 +87,7 @@ export default async function SummaryPage(props: PageProps<"/trips/[tripId]/summ
     babyFirsts: firsts,
     photoCount: trip._count.photos,
     favoritePhotos: trip.photos.map((p) => imageUrl(p.ossKey, { w: 400 })),
-    bestDay: bestIdx ? { index: bestIdx, date: fmt.dateFull(dayDate(trip.startDate, bestIdx)), text: bestNote || bestStops.map((s) => s.name).join(" → ") } : null,
+    bestDay: bestIdx ? { index: bestIdx, date: fmt.dateFull(dayDate(trip.startDate, bestIdx), trip.timezone), text: bestNote || bestStops.map((s) => s.name).join(" → ") } : null,
     travelers: trip.travelers,
     aiText: null,
   };

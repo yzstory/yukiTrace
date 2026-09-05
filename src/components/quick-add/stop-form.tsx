@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { STOP_TYPES, BABY_TAGS } from "@/lib/entry-types";
-import { fmt } from "@/lib/date";
+import { fmt, TIMEZONES } from "@/lib/date";
 import { StopType } from "@/generated/prisma/enums";
 import { createStop, updateStop, type ActionState } from "@/app/(app)/trips/[tripId]/actions";
 import type { TStop } from "@/components/timeline/types";
@@ -15,12 +15,14 @@ import { PlaceSearch, type PlacePick } from "./place-search";
 import { Field, SelectField, ErrorText } from "./form-bits";
 import { cn } from "@/lib/utils";
 
-export function StopForm({ tripId, defaultTime, onDone, initial }: { tripId: string; defaultTime: Date; onDone: () => void; initial?: TStop }) {
+export function StopForm({ tripId, defaultTime, onDone, initial, tripTz }: { tripId: string; defaultTime: Date; onDone: () => void; initial?: TStop; tripTz: string }) {
   const bound = initial ? updateStop.bind(null, tripId, initial.id) : createStop.bind(null, tripId);
   const [state, action, pending] = useActionState<ActionState, FormData>(bound, undefined);
   const initialPlace: PlacePick | null = initial ? { name: initial.name, lat: initial.lat, lng: initial.lng, address: initial.address ?? undefined, city: initial.city ?? undefined } : null;
   const [place, setPlace] = useState<PlacePick | null>(initialPlace);
   const [tags, setTags] = useState<string[]>(initial?.babyTags ?? []);
+  const [tz, setTz] = useState(initial?.timezone ?? "");
+  const activeTz = tz || tripTz;
 
   useEffect(() => {
     if (state?.ok) {
@@ -39,9 +41,18 @@ export function StopForm({ tripId, defaultTime, onDone, initial }: { tripId: str
           defaultValue={initial?.type ?? "OTHER"}
           options={Object.values(StopType).map((t) => ({ value: t, label: STOP_TYPES[t].label }))}
         />
-        <Field label="到达时间" name="arriveAt" type="datetime-local" required defaultValue={fmt.inputDateTime(initial?.arriveAt ?? defaultTime)} />
+        <Field label="到达时间" name="arriveAt" type="datetime-local" required defaultValue={fmt.inputDateTime(initial?.arriveAt ?? defaultTime, initial?.timezone ?? tripTz)} />
       </div>
-      <Field label="离开时间（可选）" name="leaveAt" type="datetime-local" defaultValue={initial?.leaveAt ? fmt.inputDateTime(initial.leaveAt) : ""} />
+      <Field label="离开时间（可选）" name="leaveAt" type="datetime-local" defaultValue={initial?.leaveAt ? fmt.inputDateTime(initial.leaveAt, initial?.timezone ?? tripTz) : ""} />
+      <SelectField
+        label="时区"
+        name="timezone"
+        value={tz}
+        onChange={(e) => setTz(e.target.value)}
+        options={[{ value: "", label: `跟随旅程（${TIMEZONES.find((t) => t.value === tripTz)?.label ?? tripTz}）` }, ...TIMEZONES]}
+      />
+      <p className="-mt-2 text-caption text-muted-foreground">跨时区旅行时，这一站的时间会按所选时区显示与录入。当前按 {TIMEZONES.find((t) => t.value === activeTz)?.label ?? activeTz}。</p>
+
       <div className="flex flex-col gap-1.5">
         <Label className="text-footnote font-medium text-muted-foreground">婴儿友好</Label>
         <div className="flex flex-wrap gap-1.5">

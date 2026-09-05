@@ -26,6 +26,7 @@ export function EntryForm({
   defaultStopId,
   onDone,
   initial,
+  tz,
 }: {
   tripId: string;
   type: EntryType;
@@ -35,6 +36,7 @@ export function EntryForm({
   defaultStopId?: string;
   onDone: () => void;
   initial?: TEntry & { stopId?: string | null };
+  tz?: string | null;
 }) {
   const cfg = ENTRY_TYPES[type];
   const bound = initial ? updateEntry.bind(null, tripId, initial.id) : createEntry.bind(null, tripId);
@@ -63,8 +65,8 @@ export function EntryForm({
       <Field label="标题" name="title" required placeholder={placeholderFor(type)} autoFocus defaultValue={initial?.title ?? ""} />
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label={type === "HOTEL" ? "入住" : "时间"} name="startAt" type="datetime-local" required defaultValue={fmt.inputDateTime(initial?.startAt ?? defaultTime)} />
-        <Field label={type === "HOTEL" ? "退房" : "结束（可选）"} name="endAt" type="datetime-local" defaultValue={initial?.endAt ? fmt.inputDateTime(initial.endAt) : ""} />
+        <Field label={type === "HOTEL" ? "入住" : "时间"} name="startAt" type="datetime-local" required defaultValue={fmt.inputDateTime(initial?.startAt ?? defaultTime, tz)} />
+        <Field label={type === "HOTEL" ? "退房" : "结束（可选）"} name="endAt" type="datetime-local" defaultValue={initial?.endAt ? fmt.inputDateTime(initial.endAt, tz) : ""} />
       </div>
 
       {stops.length > 0 && (
@@ -72,7 +74,7 @@ export function EntryForm({
           label="关联站点"
           name="stopId"
           defaultValue={initial?.stopId ?? defaultStopId ?? ""}
-          options={[{ value: "", label: "不关联" }, ...stops.map((s) => ({ value: s.id, label: `${s.name} · ${fmt.dateTime(s.arriveAt)}` }))]}
+          options={[{ value: "", label: "不关联" }, ...stops.map((s) => ({ value: s.id, label: `${s.name} · ${fmt.dateTime(s.arriveAt, tz)}` }))]}
         />
       )}
 

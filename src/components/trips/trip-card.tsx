@@ -14,6 +14,7 @@ export type TripCardData = {
   startDate: Date;
   endDate: Date;
   homeCurrency: string;
+  timezone: string;
   babyName: string | null;
   babyBirthDate: Date | null;
   stopCount: number;
@@ -40,7 +41,7 @@ export function TripCard({ trip, index }: { trip: TripCardData; index: number })
           )}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent p-5 pt-16 text-white">
             <p className="text-footnote font-medium text-white/80">
-              {fmt.date(trip.startDate)} – {fmt.date(trip.endDate)} · {tripDays(trip.startDate, trip.endDate)} 天
+              {fmt.date(trip.startDate, trip.timezone)} – {fmt.date(trip.endDate, trip.timezone)} · {tripDays(trip.startDate, trip.endDate)} 天
             </p>
             <h2 className="mt-0.5 text-title-1 text-white">{trip.title}</h2>
             {trip.cities.length > 0 && <p className="mt-0.5 truncate text-subhead text-white/85">{trip.cities.join(" · ")}</p>}
@@ -54,7 +55,7 @@ export function TripCard({ trip, index }: { trip: TripCardData; index: number })
           )}
           <span className="ml-auto flex items-center gap-1">
             <CalendarDays className="size-3.5" />
-            {fmt.monthYear(trip.startDate)}
+            {fmt.monthYear(trip.startDate, trip.timezone)}
           </span>
       </div>
     </Link>

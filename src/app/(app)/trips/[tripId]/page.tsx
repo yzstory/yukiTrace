@@ -92,6 +92,7 @@ export default async function TripPage(props: PageProps<"/trips/[tripId]">) {
       leaveAt: s.leaveAt,
       note: s.note,
       babyTags: s.babyTags,
+      timezone: s.timezone,
       weather: (s.weather as TStop["weather"]) ?? null,
       entries: s.entries.map(toEntry),
       expenses: s.expenses.map(toExpense),
@@ -116,7 +117,7 @@ export default async function TripPage(props: PageProps<"/trips/[tripId]">) {
     totalHomeMinor: 0,
   }));
   const dayFor = (d: Date) => {
-    const idx = Math.min(Math.max(dayIndex(trip.startDate, d), 1), n);
+    const idx = Math.min(Math.max(dayIndex(trip.startDate, d, trip.timezone), 1), n);
     return days[idx - 1];
   };
   for (const s of stops) {
@@ -149,6 +150,7 @@ export default async function TripPage(props: PageProps<"/trips/[tripId]">) {
     babyBirthDate: trip.babyBirthDate,
     canEdit,
     aiConfigured: aiConfigured(),
+    timezone: trip.timezone,
   };
 
   return (
@@ -163,6 +165,7 @@ export default async function TripPage(props: PageProps<"/trips/[tripId]">) {
           startDate: trip.startDate,
           endDate: trip.endDate,
           homeCurrency: trip.homeCurrency,
+          timezone: trip.timezone,
           babyName: trip.babyName,
           babyBirthDate: trip.babyBirthDate,
           travelers: trip.travelers,
@@ -182,6 +185,7 @@ export default async function TripPage(props: PageProps<"/trips/[tripId]">) {
           homeCurrency={trip.homeCurrency}
           tripStart={trip.startDate}
           tripEnd={trip.endDate}
+          timezone={trip.timezone}
         />
       )}
     </>

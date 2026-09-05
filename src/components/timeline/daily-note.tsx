@@ -9,7 +9,7 @@ import { upsertDailyNote } from "@/app/(app)/trips/[tripId]/actions";
 import { generateDailyDraft } from "@/app/(app)/trips/[tripId]/ai-actions";
 import { fmt } from "@/lib/date";
 
-export function DailyNote({ tripId, date, note, aiDraft, canEdit, aiConfigured, hasContent }: { tripId: string; date: Date; note: string | null; aiDraft?: string | null; canEdit: boolean; aiConfigured?: boolean; hasContent?: boolean }) {
+export function DailyNote({ tripId, date, note, aiDraft, canEdit, aiConfigured, hasContent, tz }: { tripId: string; date: Date; note: string | null; aiDraft?: string | null; canEdit: boolean; aiConfigured?: boolean; hasContent?: boolean; tz?: string | null }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(note ?? "");
   const [draft, setDraft] = useState(aiDraft ?? null);
@@ -18,7 +18,7 @@ export function DailyNote({ tripId, date, note, aiDraft, canEdit, aiConfigured, 
 
   function askDraft(tone: "default" | "to_baby") {
     startDraft(async () => {
-      const r = await generateDailyDraft(tripId, fmt.inputDate(date), tone);
+      const r = await generateDailyDraft(tripId, fmt.inputDate(date, tz), tone);
       if (r.error) {
         toast.error(r.error);
         return;
@@ -78,7 +78,7 @@ export function DailyNote({ tripId, date, note, aiDraft, canEdit, aiConfigured, 
           disabled={pending}
           onClick={() =>
             start(async () => {
-              await upsertDailyNote(tripId, fmt.inputDate(date), value);
+              await upsertDailyNote(tripId, fmt.inputDate(date, tz), value);
               setEditing(false);
               toast.success("已保存日记");
             })

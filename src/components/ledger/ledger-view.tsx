@@ -34,6 +34,7 @@ export function LedgerView({
   canEdit,
   onDelete,
   showTrip,
+  timezone,
 }: {
   expenses: LedgerExpense[];
   days: LedgerDay[];
@@ -41,6 +42,7 @@ export function LedgerView({
   canEdit: boolean;
   onDelete?: (tripId: string, id: string) => Promise<void>;
   showTrip?: boolean;
+  timezone?: string;
 }) {
   const [babyOnly, setBabyOnly] = useState(false);
   const [cat, setCat] = useState<ExpenseCategory | null>(null);
@@ -63,10 +65,10 @@ export function LedgerView({
     () =>
       days.map((d) => ({
         name: `D${d.index}`,
-        label: fmt.date(d.date),
+        label: fmt.date(d.date, timezone),
         amount: fromMinor(filtered.filter((e) => e.dayIndex === d.index).reduce((a, e) => a + e.amountHomeMinor, 0), homeCurrency),
       })),
-    [days, filtered, homeCurrency]
+    [days, filtered, homeCurrency, timezone]
   );
 
   const byCurrency = useMemo(() => {
@@ -174,7 +176,7 @@ export function LedgerView({
               <div className="mb-1.5 flex items-baseline justify-between px-1">
                 <h3 className="text-footnote font-semibold text-muted-foreground">
                   Day {dayIdx}
-                  {day ? ` · ${fmt.date(day.date)}` : ""}
+                  {day ? ` · ${fmt.date(day.date, timezone)}` : ""}
                 </h3>
                 <span className="text-footnote tabular-nums text-muted-foreground">{formatMoney(sum, homeCurrency)}</span>
               </div>
@@ -191,7 +193,7 @@ export function LedgerView({
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-callout">{e.title}</span>
                         <span className="block truncate text-caption text-muted-foreground">
-                          {fmt.time(e.paidAt)}
+                          {fmt.time(e.paidAt, timezone)}
                           {e.stopName ? ` · ${e.stopName}` : ""}
                           {showTrip && e.tripTitle ? ` · ${e.tripTitle}` : ""}
                         </span>

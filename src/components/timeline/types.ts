@@ -28,6 +28,7 @@ export type TStop = {
   leaveAt: Date | null;
   note: string | null;
   babyTags: string[];
+  timezone: string | null;
   weather: { weather?: string; temperature?: string } | null;
   entries: TEntry[];
   expenses: TExpense[];
@@ -57,4 +58,5 @@ export type TTrip = {
   babyBirthDate: Date | null;
   canEdit: boolean;
   aiConfigured: boolean;
+  timezone: string;
 };

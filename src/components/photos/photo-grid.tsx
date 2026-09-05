@@ -10,7 +10,7 @@ import type { TPhoto } from "@/components/timeline/types";
 
 export type GalleryDay = { index: number; date: Date; photos: Array<TPhoto & { stopName: string | null }> };
 
-export function PhotoGrid({ days, canEdit, onDelete, onSetCover }: { days: GalleryDay[]; canEdit: boolean; onDelete: (id: string) => Promise<void>; onSetCover: (id: string) => Promise<void> }) {
+export function PhotoGrid({ days, canEdit, onDelete, onSetCover, timezone }: { days: GalleryDay[]; canEdit: boolean; onDelete: (id: string) => Promise<void>; onSetCover: (id: string) => Promise<void>; timezone?: string }) {
   const flat = days.flatMap((d) => d.photos);
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const [pending, start] = useTransition();
@@ -36,7 +36,7 @@ export function PhotoGrid({ days, canEdit, onDelete, onSetCover }: { days: Galle
           .map((d) => (
             <section key={d.index}>
               <h2 className="mb-2 text-headline">
-                Day {d.index} <span className="text-subhead font-normal text-muted-foreground">{fmt.date(d.date)} · {d.photos.length} 张</span>
+                Day {d.index} <span className="text-subhead font-normal text-muted-foreground">{fmt.date(d.date, timezone)} · {d.photos.length} 张</span>
               </h2>
               <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
                 {d.photos.map((p) => (
@@ -58,7 +58,7 @@ export function PhotoGrid({ days, canEdit, onDelete, onSetCover }: { days: Galle
               </button>
               <span className="text-footnote text-white/80">
                 {openIdx + 1} / {flat.length}
-                {open.takenAt ? ` · ${fmt.dateTime(open.takenAt)}` : ""}
+                {open.takenAt ? ` · ${fmt.dateTime(open.takenAt, timezone)}` : ""}
               </span>
               {canEdit ? (
                 <div className="flex gap-2">

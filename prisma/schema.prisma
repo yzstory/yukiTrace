@@ -53,6 +53,8 @@ model Trip {
   startDate     DateTime  @db.Date
   endDate       DateTime  @db.Date
   homeCurrency  String    @default("CNY")
+  /// IANA 时区，所有时间按此时区显示与录入
+  timezone      String    @default("Asia/Shanghai")
   babyName      String?
   babyBirthDate DateTime? @db.Date
   travelers     String[]  @default([])
@@ -99,6 +101,8 @@ model Stop {
   amapPoiId String?
   /// 高德行政区编码，用于天气查询
   adcode    String?
+  /// 该站点所在时区，覆盖旅程时区（跨时区旅行时使用）
+  timezone  String?
   arriveAt  DateTime
   leaveAt   DateTime?
   order     Int      @default(0)
@@ -206,8 +210,10 @@ model Expense {
   /// 原币金额，最小单位整数（分 / 円 / cent）
   amountMinor    Int
   currency       String
-  /// 折算主币种（CNY）金额，最小单位整数
+  /// 折算旅程主币种金额，最小单位整数
   amountHomeMinor Int
+  /// 折算人民币金额（分），用于跨旅程汇总
+  amountCnyMinor  Int    @default(0)
   rate           Float
   category       ExpenseCategory @default(OTHER)
   isBaby         Boolean         @default(false)

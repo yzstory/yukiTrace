@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import sharp from "sharp";
+import sharp, { type Metadata, type OutputInfo } from "sharp";
 import exifr from "exifr";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
@@ -32,8 +32,12 @@ export async function POST(req: NextRequest) {
   if (!trip) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   const results = [];
+  const failures: string[] = [];
   for (const file of files) {
-    if (file.size > MAX_BYTES) continue;
+    if (file.size > MAX_BYTES) {
+      failures.push(`${file.name} 超过 25MB`);
+      continue;
+    }
     const input = Buffer.from(await file.arrayBuffer());
 
     // EXIF：拍摄时间与 GPS
@@ -54,12 +58,19 @@ export async function POST(req: NextRequest) {
     }
 
     // 压缩到 webp，最长边 2400，自动旋转
-    const img = sharp(input, { failOn: "none" }).rotate();
-    const meta = await img.metadata();
-    const resized = await img
-      .resize({ width: MAX_EDGE, height: MAX_EDGE, fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 85 })
-      .toBuffer({ resolveWithObject: true });
+    let meta: Metadata;
+    let resized: { data: Buffer; info: OutputInfo };
+    try {
+      const img = sharp(input, { failOn: "none" }).rotate();
+      meta = await img.metadata();
+      resized = await img
+        .resize({ width: MAX_EDGE, height: MAX_EDGE, fit: "inside", withoutEnlargement: true })
+        .webp({ quality: 85 })
+        .toBuffer({ resolveWithObject: true });
+    } catch {
+      failures.push(`${file.name} 无法解码${/heic|heif/i.test(file.type + file.name) ? "（HEIC 需在手机端转换后重试）" : ""}`);
+      continue;
+    }
 
     const key = makeKey(tripId, "webp");
     await putObject(key, resized.data, "image/webp");
@@ -106,5 +117,6 @@ export async function POST(req: NextRequest) {
 
   revalidatePath(`/trips/${tripId}`);
   revalidatePath("/trips");
-  return NextResponse.json({ results });
+  if (results.length === 0 && failures.length > 0) return NextResponse.json({ error: failures.join("；") }, { status: 415 });
+  return NextResponse.json({ results, failures });
 }

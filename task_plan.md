@@ -4,7 +4,7 @@
 用 Next.js 做一个苹果风格的「带娃旅行日记 + 账本」网页应用，能记录行程（航班/租车/住宿/餐饮/游玩）、花费（多币种）、照片与备注，在高德地图上展示路线与站间距离，并内嵌 AI 助手（OpenAI 兼容接口）降低记录成本；第一版部署到阿里云 ECS（Docker Compose），后续可开放注册并演进为 App。
 
 ## 当前阶段
-阶段 10 已完成：AI 窗口支持拍照与选择本地照片
+阶段 11 起：可靠性补课 + AI 深化（用户确认全量推进，仅备份不做）
 
 ## 各阶段
 
@@ -130,6 +130,48 @@
 - [x] 完成 typecheck、lint、build 与生产路由冒烟验证
 - [x] 部署生产服务器并推送 `origin/main`
 - **状态：** complete
+
+### 阶段 11：可靠性补课 A（时区 / 币种 / 图片格式）
+- [x] 时区：Trip.timezone（默认 Asia/Shanghai）+ Stop.timezone 覆盖；date-fns-tz 重写 `fmt`（全部接受 tz 参数）；新增 `parseInTz` 让 datetime-local 按旅程时区解析；dayIndex 按时区分组；容器 TZ 环境变量
+- [x] 时区选择器：旅程表单 22 个常用时区；站点表单可覆盖并提示，跨时区站点在时间线显示时区名
+- [x] 全局账本统一 CNY：Expense.amountCnyMinor + 迁移内回填（CNY 旅程直接沿用，其他按兜底汇率换算）；所有写入路径（表单 / AI 工具）同步落库
+- [x] HEIC / 客户端压缩：`src/lib/client-image.ts`（heic-to 转 JPEG + browser-image-compression 保留 EXIF），照片上传与 AI 票据均接入；服务端解码失败返回可读错误
+- [x] 验证：以 TZ=UTC 启动服务端，上海站显示 07:30、东京站 14:10、账本 19:00，全部正确
+- **状态：** complete
+
+### 阶段 12：协作与成员邀请
+- [ ] 邀请链接（角色 + 有效期）、接受页、成员列表管理、退出旅程
+- **状态：** pending
+
+### 阶段 13：工程质量
+- [ ] error.tsx / not-found.tsx / loading.tsx
+- [ ] Vitest 覆盖 currency / geo / date；Playwright 冒烟
+- [ ] 结构化日志、AI 与上传限流、异步任务改 after()
+- **状态：** pending
+
+### 阶段 14：离线记录队列
+- [ ] IndexedDB 写队列 + 联网重放 + 待同步标记
+- **状态：** pending
+
+### 阶段 15：地图与外观
+- [ ] 海外坐标切 MapLibre；深色模式跟随系统
+- [ ] 部署体积：去掉独立 migrate 镜像
+- **状态：** pending
+
+### 阶段 16：AI 第一档（随身助理）
+- [ ] 语音记录（OpenAI 兼容 transcriptions）
+- [ ] 照片智能：caption / 第一次识别 / 精选封面
+- [ ] 早晚简报 + Web Push；宝宝作息提醒
+- **状态：** pending
+
+### 阶段 17：AI 第二档（跨旅程记忆）
+- [ ] pgvector + embeddings，全局问答
+- [ ] 那年今日；消费洞察；智能导入（邮件/截图）
+- **状态：** pending
+
+### 阶段 18：AI 第三档（生成与开放）
+- [ ] 年度 Wrapped；回放视频；PDF 相册；MCP Server；家庭日记合成
+- **状态：** pending
 
 ## 关键问题
 0. **DNS：为 `trace.aiyuki.cc` 添加 A 记录指向 101.37.37.200**；无需对公网放行 3100，流量统一走 nginx 的 80

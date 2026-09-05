@@ -8,12 +8,28 @@ import { haversine, suggestMode } from "@/lib/geo";
 import { drivingRoute, walkingRoute, reverseGeocode, amapConfigured, liveWeather } from "@/lib/amap";
 import { BabyLogType } from "@/generated/prisma/enums";
 import { CURRENCIES, toMinor, convertMinor, FALLBACK_RATES_TO_CNY } from "@/lib/currency";
+import { parseInTz, TIMEZONES } from "@/lib/date";
 import { deleteObject } from "@/lib/storage";
 import { EntryType, ExpenseCategory, StopType } from "@/generated/prisma/enums";
 import { Prisma } from "@/generated/prisma/client";
 import type { ActionState } from "@/app/(app)/trips/actions";
 
 export type { ActionState };
+
+/** 条目时区：优先取所属站点覆盖的时区，否则旅程时区 */
+async function entryTz(tripId: string, stopId: string | null) {
+  if (stopId) {
+    const s = await db.stop.findUnique({ where: { id: stopId }, select: { timezone: true } });
+    if (s?.timezone) return s.timezone;
+  }
+  return tripTz(tripId);
+}
+
+/** 旅程时区（站点可覆盖） */
+async function tripTz(tripId: string) {
+  const t = await db.trip.findUnique({ where: { id: tripId }, select: { timezone: true } });
+  return t?.timezone ?? "Asia/Shanghai";
+}
 
 const num = z.coerce.number();
 const optStr = z.string().trim().optional().or(z.literal(""));
@@ -32,6 +48,7 @@ const stopSchema = z.object({
   leaveAt: optStr,
   note: optStr,
   babyTags: optStr,
+  timezone: optStr.refine((t) => !t || TIMEZONES.some((x) => x.value === t), "时区不支持"),
 });
 
 export async function createStop(tripId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -39,6 +56,8 @@ export async function createStop(tripId: string, _prev: ActionState, formData: F
   const parsed = stopSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const d = parsed.data;
+  const tz = d.timezone || (await tripTz(tripId));
+  const arriveAt = parseInTz(d.arriveAt, tz);
 
   let address = d.address || null;
   let city = d.city || null;
@@ -50,7 +69,7 @@ export async function createStop(tripId: string, _prev: ActionState, formData: F
     city ??= geo?.city || null;
     adcode = geo?.adcode ?? null;
     // 只有当到达时间在当前 ±12 小时内，实况天气才有记录意义
-    if (adcode && Math.abs(new Date(d.arriveAt).getTime() - Date.now()) < 12 * 3600_000) {
+    if (adcode && Math.abs(arriveAt.getTime() - Date.now()) < 12 * 3600_000) {
       const w = await liveWeather(adcode);
       if (w) weather = { weather: w.weather, temperature: w.temperature };
     }
@@ -68,9 +87,10 @@ export async function createStop(tripId: string, _prev: ActionState, formData: F
       city,
       amapPoiId: d.amapPoiId || null,
       adcode,
+      timezone: d.timezone || null,
       weather: weather ?? undefined,
-      arriveAt: new Date(d.arriveAt),
-      leaveAt: d.leaveAt ? new Date(d.leaveAt) : null,
+      arriveAt,
+      leaveAt: d.leaveAt ? parseInTz(d.leaveAt, tz) : null,
       note: d.note || null,
       babyTags: (d.babyTags ?? "").split(",").map((s) => s.trim()).filter(Boolean),
       order: count,
@@ -89,6 +109,8 @@ export async function updateStop(tripId: string, stopId: string, _prev: ActionSt
   const parsed = stopSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const d = parsed.data;
+  const tz = d.timezone || (await tripTz(tripId));
+  const arriveAt = parseInTz(d.arriveAt, tz);
   const before = await db.stop.findUnique({ where: { id: stopId }, select: { lat: true, lng: true, arriveAt: true } });
   await db.stop.update({
     where: { id: stopId, tripId },
@@ -99,13 +121,14 @@ export async function updateStop(tripId: string, stopId: string, _prev: ActionSt
       lng: d.lng,
       address: d.address || null,
       city: d.city || null,
-      arriveAt: new Date(d.arriveAt),
-      leaveAt: d.leaveAt ? new Date(d.leaveAt) : null,
+      timezone: d.timezone || null,
+      arriveAt,
+      leaveAt: d.leaveAt ? parseInTz(d.leaveAt, tz) : null,
       note: d.note || null,
       babyTags: (d.babyTags ?? "").split(",").map((s) => s.trim()).filter(Boolean),
     },
   });
-  const moved = before && (before.lat !== d.lat || before.lng !== d.lng || before.arriveAt.getTime() !== new Date(d.arriveAt).getTime());
+  const moved = before && (before.lat !== d.lat || before.lng !== d.lng || before.arriveAt.getTime() !== arriveAt.getTime());
   if (moved) {
     await db.stopLeg.deleteMany({ where: { OR: [{ fromStopId: stopId }, { toStopId: stopId }] } });
     void recomputeAllLegs(tripId);
@@ -178,6 +201,8 @@ export async function createEntry(tripId: string, _prev: ActionState, formData: 
   const parsed = entrySchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const d = parsed.data;
+  const tz = await entryTz(tripId, d.stopId || null);
+  const startAt = parseInTz(d.startAt, tz);
 
   let meta: Record<string, unknown> | null = null;
   if (d.meta) {
@@ -195,8 +220,8 @@ export async function createEntry(tripId: string, _prev: ActionState, formData: 
       type: d.type,
       title: d.title,
       note: d.note || null,
-      startAt: new Date(d.startAt),
-      endAt: d.endAt ? new Date(d.endAt) : null,
+      startAt,
+      endAt: d.endAt ? parseInTz(d.endAt, tz) : null,
       meta: meta ? (meta as import("@/generated/prisma/internal/prismaNamespace").InputJsonValue) : undefined,
     },
   });
@@ -210,7 +235,7 @@ export async function createEntry(tripId: string, _prev: ActionState, formData: 
       category: d.category,
       isBaby: d.isBaby === "on" || d.isBaby === "true",
       title: d.title,
-      paidAt: new Date(d.startAt),
+      paidAt: startAt,
       stopId: d.stopId || null,
       entryId: entry.id,
     });
@@ -235,6 +260,7 @@ export async function updateEntry(tripId: string, entryId: string, _prev: Action
       return { error: "附加信息格式错误" };
     }
   }
+  const tz = await entryTz(tripId, d.stopId || null);
   await db.entry.update({
     where: { id: entryId, tripId },
     data: {
@@ -242,8 +268,8 @@ export async function updateEntry(tripId: string, entryId: string, _prev: Action
       type: d.type,
       title: d.title,
       note: d.note || null,
-      startAt: new Date(d.startAt),
-      endAt: d.endAt ? new Date(d.endAt) : null,
+      startAt: parseInTz(d.startAt, tz),
+      endAt: d.endAt ? parseInTz(d.endAt, tz) : null,
       meta: meta ? (meta as import("@/generated/prisma/internal/prismaNamespace").InputJsonValue) : Prisma.DbNull,
     },
   });
@@ -293,6 +319,8 @@ async function buildExpense(input: {
   if (amountMinor <= 0) return { error: "金额需要大于 0" } as const;
   const rate = input.rate ?? (await getRate(currency, trip.homeCurrency, input.paidAt));
   const amountHomeMinor = convertMinor(amountMinor, currency, trip.homeCurrency, rate);
+  const cnyRate = currency === "CNY" ? 1 : await getRate(currency, "CNY", input.paidAt);
+  const amountCnyMinor = convertMinor(amountMinor, currency, "CNY", cnyRate);
   return {
     data: {
       tripId: input.tripId,
@@ -302,6 +330,7 @@ async function buildExpense(input: {
       amountMinor,
       currency,
       amountHomeMinor,
+      amountCnyMinor,
       rate,
       category: input.isBaby ? ("BABY" as ExpenseCategory) : (input.category ?? "OTHER"),
       isBaby: input.isBaby,
@@ -354,7 +383,7 @@ export async function createExpense(tripId: string, _prev: ActionState, formData
     isBaby: d.isBaby === "on" || d.isBaby === "true",
     title: d.title,
     note: d.note || null,
-    paidAt: new Date(d.paidAt),
+    paidAt: parseInTz(d.paidAt, await entryTz(tripId, d.stopId || null)),
     stopId: d.stopId || null,
     entryId: d.entryId || null,
     rate: d.rate ? parseFloat(d.rate) : undefined,
@@ -396,7 +425,7 @@ export async function createBabyLog(tripId: string, _prev: ActionState, formData
   await requireTripAccess(tripId, "EDITOR");
   const parsed = babyLogSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
-  await db.babyLog.create({ data: { tripId, type: parsed.data.type, at: new Date(parsed.data.at), note: parsed.data.note || null } });
+  await db.babyLog.create({ data: { tripId, type: parsed.data.type, at: parseInTz(parsed.data.at, await tripTz(tripId)), note: parsed.data.note || null } });
   revalidatePath(`/trips/${tripId}`);
   return { ok: true };
 }

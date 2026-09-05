@@ -29,7 +29,7 @@ export default async function TripLedgerPage(props: PageProps<"/trips/[tripId]/l
     category: e.category,
     isBaby: e.isBaby,
     paidAt: e.paidAt,
-    dayIndex: Math.min(Math.max(dayIndex(trip.startDate, e.paidAt), 1), n),
+    dayIndex: Math.min(Math.max(dayIndex(trip.startDate, e.paidAt, trip.timezone), 1), n),
     stopName: e.stop?.name ?? e.entry?.stop?.name ?? null,
     tripId,
   }));
@@ -49,7 +49,7 @@ export default async function TripLedgerPage(props: PageProps<"/trips/[tripId]/l
         </a>
       </div>
       <TripTabs tripId={tripId} />
-      <LedgerView expenses={expenses} days={days} homeCurrency={trip.homeCurrency} canEdit={role !== "VIEWER"} onDelete={onDelete} />
+      <LedgerView expenses={expenses} days={days} homeCurrency={trip.homeCurrency} timezone={trip.timezone} canEdit={role !== "VIEWER"} onDelete={onDelete} />
     </>
   );
 }

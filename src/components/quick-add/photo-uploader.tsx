@@ -6,6 +6,7 @@ import { ImagePlus, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { SelectField } from "./form-bits";
+import { prepareImages, IMAGE_ACCEPT } from "@/lib/client-image";
 import type { StopOption } from "./entry-form";
 
 export function PhotoUploader({
@@ -26,30 +27,39 @@ export function PhotoUploader({
   const [files, setFiles] = useState<File[]>([]);
   const [stopId, setStopId] = useState(defaultStopId ?? "");
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [stage, setStage] = useState<"idle" | "preparing" | "uploading">("idle");
 
   async function upload() {
     if (files.length === 0) return;
+    // HEIC 转换 + 压缩，避免 iPhone 原图上传失败与流量浪费
+    setStage("preparing");
     setProgress({ done: 0, total: files.length });
+    const prepared = await prepareImages(files, (done, total) => setProgress({ done, total }));
+    setStage("uploading");
+    setProgress({ done: 0, total: prepared.length });
     // 分批上传（每批 3 张），避免单次请求过大
     const batch = 3;
     let matched = 0;
-    for (let i = 0; i < files.length; i += batch) {
+    for (let i = 0; i < prepared.length; i += batch) {
       const fd = new FormData();
       fd.set("tripId", tripId);
       fd.set("purpose", purpose);
       if (stopId) fd.set("stopId", stopId);
-      files.slice(i, i + batch).forEach((f) => fd.append("files", f));
+      prepared.slice(i, i + batch).forEach((f) => fd.append("files", f));
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       if (!res.ok) {
-        toast.error("上传失败，请重试");
+        const msg = await res.json().catch(() => null);
+        toast.error(msg?.error ?? "上传失败，请重试");
         setProgress(null);
+        setStage("idle");
         return;
       }
       const json = (await res.json()) as { results: Array<{ stopId?: string | null }> };
       matched += json.results.filter((r) => r.stopId && !stopId).length;
-      setProgress({ done: Math.min(i + batch, files.length), total: files.length });
+      setProgress({ done: Math.min(i + batch, prepared.length), total: prepared.length });
     }
-    toast.success(purpose === "cover" ? "封面已更新" : `已上传 ${files.length} 张照片${matched ? `，${matched} 张已按 GPS 自动归位` : ""}`);
+    setStage("idle");
+    toast.success(purpose === "cover" ? "封面已更新" : `已上传 ${prepared.length} 张照片${matched ? `，${matched} 张已按 GPS 自动归位` : ""}`);
     router.refresh();
     onDone();
   }
@@ -59,7 +69,7 @@ export function PhotoUploader({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept={IMAGE_ACCEPT}
         multiple={purpose === "photo"}
         className="hidden"
         onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
@@ -73,7 +83,7 @@ export function PhotoUploader({
           <>
             <ImagePlus className="size-8 text-primary" />
             <span className="text-callout">{purpose === "cover" ? "选择封面图" : "选择照片"}</span>
-            <span className="text-caption">支持多选，自动读取拍摄时间与位置</span>
+            <span className="text-caption">支持多选与 iPhone HEIC，自动读取拍摄时间与位置</span>
           </>
         ) : (
           <div className="grid w-full grid-cols-4 gap-2">
@@ -102,7 +112,7 @@ export function PhotoUploader({
             <Check className="size-5" />
           ) : (
             <>
-              <Loader2 className="size-5 animate-spin" /> {progress.done}/{progress.total}
+              <Loader2 className="size-5 animate-spin" /> {stage === "preparing" ? "处理中" : "上传中"} {progress.done}/{progress.total}
             </>
           )
         ) : (

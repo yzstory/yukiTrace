@@ -9,6 +9,7 @@ import { Sparkles, SendHorizonal, Loader2, Camera, ImagePlus, Square, Wrench, Bo
 import { toast } from "sonner";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
+import { prepareImage, IMAGE_ACCEPT, isProbablyHeic } from "@/lib/client-image";
 import { generateTripSummary, generatePackingList } from "@/app/(app)/trips/[tripId]/ai-actions";
 import type { ReceiptResult } from "@/app/api/ai/receipt/route";
 
@@ -56,8 +57,11 @@ export function AiChat({ tripId, homeCurrency, configured, canEdit }: { tripId: 
     setInput("");
   }
 
-  async function onReceipt(file: File) {
-    if (!file.type.startsWith("image/")) {
+  async function onReceipt(original: File) {
+    setBusy("正在处理图片…");
+    const file = await prepareImage(original).catch(() => original);
+    if (!file.type.startsWith("image/") && !isProbablyHeic(original)) {
+      setBusy(null);
       toast.error("请选择图片文件");
       return;
     }
@@ -195,7 +199,7 @@ export function AiChat({ tripId, homeCurrency, configured, canEdit }: { tripId: 
                 <input
                   ref={cameraRef}
                   type="file"
-                  accept="image/*"
+                  accept={IMAGE_ACCEPT}
                   capture="environment"
                   className="hidden"
                   onChange={(e) => {
@@ -207,7 +211,7 @@ export function AiChat({ tripId, homeCurrency, configured, canEdit }: { tripId: 
                 <input
                   ref={photoRef}
                   type="file"
-                  accept="image/*"
+                  accept={IMAGE_ACCEPT}
                   className="hidden"
                   onChange={(e) => {
                     const file = e.currentTarget.files?.[0];

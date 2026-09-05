@@ -24,7 +24,7 @@ export default async function TripMapPage(props: PageProps<"/trips/[tripId]/map"
 
   const n = tripDays(trip.startDate, trip.endDate);
   const stops: TripMapStop[] = trip.stops.map((s, i) => {
-    const di = Math.min(Math.max(dayIndex(trip.startDate, s.arriveAt), 1), n);
+    const di = Math.min(Math.max(dayIndex(trip.startDate, s.arriveAt, s.timezone ?? trip.timezone), 1), n);
     const prev = trip.stops[i - 1];
     const legs = prev ? s.legsTo.filter((l) => l.fromStopId === prev.id) : [];
     const best = legs.find((l) => l.mode === "DRIVING") ?? legs.find((l) => l.mode === "WALKING") ?? legs.find((l) => l.mode === "STRAIGHT") ?? null;
@@ -47,5 +47,5 @@ export default async function TripMapPage(props: PageProps<"/trips/[tripId]/map"
   const usedDays = Array.from(new Set(stops.map((s) => s.dayIndex))).sort((a, b) => a - b);
   const days = usedDays.map((i) => ({ index: i, date: dayDate(trip.startDate, i), color: dayColor(i) }));
 
-  return <TripMap tripId={tripId} stops={stops} days={days} homeLabel={trip.title} />;
+  return <TripMap tripId={tripId} stops={stops} days={days} homeLabel={trip.title} timezone={trip.timezone} />;
 }

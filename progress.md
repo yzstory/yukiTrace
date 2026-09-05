@@ -205,9 +205,17 @@
   - Dockerfile, docker-compose.yml, deploy/deploy.sh, .env.example, src/lib/session.ts
   - 服务器：/root/docker-compose/yukiTrace/{.env,docker-compose.yml,prisma.config.ts,prisma/}
 
+### 阶段 11：时区 / 币种 / 图片格式
+- **状态：** complete
+- 关键决策：`fmt.*(date, tz?)` 保持向后兼容的可选第二参数，避免改写 28 个调用点的签名；时区解析集中在 `parseInTz`
+- 迁移：`20260905043405_timezone_and_cny`（含 amountCnyMinor 回填 SQL）
+- 修改文件：src/lib/{date,client-image}.ts、prisma/schema.prisma、trips 与 [tripId] 全部 actions/pages、timeline/quick-add/ledger/map/photos/summary/share 组件、api/{upload,export}、lib/ai/{tools}、api/ai/chat、docker-compose.yml、.env.example
+
 ## 测试结果
 | 测试 | 输入 | 预期结果 | 实际结果 | 状态 |
 |------|------|---------|---------|------|
+| 跨时区渲染 | 服务端 TZ=UTC，旅程 Tokyo + 站点 Shanghai 覆盖 | 07:30 / 14:10 / 19:00 | 完全一致（UTC 值仅出现在 RSC 序列化负载中） | ✅ |
+| 全局账本 CNY 汇总 | 混合币种 | 按 amountCnyMinor 求和 | ¥7,246.66 | ✅ |
 | SSH 连接 | ssh root@101.37.37.200 | 连接成功 | CONNECTED，Alibaba Cloud Linux 8 | ✅ |
 | 类型检查 | pnpm typecheck | 0 错误 | 0 错误 | ✅ |
 | Lint | pnpm lint | 0 错误 | 0 错误 | ✅ |

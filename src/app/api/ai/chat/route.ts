@@ -26,9 +26,9 @@ export async function POST(req: NextRequest) {
 
   const result = streamText({
     model: chatModel(),
-    system: systemPrompt({ tripTitle: trip.title, homeCurrency: trip.homeCurrency, now, babyName: trip.babyName, babyAge: trip.babyBirthDate ? babyAge(trip.babyBirthDate, now) : null }),
+    system: systemPrompt({ tripTitle: trip.title, homeCurrency: trip.homeCurrency, now, babyName: trip.babyName, babyAge: trip.babyBirthDate ? babyAge(trip.babyBirthDate, now) : null, timezone: trip.timezone }),
     messages: await convertToModelMessages(messages.slice(-20)),
-    tools: tripTools({ tripId, userId: session.userId, homeCurrency: trip.homeCurrency, now, canEdit }),
+    tools: tripTools({ tripId, userId: session.userId, homeCurrency: trip.homeCurrency, now, canEdit, timezone: trip.timezone }),
     stopWhen: stepCountIs(6),
   });
   return result.toUIMessageStreamResponse();

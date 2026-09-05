@@ -22,6 +22,7 @@ export function ExpenseForm({
   defaultTime,
   defaultStopId,
   onDone,
+  tz,
 }: {
   tripId: string;
   stops: StopOption[];
@@ -29,6 +30,7 @@ export function ExpenseForm({
   defaultTime: Date;
   defaultStopId?: string;
   onDone: () => void;
+  tz?: string | null;
 }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(createExpense.bind(null, tripId), undefined);
   const [category, setCategory] = useState<ExpenseCategory>("FOOD");
@@ -75,7 +77,7 @@ export function ExpenseForm({
 
       <Field label="名称" name="title" required placeholder="拉面 / 打车 / 奶粉" />
       <div className="grid grid-cols-2 gap-3">
-        <Field label="时间" name="paidAt" type="datetime-local" required defaultValue={fmt.inputDateTime(defaultTime)} />
+        <Field label="时间" name="paidAt" type="datetime-local" required defaultValue={fmt.inputDateTime(defaultTime, tz)} />
         {stops.length > 0 ? (
           <SelectField
             label="站点"

@@ -20,7 +20,7 @@ export type TripMapStop = MapPoint & {
   legFromPrev: { distanceM: number; durationS: number | null; mode: string } | null;
 };
 
-export function TripMap({ tripId, stops, days, homeLabel }: { tripId: string; stops: TripMapStop[]; days: Array<{ index: number; date: Date; color: string }>; homeLabel: string }) {
+export function TripMap({ tripId, stops, days, homeLabel, timezone }: { tripId: string; stops: TripMapStop[]; days: Array<{ index: number; date: Date; color: string }>; homeLabel: string; timezone: string }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [dayFilter, setDayFilter] = useState<number | null>(null);
   const handle = useRef<AMapViewHandle | null>(null);
@@ -88,7 +88,7 @@ export function TripMap({ tripId, stops, days, homeLabel }: { tripId: string; st
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-callout font-medium">{s.name}</span>
                 <span className="block truncate text-caption text-muted-foreground">
-                  Day {s.dayIndex} · {fmt.time(s.arriveAt)}
+                  Day {s.dayIndex} · {fmt.time(s.arriveAt, timezone)}
                   {s.legFromPrev ? ` · ${formatDistance(s.legFromPrev.distanceM)}` : ""}
                 </span>
               </span>
@@ -114,7 +114,7 @@ export function TripMap({ tripId, stops, days, homeLabel }: { tripId: string; st
                   {sel.name}
                 </DrawerTitle>
                 <DrawerDescription className="text-footnote">
-                  Day {sel.dayIndex} · {fmt.dateTime(sel.arriveAt)}
+                  Day {sel.dayIndex} · {fmt.dateTime(sel.arriveAt, timezone)}
                   {sel.legFromPrev ? ` · 距上一站 ${formatDistance(sel.legFromPrev.distanceM)}${sel.legFromPrev.durationS ? `，约 ${formatDuration(sel.legFromPrev.durationS)}` : ""}` : ""}
                 </DrawerDescription>
               </DrawerHeader>

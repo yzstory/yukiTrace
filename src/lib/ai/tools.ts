@@ -13,8 +13,8 @@ import { revalidatePath } from "next/cache";
  * 给 AI 的工具集，全部限定在一个 tripId 内，由调用方鉴权后传入。
  * 工具返回值尽量是简短、可读的对象，方便模型复述。
  */
-export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: string; now: Date; canEdit: boolean }) {
-  const { tripId, userId, homeCurrency } = ctx;
+export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: string; now: Date; canEdit: boolean; timezone: string }) {
+  const { tripId, userId, homeCurrency, timezone: tz } = ctx;
 
   const readTools = {
     listStops: tool({
@@ -22,7 +22,7 @@ export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: s
       inputSchema: z.object({}),
       execute: async () => {
         const stops = await db.stop.findMany({ where: { tripId }, orderBy: [{ arriveAt: "asc" }, { order: "asc" }], select: { id: true, name: true, city: true, type: true, arriveAt: true } });
-        return stops.map((s) => ({ id: s.id, name: s.name, city: s.city, type: s.type, arriveAt: fmt.dateTime(s.arriveAt) }));
+        return stops.map((s) => ({ id: s.id, name: s.name, city: s.city, type: s.type, arriveAt: fmt.dateTime(s.arriveAt, tz) }));
       },
     }),
     listEntries: tool({
@@ -30,7 +30,7 @@ export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: s
       inputSchema: z.object({ type: z.nativeEnum(EntryType).optional(), stopId: z.string().optional() }),
       execute: async ({ type, stopId }) => {
         const entries = await db.entry.findMany({ where: { tripId, type, stopId }, orderBy: { startAt: "asc" }, include: { stop: { select: { name: true } } }, take: 100 });
-        return entries.map((e) => ({ id: e.id, type: e.type, title: e.title, at: fmt.dateTime(e.startAt), stop: e.stop?.name ?? null, note: e.note, meta: e.meta }));
+        return entries.map((e) => ({ id: e.id, type: e.type, title: e.title, at: fmt.dateTime(e.startAt, tz), stop: e.stop?.name ?? null, note: e.note, meta: e.meta }));
       },
     }),
     queryExpenses: tool({
@@ -59,7 +59,7 @@ export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: s
         return {
           count: list.length,
           total: formatMoney(total, homeCurrency),
-          items: list.map((e) => ({ id: e.id, title: e.title, amount: formatMoney(e.amountMinor, e.currency, { showCode: true }), home: formatMoney(e.amountHomeMinor, homeCurrency), category: e.category, isBaby: e.isBaby, at: fmt.dateTime(e.paidAt), stop: e.stop?.name ?? null })),
+          items: list.map((e) => ({ id: e.id, title: e.title, amount: formatMoney(e.amountMinor, e.currency, { showCode: true }), home: formatMoney(e.amountHomeMinor, homeCurrency), category: e.category, isBaby: e.isBaby, at: fmt.dateTime(e.paidAt, tz), stop: e.stop?.name ?? null })),
         };
       },
     }),
@@ -79,9 +79,9 @@ export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: s
         const t = await db.trip.findUniqueOrThrow({ where: { id: tripId }, include: { _count: { select: { stops: true, photos: true, entries: true } }, expenses: { select: { amountHomeMinor: true } } } });
         return {
           title: t.title,
-          dates: `${fmt.dateFull(t.startDate)} – ${fmt.dateFull(t.endDate)}`,
+          dates: `${fmt.dateFull(t.startDate, tz)} – ${fmt.dateFull(t.endDate, tz)}`,
           babyName: t.babyName,
-          babyBirthDate: t.babyBirthDate ? fmt.inputDate(t.babyBirthDate) : null,
+          babyBirthDate: t.babyBirthDate ? fmt.inputDate(t.babyBirthDate, tz) : null,
           travelers: t.travelers,
           stops: t._count.stops,
           entries: t._count.entries,
@@ -111,7 +111,7 @@ export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: s
         const count = await db.stop.count({ where: { tripId } });
         const s = await db.stop.create({ data: { tripId, ...input, arriveAt: new Date(input.arriveAt), order: count } });
         revalidatePath(`/trips/${tripId}`);
-        return { id: s.id, name: s.name, arriveAt: fmt.dateTime(s.arriveAt) };
+        return { id: s.id, name: s.name, arriveAt: fmt.dateTime(s.arriveAt, tz) };
       },
     }),
     createEntry: tool({
@@ -152,6 +152,7 @@ export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: s
               amountMinor,
               currency: cur,
               amountHomeMinor: convertMinor(amountMinor, cur, homeCurrency, rate),
+              amountCnyMinor: convertMinor(amountMinor, cur, "CNY", cur === "CNY" ? 1 : await getRate(cur, "CNY", new Date(input.startAt))),
               rate,
               category: input.expense.isBaby ? "BABY" : (input.expense.category ?? defaultCat[input.type]),
               isBaby: input.expense.isBaby,
@@ -162,7 +163,7 @@ export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: s
           expenseText = `${formatMoney(e.amountMinor, e.currency, { showCode: true })} ≈ ${formatMoney(e.amountHomeMinor, homeCurrency)}`;
         }
         revalidatePath(`/trips/${tripId}`);
-        return { id: entry.id, title: entry.title, type: entry.type, at: fmt.dateTime(entry.startAt), expense: expenseText };
+        return { id: entry.id, title: entry.title, type: entry.type, at: fmt.dateTime(entry.startAt, tz), expense: expenseText };
       },
     }),
     addExpense: tool({
@@ -183,7 +184,21 @@ export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: s
         const paidAt = new Date(input.paidAt);
         const rate = await getRate(cur, homeCurrency, paidAt);
         const e = await db.expense.create({
-          data: { tripId, stopId: input.stopId ?? null, paidById: userId, amountMinor, currency: cur, amountHomeMinor: convertMinor(amountMinor, cur, homeCurrency, rate), rate, category: input.isBaby ? "BABY" : input.category, isBaby: input.isBaby, title: input.title, note: input.note ?? null, paidAt },
+          data: {
+            tripId,
+            stopId: input.stopId ?? null,
+            paidById: userId,
+            amountMinor,
+            currency: cur,
+            amountHomeMinor: convertMinor(amountMinor, cur, homeCurrency, rate),
+            amountCnyMinor: convertMinor(amountMinor, cur, "CNY", cur === "CNY" ? 1 : await getRate(cur, "CNY", paidAt)),
+            rate,
+            category: input.isBaby ? "BABY" : input.category,
+            isBaby: input.isBaby,
+            title: input.title,
+            note: input.note ?? null,
+            paidAt,
+          },
         });
         revalidatePath(`/trips/${tripId}`);
         revalidatePath("/ledger");
@@ -196,7 +211,7 @@ export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: s
       execute: async ({ type, at, note }) => {
         const l = await db.babyLog.create({ data: { tripId, type, at: new Date(at), note: note ?? null } });
         revalidatePath(`/trips/${tripId}`);
-        return { id: l.id, type: l.type, at: fmt.dateTime(l.at) };
+        return { id: l.id, type: l.type, at: fmt.dateTime(l.at, tz) };
       },
     }),
     saveDailyNote: tool({
@@ -214,9 +229,9 @@ export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: s
   return { ...readTools, ...writeTools };
 }
 
-export function systemPrompt(ctx: { tripTitle: string; homeCurrency: string; now: Date; babyName: string | null; babyAge: string | null; timezoneNote?: string }) {
+export function systemPrompt(ctx: { tripTitle: string; homeCurrency: string; now: Date; babyName: string | null; babyAge: string | null; timezone: string }) {
   return `你是「Trace」的旅行记录助手，帮一家人在带宝宝旅行时以最低成本记录行程与花费。
-当前旅程：${ctx.tripTitle}。主币种：${ctx.homeCurrency}。现在时间：${ctx.now.toISOString()}（用户所在时区按东八区理解，除非用户另有说明）。
+当前旅程：${ctx.tripTitle}。主币种：${ctx.homeCurrency}。现在时间：${fmt.dateTime(ctx.now, ctx.timezone)}（${ctx.timezone}）。写入时间时请使用该时区的本地时间。
 ${ctx.babyName ? `宝宝：${ctx.babyName}${ctx.babyAge ? `，现在 ${ctx.babyAge}` : ""}。` : ""}
 
 原则：

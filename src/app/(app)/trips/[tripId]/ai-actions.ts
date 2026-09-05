@@ -23,11 +23,11 @@ export async function generateDailyDraft(tripId: string, date: string, tone: "de
     db.photo.findMany({ where: { tripId, takenAt: { gte: day, lt: next } }, select: { caption: true } }),
   ]);
   const facts = [
-    `日期：${fmt.dateFull(day)}（Day ${dayIndex(trip.startDate, day)}）`,
-    stops.length ? `站点：${stops.map((s) => `${fmt.time(s.arriveAt)} ${s.name}${s.note ? `（${s.note}）` : ""}`).join("；")}` : "",
-    entries.length ? `条目：${entries.map((e) => `${fmt.time(e.startAt)} [${e.type}] ${e.title}${e.stop ? `@${e.stop.name}` : ""}${e.note ? `（${e.note}）` : ""}`).join("；")}` : "",
+    `日期：${fmt.dateFull(day, trip.timezone)}（Day ${dayIndex(trip.startDate, day, trip.timezone)}）`,
+    stops.length ? `站点：${stops.map((s) => `${fmt.time(s.arriveAt, trip.timezone)} ${s.name}${s.note ? `（${s.note}）` : ""}`).join("；")}` : "",
+    entries.length ? `条目：${entries.map((e) => `${fmt.time(e.startAt, trip.timezone)} [${e.type}] ${e.title}${e.stop ? `@${e.stop.name}` : ""}${e.note ? `（${e.note}）` : ""}`).join("；")}` : "",
     expenses.length ? `花费：共 ${expenses.length} 笔，合计 ${formatMoney(expenses.reduce((a, e) => a + e.amountHomeMinor, 0), trip.homeCurrency)}；最大一笔 ${(() => { const m = expenses.reduce((a, b) => (a.amountHomeMinor > b.amountHomeMinor ? a : b)); return `${m.title} ${formatMoney(m.amountMinor, m.currency, { showCode: true })}`; })()}` : "",
-    babyLogs.length ? `宝宝：${babyLogs.map((b) => `${fmt.time(b.at)} ${b.type}${b.note ? ` ${b.note}` : ""}`).join("；")}` : "",
+    babyLogs.length ? `宝宝：${babyLogs.map((b) => `${fmt.time(b.at, trip.timezone)} ${b.type}${b.note ? ` ${b.note}` : ""}`).join("；")}` : "",
     photos.length ? `照片 ${photos.length} 张${photos.filter((p) => p.caption).length ? `，说明：${photos.map((p) => p.caption).filter(Boolean).join("；")}` : ""}` : "",
   ]
     .filter(Boolean)
@@ -59,14 +59,14 @@ export async function generateTripSummary(tripId: string): Promise<{ text?: stri
   const byCat = new Map<string, number>();
   trip.expenses.forEach((e) => byCat.set(e.category, (byCat.get(e.category) ?? 0) + e.amountHomeMinor));
   const facts = [
-    `旅程：${trip.title}，${fmt.dateFull(trip.startDate)} – ${fmt.dateFull(trip.endDate)}`,
+    `旅程：${trip.title}，${fmt.dateFull(trip.startDate, trip.timezone)} – ${fmt.dateFull(trip.endDate, trip.timezone)}`,
     trip.babyName ? `宝宝 ${trip.babyName}${trip.babyBirthDate ? `，出发时 ${babyAge(trip.babyBirthDate, trip.startDate)}` : ""}` : "",
     `同行：${trip.travelers.join("、") || "未填写"}`,
-    `站点（${trip.stops.length}）：${trip.stops.map((s) => `${fmt.date(s.arriveAt)} ${s.name}${s.city ? `·${s.city}` : ""}`).join("；")}`,
+    `站点（${trip.stops.length}）：${trip.stops.map((s) => `${fmt.date(s.arriveAt, trip.timezone)} ${s.name}${s.city ? `·${s.city}` : ""}`).join("；")}`,
     `条目：${trip.entries.map((e) => `[${e.type}] ${e.title}`).join("；")}`,
     `花费合计 ${formatMoney(total, trip.homeCurrency)}；分类：${Array.from(byCat.entries()).map(([k, v]) => `${k} ${formatMoney(v, trip.homeCurrency)}`).join("，")}`,
     `照片 ${trip._count.photos} 张`,
-    trip.dailyNotes.filter((d) => d.content).length ? `日记：\n${trip.dailyNotes.filter((d) => d.content).map((d) => `${fmt.date(d.date)}：${d.content}`).join("\n")}` : "",
+    trip.dailyNotes.filter((d) => d.content).length ? `日记：\n${trip.dailyNotes.filter((d) => d.content).map((d) => `${fmt.date(d.date, trip.timezone)}：${d.content}`).join("\n")}` : "",
   ]
     .filter(Boolean)
     .join("\n");
@@ -86,7 +86,7 @@ export async function generatePackingList(tripId: string): Promise<{ count?: num
   const { text } = await generateText({
     model: chatModel(),
     system: `你是带娃出行的老手。根据目的地、日期和宝宝月龄，给出装备清单。只输出 JSON 数组，每项 {"group":"分组","text":"物品"}，分组限定：证件与钱、宝宝用品、衣物、药品与护理、电子与杂物。20–30 项，具体到数量或型号建议时写在 text 里。不要输出其他文字。`,
-    prompt: `目的地：${trip.stops.map((s) => s.city).filter(Boolean).join("、") || trip.title}\n日期：${fmt.dateFull(trip.startDate)} – ${fmt.dateFull(trip.endDate)}\n宝宝：${trip.babyName ?? "宝宝"}${trip.babyBirthDate ? `，出发时 ${babyAge(trip.babyBirthDate, trip.startDate)}` : "，月龄未知"}\n同行：${trip.travelers.join("、") || "未填写"}`,
+    prompt: `目的地：${trip.stops.map((s) => s.city).filter(Boolean).join("、") || trip.title}\n日期：${fmt.dateFull(trip.startDate, trip.timezone)} – ${fmt.dateFull(trip.endDate, trip.timezone)}\n宝宝：${trip.babyName ?? "宝宝"}${trip.babyBirthDate ? `，出发时 ${babyAge(trip.babyBirthDate, trip.startDate)}` : "，月龄未知"}\n同行：${trip.travelers.join("、") || "未填写"}`,
   });
   let items: Array<{ group: string; text: string }> = [];
   try {

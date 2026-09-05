@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { verifySession, requireTripAccess } from "@/lib/dal";
 import { CURRENCIES } from "@/lib/currency";
+import { TIMEZONES } from "@/lib/date";
 
 export type ActionState = { error?: string; ok?: boolean } | undefined;
 
@@ -15,6 +16,7 @@ const tripSchema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "请选择开始日期"),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "请选择结束日期"),
   homeCurrency: z.string().refine((c) => CURRENCIES.some((x) => x.code === c), "货币不支持"),
+  timezone: z.string().refine((t) => TIMEZONES.some((x) => x.value === t), "时区不支持").default("Asia/Shanghai"),
   babyName: z.string().trim().max(30).optional().or(z.literal("")),
   babyBirthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal("")),
   travelers: z.string().optional(),
@@ -32,6 +34,7 @@ function parseTrip(formData: FormData) {
       startDate: new Date(d.startDate),
       endDate: new Date(d.endDate),
       homeCurrency: d.homeCurrency,
+      timezone: d.timezone,
       babyName: d.babyName || null,
       babyBirthDate: d.babyBirthDate ? new Date(d.babyBirthDate) : null,
       travelers: (d.travelers ?? "")

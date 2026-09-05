@@ -8,7 +8,7 @@ import { fmt } from "@/lib/date";
 import type { TBabyLog } from "./types";
 import { cn } from "@/lib/utils";
 
-export function BabyStrip({ logs, tripId, canEdit, babyName }: { logs: TBabyLog[]; tripId: string; canEdit: boolean; babyName: string | null }) {
+export function BabyStrip({ logs, tripId, canEdit, babyName, tz }: { logs: TBabyLog[]; tripId: string; canEdit: boolean; babyName: string | null; tz?: string | null }) {
   const [pending, start] = useTransition();
   if (logs.length === 0) return null;
   const sleeps = logs.filter((l) => l.type === "SLEEP").length;
@@ -27,7 +27,7 @@ export function BabyStrip({ logs, tripId, canEdit, babyName }: { logs: TBabyLog[
           return (
             <span key={l.id} className={cn("group inline-flex shrink-0 items-center gap-1 rounded-full bg-card px-2 py-1 text-caption", pending && "opacity-60")}>
               <Icon className={cn("size-3", c.color)} />
-              {fmt.time(l.at)} {c.label}
+              {fmt.time(l.at, tz)} {c.label}
               {l.note && <span className="text-muted-foreground">· {l.note}</span>}
               {canEdit && (
                 <button type="button" aria-label="删除" onClick={() => start(() => deleteBabyLog(tripId, l.id))} className="ml-0.5 rounded-full p-0.5 text-label-tertiary hover:bg-fill">

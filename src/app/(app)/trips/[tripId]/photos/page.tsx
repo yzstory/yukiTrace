@@ -23,7 +23,7 @@ export default async function TripPhotosPage(props: PageProps<"/trips/[tripId]/p
   const days: GalleryDay[] = Array.from({ length: n }, (_, i) => ({ index: i + 1, date: dayDate(trip.startDate, i + 1), photos: [] }));
   for (const p of trip.photos) {
     const at = p.takenAt ?? p.stop?.arriveAt ?? trip.startDate;
-    const di = Math.min(Math.max(dayIndex(trip.startDate, at), 1), n);
+    const di = Math.min(Math.max(dayIndex(trip.startDate, at, trip.timezone), 1), n);
     days[di - 1].photos.push({
       id: p.id,
       url: imageUrl(p.ossKey, { w: 1600 }),
@@ -51,7 +51,7 @@ export default async function TripPhotosPage(props: PageProps<"/trips/[tripId]/p
       <BackButton href="/trips" label="旅程" />
       <h1 className="mb-3 text-title-1">{trip.title}</h1>
       <TripTabs tripId={tripId} />
-      <PhotoGrid days={days} canEdit={role !== "VIEWER"} onDelete={onDelete} onSetCover={onSetCover} />
+      <PhotoGrid days={days} timezone={trip.timezone} canEdit={role !== "VIEWER"} onDelete={onDelete} onSetCover={onSetCover} />
     </>
   );
 }

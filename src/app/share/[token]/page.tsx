@@ -33,7 +33,7 @@ export default async function SharePage(props: PageProps<"/share/[token]">) {
   let totalM = 0;
   for (let i = 1; i < trip.stops.length; i++) totalM += haversine(trip.stops[i - 1], trip.stops[i]);
   const total = trip.expenses.reduce((a, e) => a + e.amountHomeMinor, 0);
-  const points = trip.stops.map((s, i) => ({ id: s.id, name: s.name, lat: s.lat, lng: s.lng, index: i + 1, group: dayIndex(trip.startDate, s.arriveAt), color: dayColor(Math.min(Math.max(dayIndex(trip.startDate, s.arriveAt), 1), n)) }));
+  const points = trip.stops.map((s, i) => ({ id: s.id, name: s.name, lat: s.lat, lng: s.lng, index: i + 1, group: dayIndex(trip.startDate, s.arriveAt, trip.timezone), color: dayColor(Math.min(Math.max(dayIndex(trip.startDate, s.arriveAt, trip.timezone), 1), n)) }));
 
   return (
     <main className="mx-auto max-w-2xl px-5 py-6 safe-top safe-bottom">
@@ -42,7 +42,7 @@ export default async function SharePage(props: PageProps<"/share/[token]">) {
           {trip.coverKey ? <Image src={withToken(trip.coverKey, 1600)} alt="" fill sizes="100vw" className="object-cover" unoptimized priority /> : <Footprints className="absolute right-6 top-6 size-20 text-white/25" />}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 to-transparent p-5 pt-20 text-white">
             <p className="text-footnote text-white/80">
-              {fmt.dateFull(trip.startDate)} – {fmt.date(trip.endDate)} · {n} 天
+              {fmt.dateFull(trip.startDate, trip.timezone)} – {fmt.date(trip.endDate, trip.timezone)} · {n} 天
             </p>
             <h1 className="text-large-title text-white">{trip.title}</h1>
             {trip.description && <p className="mt-1 text-subhead text-white/85">{trip.description}</p>}
@@ -64,13 +64,13 @@ export default async function SharePage(props: PageProps<"/share/[token]">) {
       <div className="mt-8 flex flex-col gap-8">
         {Array.from({ length: n }, (_, i) => i + 1).map((di) => {
           const date = dayDate(trip.startDate, di);
-          const stops = trip.stops.filter((s) => Math.min(Math.max(dayIndex(trip.startDate, s.arriveAt), 1), n) === di);
+          const stops = trip.stops.filter((s) => Math.min(Math.max(dayIndex(trip.startDate, s.arriveAt, trip.timezone), 1), n) === di);
           const note = trip.dailyNotes.find((d) => dayIndex(trip.startDate, d.date) === di)?.content;
           if (!stops.length && !note) return null;
           return (
             <section key={di}>
               <h2 className="mb-3 text-title-2">
-                Day {di} <span className="text-subhead font-normal text-muted-foreground">{fmt.date(date)} {fmt.weekday(date)}</span>
+                Day {di} <span className="text-subhead font-normal text-muted-foreground">{fmt.date(date, trip.timezone)} {fmt.weekday(date, trip.timezone)}</span>
               </h2>
               {note && <p className="mb-3 rounded-2xl bg-ios-yellow/15 px-4 py-3 text-subhead">{note}</p>}
               <div className="flex flex-col gap-3">
@@ -85,7 +85,7 @@ export default async function SharePage(props: PageProps<"/share/[token]">) {
                         <div className="min-w-0 flex-1">
                           <h3 className="text-headline">{s.name}</h3>
                           <p className="text-caption text-muted-foreground">
-                            {fmt.time(s.arriveAt)}
+                            {fmt.time(s.arriveAt, s.timezone ?? trip.timezone)}
                             {s.city ? ` · ${s.city}` : ""}
                           </p>
                           {s.address && (
