@@ -1,0 +1,228 @@
+import "server-only";
+import { tool } from "ai";
+import { z } from "zod";
+import { db } from "@/lib/db";
+import { searchPoi, amapConfigured } from "@/lib/amap";
+import { CURRENCIES, toMinor, convertMinor, formatMoney } from "@/lib/currency";
+import { getRate } from "@/app/(app)/trips/[tripId]/actions";
+import { EntryType, ExpenseCategory, StopType } from "@/generated/prisma/enums";
+import { fmt } from "@/lib/date";
+import { revalidatePath } from "next/cache";
+
+/**
+ * 给 AI 的工具集，全部限定在一个 tripId 内，由调用方鉴权后传入。
+ * 工具返回值尽量是简短、可读的对象，方便模型复述。
+ */
+export function tripTools(ctx: { tripId: string; userId: string; homeCurrency: string; now: Date; canEdit: boolean }) {
+  const { tripId, userId, homeCurrency } = ctx;
+
+  const readTools = {
+    listStops: tool({
+      description: "列出这段旅程的所有站点（按时间顺序），含 id、名称、城市、到达时间。",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const stops = await db.stop.findMany({ where: { tripId }, orderBy: [{ arriveAt: "asc" }, { order: "asc" }], select: { id: true, name: true, city: true, type: true, arriveAt: true } });
+        return stops.map((s) => ({ id: s.id, name: s.name, city: s.city, type: s.type, arriveAt: fmt.dateTime(s.arriveAt) }));
+      },
+    }),
+    listEntries: tool({
+      description: "列出条目（航班/租车/住宿/餐食/游玩/购物等），可按类型或站点过滤。",
+      inputSchema: z.object({ type: z.nativeEnum(EntryType).optional(), stopId: z.string().optional() }),
+      execute: async ({ type, stopId }) => {
+        const entries = await db.entry.findMany({ where: { tripId, type, stopId }, orderBy: { startAt: "asc" }, include: { stop: { select: { name: true } } }, take: 100 });
+        return entries.map((e) => ({ id: e.id, type: e.type, title: e.title, at: fmt.dateTime(e.startAt), stop: e.stop?.name ?? null, note: e.note, meta: e.meta }));
+      },
+    }),
+    queryExpenses: tool({
+      description: "查询花费。可按分类、是否宝宝相关、日期范围过滤；返回明细与合计（主币种）。",
+      inputSchema: z.object({
+        category: z.nativeEnum(ExpenseCategory).optional(),
+        isBaby: z.boolean().optional(),
+        from: z.string().optional().describe("ISO 日期，含"),
+        to: z.string().optional().describe("ISO 日期，含"),
+        keyword: z.string().optional().describe("标题关键字"),
+      }),
+      execute: async ({ category, isBaby, from, to, keyword }) => {
+        const list = await db.expense.findMany({
+          where: {
+            tripId,
+            category,
+            isBaby,
+            title: keyword ? { contains: keyword, mode: "insensitive" } : undefined,
+            paidAt: { gte: from ? new Date(from) : undefined, lte: to ? new Date(`${to}T23:59:59`) : undefined },
+          },
+          orderBy: { paidAt: "asc" },
+          include: { stop: { select: { name: true } } },
+          take: 200,
+        });
+        const total = list.reduce((a, e) => a + e.amountHomeMinor, 0);
+        return {
+          count: list.length,
+          total: formatMoney(total, homeCurrency),
+          items: list.map((e) => ({ id: e.id, title: e.title, amount: formatMoney(e.amountMinor, e.currency, { showCode: true }), home: formatMoney(e.amountHomeMinor, homeCurrency), category: e.category, isBaby: e.isBaby, at: fmt.dateTime(e.paidAt), stop: e.stop?.name ?? null })),
+        };
+      },
+    }),
+    searchPlace: tool({
+      description: "用高德搜索地点，返回候选（含坐标）。用于把用户说的地名变成可创建的站点。",
+      inputSchema: z.object({ keyword: z.string(), city: z.string().optional() }),
+      execute: async ({ keyword, city }) => {
+        if (!amapConfigured()) return { configured: false, results: [] as const, hint: "未配置高德 Key，无法搜索坐标；可以让用户手动添加站点。" };
+        const results = await searchPoi(keyword, city);
+        return { configured: true, results: results.slice(0, 5) };
+      },
+    }),
+    getTripSummary: tool({
+      description: "获取旅程概览：标题、日期、天数、宝宝信息、站点数、总花费。",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const t = await db.trip.findUniqueOrThrow({ where: { id: tripId }, include: { _count: { select: { stops: true, photos: true, entries: true } }, expenses: { select: { amountHomeMinor: true } } } });
+        return {
+          title: t.title,
+          dates: `${fmt.dateFull(t.startDate)} – ${fmt.dateFull(t.endDate)}`,
+          babyName: t.babyName,
+          babyBirthDate: t.babyBirthDate ? fmt.inputDate(t.babyBirthDate) : null,
+          travelers: t.travelers,
+          stops: t._count.stops,
+          entries: t._count.entries,
+          photos: t._count.photos,
+          total: formatMoney(t.expenses.reduce((a, e) => a + e.amountHomeMinor, 0), t.homeCurrency),
+        };
+      },
+    }),
+  };
+
+  if (!ctx.canEdit) return readTools;
+
+  const writeTools = {
+    createStop: tool({
+      description: "创建一个站点。必须有坐标（先用 searchPlace 拿到 lat/lng）。arriveAt 用 ISO 时间；不确定时间就用当前时间。",
+      inputSchema: z.object({
+        name: z.string(),
+        lat: z.number(),
+        lng: z.number(),
+        type: z.nativeEnum(StopType).default("OTHER"),
+        arriveAt: z.string().describe("ISO 8601"),
+        address: z.string().optional(),
+        city: z.string().optional(),
+        note: z.string().optional(),
+      }),
+      execute: async (input) => {
+        const count = await db.stop.count({ where: { tripId } });
+        const s = await db.stop.create({ data: { tripId, ...input, arriveAt: new Date(input.arriveAt), order: count } });
+        revalidatePath(`/trips/${tripId}`);
+        return { id: s.id, name: s.name, arriveAt: fmt.dateTime(s.arriveAt) };
+      },
+    }),
+    createEntry: tool({
+      description: "创建一条条目（餐食/游玩/住宿/航班/租车/火车/打车/购物/此刻）。可选同时记一笔花费（amount 为原币金额，如 2800 日元就是 2800 + JPY）。",
+      inputSchema: z.object({
+        type: z.nativeEnum(EntryType),
+        title: z.string(),
+        startAt: z.string().describe("ISO 8601"),
+        endAt: z.string().optional(),
+        stopId: z.string().optional().describe("关联站点 id，可用 listStops 查"),
+        note: z.string().optional(),
+        meta: z.record(z.string(), z.string()).optional().describe("类型特定字段，如 flightNo/seat/company/carModel/roomType/dishes"),
+        expense: z
+          .object({
+            amount: z.number().positive(),
+            currency: z.string().default(homeCurrency),
+            isBaby: z.boolean().default(false),
+            category: z.nativeEnum(ExpenseCategory).optional(),
+          })
+          .optional(),
+      }),
+      execute: async (input) => {
+        const entry = await db.entry.create({
+          data: { tripId, type: input.type, title: input.title, startAt: new Date(input.startAt), endAt: input.endAt ? new Date(input.endAt) : null, stopId: input.stopId ?? null, note: input.note ?? null, meta: input.meta ?? undefined },
+        });
+        let expenseText: string | null = null;
+        if (input.expense) {
+          const cur = CURRENCIES.some((c) => c.code === input.expense!.currency) ? input.expense.currency : homeCurrency;
+          const amountMinor = toMinor(input.expense.amount, cur);
+          const rate = await getRate(cur, homeCurrency, new Date(input.startAt));
+          const defaultCat: Record<EntryType, ExpenseCategory> = { FLIGHT: "TRANSPORT", CAR_RENTAL: "TRANSPORT", TRAIN: "TRANSPORT", TAXI: "TRANSPORT", HOTEL: "ACCOMMODATION", MEAL: "FOOD", ACTIVITY: "ACTIVITY", SHOPPING: "SHOPPING", MOMENT: "OTHER" };
+          const e = await db.expense.create({
+            data: {
+              tripId,
+              entryId: entry.id,
+              stopId: input.stopId ?? null,
+              paidById: userId,
+              amountMinor,
+              currency: cur,
+              amountHomeMinor: convertMinor(amountMinor, cur, homeCurrency, rate),
+              rate,
+              category: input.expense.isBaby ? "BABY" : (input.expense.category ?? defaultCat[input.type]),
+              isBaby: input.expense.isBaby,
+              title: input.title,
+              paidAt: new Date(input.startAt),
+            },
+          });
+          expenseText = `${formatMoney(e.amountMinor, e.currency, { showCode: true })} ≈ ${formatMoney(e.amountHomeMinor, homeCurrency)}`;
+        }
+        revalidatePath(`/trips/${tripId}`);
+        return { id: entry.id, title: entry.title, type: entry.type, at: fmt.dateTime(entry.startAt), expense: expenseText };
+      },
+    }),
+    addExpense: tool({
+      description: "单独记一笔花费（不挂条目）。amount 为原币金额。",
+      inputSchema: z.object({
+        title: z.string(),
+        amount: z.number().positive(),
+        currency: z.string().default(homeCurrency),
+        category: z.nativeEnum(ExpenseCategory).default("OTHER"),
+        isBaby: z.boolean().default(false),
+        paidAt: z.string().describe("ISO 8601"),
+        stopId: z.string().optional(),
+        note: z.string().optional(),
+      }),
+      execute: async (input) => {
+        const cur = CURRENCIES.some((c) => c.code === input.currency) ? input.currency : homeCurrency;
+        const amountMinor = toMinor(input.amount, cur);
+        const paidAt = new Date(input.paidAt);
+        const rate = await getRate(cur, homeCurrency, paidAt);
+        const e = await db.expense.create({
+          data: { tripId, stopId: input.stopId ?? null, paidById: userId, amountMinor, currency: cur, amountHomeMinor: convertMinor(amountMinor, cur, homeCurrency, rate), rate, category: input.isBaby ? "BABY" : input.category, isBaby: input.isBaby, title: input.title, note: input.note ?? null, paidAt },
+        });
+        revalidatePath(`/trips/${tripId}`);
+        revalidatePath("/ledger");
+        return { id: e.id, title: e.title, amount: formatMoney(e.amountMinor, e.currency, { showCode: true }), home: formatMoney(e.amountHomeMinor, homeCurrency) };
+      },
+    }),
+    logBaby: tool({
+      description: "记录宝宝状态：喂奶 FEED / 换尿布 DIAPER / 入睡 SLEEP / 醒来 WAKE / 吃药 MEDICINE / 其他 OTHER。",
+      inputSchema: z.object({ type: z.enum(["FEED", "DIAPER", "SLEEP", "WAKE", "MEDICINE", "OTHER"]), at: z.string().describe("ISO 8601"), note: z.string().optional() }),
+      execute: async ({ type, at, note }) => {
+        const l = await db.babyLog.create({ data: { tripId, type, at: new Date(at), note: note ?? null } });
+        revalidatePath(`/trips/${tripId}`);
+        return { id: l.id, type: l.type, at: fmt.dateTime(l.at) };
+      },
+    }),
+    saveDailyNote: tool({
+      description: "保存某一天的日记（覆盖）。date 为 YYYY-MM-DD。",
+      inputSchema: z.object({ date: z.string(), content: z.string() }),
+      execute: async ({ date, content }) => {
+        const day = new Date(date);
+        await db.dailyNote.upsert({ where: { tripId_date: { tripId, date: day } }, update: { content }, create: { tripId, date: day, content } });
+        revalidatePath(`/trips/${tripId}`);
+        return { ok: true, date };
+      },
+    }),
+  };
+
+  return { ...readTools, ...writeTools };
+}
+
+export function systemPrompt(ctx: { tripTitle: string; homeCurrency: string; now: Date; babyName: string | null; babyAge: string | null; timezoneNote?: string }) {
+  return `你是「Trace」的旅行记录助手，帮一家人在带宝宝旅行时以最低成本记录行程与花费。
+当前旅程：${ctx.tripTitle}。主币种：${ctx.homeCurrency}。现在时间：${ctx.now.toISOString()}（用户所在时区按东八区理解，除非用户另有说明）。
+${ctx.babyName ? `宝宝：${ctx.babyName}${ctx.babyAge ? `，现在 ${ctx.babyAge}` : ""}。` : ""}
+
+原则：
+1. 用户随口一句话，就直接帮他记下来：拆成站点 / 条目 / 花费 / 宝宝状态，调用工具写入，不要反问太多。缺时间就用现在；缺地点就不关联站点；缺货币就用主币种。
+2. 记完用一两句话确认写了什么，金额带货币；不要输出 JSON，不要复述工具细节。
+3. 回答花费/行程问题时先用查询工具拿数据，再给结论，数字要来自工具结果。
+4. 语气轻松、简洁、中文，像一个细心的朋友。不要用 emoji 堆砌。
+5. 创建站点前必须有坐标：先 searchPlace；搜不到就告诉用户可以手动添加。`;
+}

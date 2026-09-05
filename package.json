@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.44",
+    "@ai-sdk/react": "^4.0.96",
     "@amap/amap-jsapi-loader": "^1.0.1",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",

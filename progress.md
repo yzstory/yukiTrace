@@ -69,6 +69,19 @@
   - src/lib/geo.ts, src/app/globals.css（.yt-marker / .yt-mover）
 
 ### 阶段 4：AI 助手
+- **状态：** complete
+- 执行的操作：
+  - 读 ai@7 / @ai-sdk/openai-compatible@3 / @ai-sdk/react d.ts 确认 API：tool({inputSchema, execute})、stepCountIs、convertToModelMessages、toUIMessageStreamResponse、useChat({transport})、sendMessage({text})、ImagePart {type:"image", image, mediaType}
+  - 写 model / tools / chat route / receipt route / ai-actions / AiChat / DailyNote(AI) / Checklist
+  - /tmp/mock-openai.mjs 模拟 OpenAI SSE 与非流式响应，验证完整工具循环与结构化输出
+- 创建/修改的文件：
+  - src/lib/ai/{model,tools}.ts
+  - src/app/api/ai/{chat,receipt}/route.ts
+  - src/app/(app)/trips/[tripId]/{ai-actions.ts,checklist/actions.ts,checklist/page.tsx}
+  - src/components/ai/ai-chat.tsx, src/components/checklist/checklist.tsx, src/components/timeline/daily-note.tsx
+  - src/components/timeline/{types,timeline}.tsx, src/components/trips/trip-hero.tsx, src/app/(app)/trips/[tripId]/page.tsx
+
+### 阶段 5：带娃专属与回顾分享
 - **状态：** pending
 
 ## 测试结果
@@ -89,6 +102,10 @@
 | 文件路由鉴权 | 无 cookie | 401 | 401 | ✅ |
 | 高德搜索未配置降级 | /api/amap/search?q=札幌 | configured:false | {"results":[],"configured":false} | ✅ |
 | 阶段 3 六个页面 | curl + 会话 | 全部 200 且含关键文案 | map/ledger/photos/全局 map/全局 ledger/时间线 全 200，文案齐全 | ✅ |
+| AI chat 工具循环 | mock OpenAI，"刚吃了拉面 2800 日元" | tool_call addExpense → 写库 → 文本回复 | 流中出现 tool-input/output-available、text-delta；账本出现「拉面 ¥2,800 JPY」 | ✅ |
+| AI receipt 识别 | mock + 测试图片 | 返回结构化 JSON | 200，kind/title/amount/items 齐全 | ✅ |
+| AI 未配置 / 未登录 | POST /api/ai/chat | 503 / 401 | 401（未登录）；503 分支代码存在未单测 | ✅ |
+| 真实模型对话质量 | 真实 API Key | 合理拆解与工具选择 | 未测（无 Key） | ⏳ |
 | 高德真实地图渲染 / 回放动画 | 浏览器 + Key | 显示地图 | 未测（无 Key、无浏览器），降级 SVG 已验证 | ⏳ |
 | 注册/登录 Server Action 端到端 | 浏览器 | 成功登录 | 未测（无浏览器，curl 无法直接调用 useActionState 表单） | ⏳ |
 
@@ -100,7 +117,7 @@
 ## 五问重启检查
 | 问题 | 答案 |
 |------|------|
-| 我在哪里？ | 阶段 3 完成，开始阶段 4 |
+| 我在哪里？ | 阶段 4 完成，开始阶段 5 |
 | 我要去哪里？ | 阶段 1 搭骨架 → 阶段 2 核心记录 → 阶段 3 地图账本 → 阶段 4 AI → 阶段 5 带娃/回顾 → 阶段 6 部署 |
 | 目标是什么？ | 苹果风带娃旅行记录 + 账本 Web 应用，含高德地图与 AI 助手，部署到阿里云 |
 | 我学到了什么？ | 见 findings.md |

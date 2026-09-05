@@ -37,6 +37,7 @@ export type TDay = {
   index: number;
   date: Date;
   note: string | null;
+  aiDraft: string | null;
   stops: TStop[];
   looseEntries: TEntry[];
   looseExpenses: TExpense[];
@@ -52,4 +53,5 @@ export type TTrip = {
   babyName: string | null;
   babyBirthDate: Date | null;
   canEdit: boolean;
+  aiConfigured: boolean;
 };

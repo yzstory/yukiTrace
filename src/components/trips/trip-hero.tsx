@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "motion/react";
-import { Pencil, Footprints, Wallet, Baby, Users, ImagePlus, Route } from "lucide-react";
+import { Pencil, Footprints, Wallet, Baby, Users, ImagePlus, Route, ListChecks } from "lucide-react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { formatMoney } from "@/lib/currency";
 import { formatDistance } from "@/lib/geo";
@@ -55,6 +55,9 @@ export function TripHero({ trip }: { trip: TripHeroData }) {
             <button type="button" onClick={() => setCoverOpen(true)} className="glass rounded-full p-2 text-foreground" aria-label="更换封面">
               <ImagePlus className="size-4" />
             </button>
+            <Link href={`/trips/${trip.id}/checklist`} className="glass rounded-full p-2 text-foreground" aria-label="出行清单">
+              <ListChecks className="size-4" />
+            </Link>
             <Link href={`/trips/${trip.id}/edit`} className="glass rounded-full p-2 text-foreground" aria-label="编辑旅程">
               <Pencil className="size-4" />
             </Link>

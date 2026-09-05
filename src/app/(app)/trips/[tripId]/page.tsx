@@ -5,6 +5,8 @@ import { TripHero } from "@/components/trips/trip-hero";
 import { TripTabs } from "@/components/trips/trip-tabs";
 import { Timeline } from "@/components/timeline/timeline";
 import { QuickAdd } from "@/components/quick-add/quick-add";
+import { AiChat } from "@/components/ai/ai-chat";
+import { aiConfigured } from "@/lib/ai/model";
 import { requireTripAccess } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { imageUrl } from "@/lib/storage";
@@ -103,7 +105,8 @@ export default async function TripPage(props: PageProps<"/trips/[tripId]">) {
   const days: TDay[] = Array.from({ length: n }, (_, i) => ({
     index: i + 1,
     date: dayDate(trip.startDate, i + 1),
-    note: trip.dailyNotes.find((d) => dayIndex(trip.startDate, d.date) === i + 1)?.content ?? null,
+    note: trip.dailyNotes.find((d) => dayIndex(trip.startDate, d.date) === i + 1)?.content || null,
+    aiDraft: trip.dailyNotes.find((d) => dayIndex(trip.startDate, d.date) === i + 1)?.aiDraft ?? null,
     stops: [],
     looseEntries: [],
     looseExpenses: [],
@@ -142,6 +145,7 @@ export default async function TripPage(props: PageProps<"/trips/[tripId]">) {
     babyName: trip.babyName,
     babyBirthDate: trip.babyBirthDate,
     canEdit,
+    aiConfigured: aiConfigured(),
   };
 
   return (
@@ -167,6 +171,7 @@ export default async function TripPage(props: PageProps<"/trips/[tripId]">) {
       />
       <TripTabs tripId={trip.id} />
       <Timeline days={days} trip={ttrip} />
+      <AiChat tripId={trip.id} homeCurrency={trip.homeCurrency} configured={aiConfigured()} canEdit={canEdit} />
       {canEdit && (
         <QuickAdd
           tripId={trip.id}

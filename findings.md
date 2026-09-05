@@ -32,6 +32,9 @@
 - 高德 JS API 使用 GCJ-02 坐标；浏览器 Geolocation 与照片 EXIF 为 WGS-84，在中国大陆范围内需转换（已实现 wgs84ToGcj02），国外无偏移
 - `@amap/amap-jsapi-types` 为全局 `declare namespace AMap`，需 triple-slash reference；MoveAnimation 的 `moving`/`movealong` 事件不在其 EventType 里
 - dataviz 验证：iOS 系统色（blue/purple/orange/green/pink/teal/gray）作分类调色板不通过 CVD 检查，图表避免多序列；如未来需要堆叠图需换经验证的调色板
+- AI SDK v7：`tool()` 用 `inputSchema`（zod v4 可直接传）；`generateText`/`streamText` 用 `stopWhen: stepCountIs(n)` 控制多步；`streamText().toUIMessageStreamResponse()` 配 `@ai-sdk/react` 的 `useChat({ transport: new DefaultChatTransport({ api, body }) })`；消息用 `parts`（text / tool-<name> 带 state）
+- openai-compatible provider：`createOpenAICompatible({ name, baseURL, apiKey })` 后 `.chatModel(id)`；流式走 SSE chunk（tool_calls 分片 arguments），非流式 generateObject 会带 `response_format`
+- 用本地 mock（/tmp/mock-openai.mjs）可离线验证整条 AI 链路，不依赖真实 Key
 
 ## 技术决策
 | 决策 | 理由 |

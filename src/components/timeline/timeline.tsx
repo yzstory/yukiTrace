@@ -44,7 +44,7 @@ export function Timeline({ days, trip }: { days: TDay[]; trip: TTrip }) {
               )}
             </header>
 
-            <DailyNote tripId={trip.id} date={day.date} note={day.note} canEdit={trip.canEdit} />
+            <DailyNote tripId={trip.id} date={day.date} note={day.note} aiDraft={day.aiDraft} canEdit={trip.canEdit} aiConfigured={trip.aiConfigured} hasContent={!empty} />
 
             {empty ? (
               <p className="rounded-2xl border border-dashed border-border px-4 py-5 text-center text-footnote text-label-tertiary">这一天还没有记录</p>

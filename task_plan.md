@@ -4,7 +4,7 @@
 用 Next.js 做一个苹果风格的「带娃旅行日记 + 账本」网页应用，能记录行程（航班/租车/住宿/餐饮/游玩）、花费（多币种）、照片与备注，在高德地图上展示路线与站间距离，并内嵌 AI 助手（OpenAI 兼容接口）降低记录成本；第一版部署到阿里云 ECS（Docker Compose），后续可开放注册并演进为 App。
 
 ## 当前阶段
-阶段 3 完成，进入阶段 4（AI 助手）
+阶段 4 完成，进入阶段 5（带娃专属与回顾分享）
 
 ## 各阶段
 
@@ -56,14 +56,16 @@
 - **状态：** complete
 
 ### 阶段 4：AI 助手（OpenAI 兼容）
-- [ ] 接入 Vercel AI SDK（`ai` + `@ai-sdk/openai-compatible`），baseURL / apiKey / model 全部由环境变量配置
-- [ ] 自然语言记录：一句话 → 结构化条目（工具调用 createEntry / addExpense / searchPlace）
-- [ ] 票据 / 航班确认截图 / 租车合同识别 → 自动填表（视觉模型，需模型支持图片输入）
-- [ ] 每日自动小结草稿（可选语气：写给宝宝看）
-- [ ] 旅程结束自动生成游记 + 推荐封面照片
-- [ ] 智能问答：基于结构化数据的工具调用（queryExpenses / findStop 等），不做向量库
-- [ ] 出行前助手：按目的地、日期、宝宝月龄生成装备清单
-- **状态：** pending
+- [x] `src/lib/ai/model.ts`：`@ai-sdk/openai-compatible` createOpenAICompatible，AI_BASE_URL / AI_API_KEY / AI_MODEL / AI_VISION_MODEL 全环境变量
+- [x] `src/lib/ai/tools.ts`：10 个工具（listStops / listEntries / queryExpenses / searchPlace / getTripSummary 只读；createStop / createEntry(+expense) / addExpense / logBaby / saveDailyNote 写入，VIEWER 角色只拿只读工具），系统提示词
+- [x] `/api/ai/chat`：streamText + stopWhen(stepCountIs(6)) 多步工具循环，toUIMessageStreamResponse 流式；鉴权 + 旅程归属校验
+- [x] `/api/ai/receipt`：generateObject + 视觉模型，收据/航班/酒店/租车/车票 → 结构化 JSON；sharp 预处理
+- [x] AI 抽屉 `AiChat`（useChat + DefaultChatTransport）：快捷问题、工具调用 chip、拍票据识别后自动转成一句话让模型记录、停止按钮、完成后 router.refresh
+- [x] 每日日记 AI 草稿 generateDailyDraft（默认 / 写给宝宝口吻），存 aiDraft，用户「采用」后才写入正文
+- [x] 旅程游记 generateTripSummary（300 字）；装备清单 generatePackingList（按目的地/月龄，写入 ChecklistItem）
+- [x] 出行清单页 `/trips/[id]/checklist`：模板 / AI 生成 / 勾选（useOptimistic）/ 增删 / 重置，进度条
+- [x] 验证：用本地 mock OpenAI 服务端到端测试 chat（tool_call → addExpense 写库 → 二次调用 → 文本）与 receipt（response_format → JSON）；build 通过
+- **状态：** complete
 
 ### 阶段 5：带娃专属与回顾分享
 - [ ] 宝宝状态轻量打卡：喂奶 / 换尿布 / 睡眠
