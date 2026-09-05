@@ -6,6 +6,8 @@ import { getSession } from "@/lib/session";
 import { aiConfigured, visionModel } from "@/lib/ai/model";
 import { CURRENCIES } from "@/lib/currency";
 import { ExpenseCategory, EntryType } from "@/generated/prisma/enums";
+import { rateLimit, tooManyRequests, LIMITS } from "@/lib/rate-limit";
+import { log } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -31,6 +33,9 @@ export async function POST(req: NextRequest) {
   if (!session?.userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (!aiConfigured()) return NextResponse.json({ error: "AI 未配置" }, { status: 503 });
 
+  const limited = rateLimit(`ai:receipt:${session.userId}`, LIMITS.aiReceipt.limit, LIMITS.aiReceipt.windowMs);
+  if (!limited.ok) return tooManyRequests(limited, "票据识别次数用得有点快");
+
   const form = await req.formData();
   const file = form.get("file");
   const homeCurrency = String(form.get("homeCurrency") ?? "CNY");
@@ -46,6 +51,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "图片无法读取，请换一张重试" }, { status: 400 });
   }
 
+  const done = log.timer("ai.receipt", { userId: session.userId, bytes: image.length });
   try {
     const { object } = await generateObject({
       model: visionModel(),
@@ -63,9 +69,10 @@ export async function POST(req: NextRequest) {
         },
       ],
     });
+    done({ kind: object.kind, hasAmount: object.amount != null });
     return NextResponse.json(object);
   } catch (e) {
-    console.error("[ai/receipt]", e);
+    log.error("ai.receipt failed", { userId: session.userId, err: e });
     return NextResponse.json({ error: "识别失败，请重试或手动填写" }, { status: 500 });
   }
 }

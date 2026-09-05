@@ -7,11 +7,19 @@ import { aiConfigured, chatModel } from "@/lib/ai/model";
 import { formatMoney } from "@/lib/currency";
 import { fmt, babyAge, dayIndex } from "@/lib/date";
 import { revalidatePath } from "next/cache";
+import { rateLimit, LIMITS } from "@/lib/rate-limit";
+import { log } from "@/lib/logger";
 
 /** 生成某一天的日记草稿（不直接覆盖已有日记，写入 aiDraft） */
 export async function generateDailyDraft(tripId: string, date: string, tone: "default" | "to_baby" = "default"): Promise<{ draft?: string; error?: string }> {
   await requireTripAccess(tripId, "EDITOR");
   if (!aiConfigured()) return { error: "AI 未配置" };
+  const gate_packing = rateLimit(`ai:packing:${tripId}`, LIMITS.aiGenerate.limit, LIMITS.aiGenerate.windowMs);
+  if (!gate_packing.ok) return { error: `生成太频繁，请 ${gate_packing.retryAfterS} 秒后再试` };
+  const gate_summary = rateLimit(`ai:summary:${tripId}`, LIMITS.aiGenerate.limit, LIMITS.aiGenerate.windowMs);
+  if (!gate_summary.ok) return { error: `生成太频繁，请 ${gate_summary.retryAfterS} 秒后再试` };
+  const gate_draft = rateLimit(`ai:draft:${tripId}`, LIMITS.aiGenerate.limit, LIMITS.aiGenerate.windowMs);
+  if (!gate_draft.ok) return { error: `生成太频繁，请 ${gate_draft.retryAfterS} 秒后再试` };
   const trip = await db.trip.findUniqueOrThrow({ where: { id: tripId } });
   const day = new Date(date);
   const next = new Date(day.getTime() + 86400000);
@@ -42,6 +50,7 @@ export async function generateDailyDraft(tripId: string, date: string, tone: "de
     prompt: facts,
   });
   const draft = text.trim();
+  log.info("ai.dailyDraft", { tripId, date, tone, chars: draft.length });
   await db.dailyNote.upsert({ where: { tripId_date: { tripId, date: day } }, update: { aiDraft: draft }, create: { tripId, date: day, content: "", aiDraft: draft } });
   revalidatePath(`/trips/${tripId}`);
   return { draft };
@@ -75,6 +84,7 @@ export async function generateTripSummary(tripId: string): Promise<{ text?: stri
     system: "你帮一家人把带娃旅行的记录整理成一篇 300 字左右的游记，中文，分 2–3 段，有具体地点与细节，结尾一句给宝宝的话。只用给出的事实。不用标题，不用 emoji。",
     prompt: facts,
   });
+  log.info("ai.tripSummary", { tripId, chars: text.trim().length });
   return { text: text.trim() };
 }
 
@@ -95,7 +105,11 @@ export async function generatePackingList(tripId: string): Promise<{ count?: num
   } catch {
     return { error: "清单解析失败，请重试" };
   }
-  if (items.length === 0) return { error: "没有生成内容" };
+  if (items.length === 0) {
+    log.warn("ai.packingList empty", { tripId });
+    return { error: "没有生成内容" };
+  }
+  log.info("ai.packingList", { tripId, items: items.length });
   const existing = await db.checklistItem.count({ where: { tripId } });
   await db.checklistItem.createMany({ data: items.slice(0, 40).map((it, i) => ({ tripId, group: it.group || "通用", text: it.text, order: existing + i })) });
   revalidatePath(`/trips/${tripId}/checklist`);

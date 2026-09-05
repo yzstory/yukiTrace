@@ -5,6 +5,14 @@ import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { createSession, deleteSession } from "@/lib/session";
+import { headers } from "next/headers";
+import { rateLimit, LIMITS } from "@/lib/rate-limit";
+import { log } from "@/lib/logger";
+
+async function clientKey() {
+  const h = await headers();
+  return h.get("x-forwarded-for")?.split(",")[0].trim() || h.get("x-real-ip") || "unknown";
+}
 
 export type AuthState = { error?: string } | undefined;
 
@@ -25,10 +33,17 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
   const parsed = loginSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
+  const gate = rateLimit(`login:${await clientKey()}:${parsed.data.email}`, LIMITS.login.limit, LIMITS.login.windowMs);
+  if (!gate.ok) return { error: `尝试次数过多，请 ${Math.ceil(gate.retryAfterS / 60)} 分钟后再试` };
+
   const user = await db.user.findUnique({ where: { email: parsed.data.email } });
   const ok = user && (await bcrypt.compare(parsed.data.password, user.passwordHash));
-  if (!ok) return { error: "邮箱或密码不正确" };
+  if (!ok) {
+    log.warn("login.failed", { email: parsed.data.email });
+    return { error: "邮箱或密码不正确" };
+  }
 
+  log.info("login.ok", { userId: user.id });
   await createSession(user.id);
   redirect(safeNext(formData.get("next")));
 }
@@ -37,6 +52,9 @@ export async function signup(_prev: AuthState, formData: FormData): Promise<Auth
   if (process.env.ALLOW_SIGNUP === "false") return { error: "当前未开放注册" };
   const parsed = signupSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const gate = rateLimit(`signup:${await clientKey()}`, LIMITS.login.limit, LIMITS.login.windowMs);
+  if (!gate.ok) return { error: `尝试次数过多，请 ${Math.ceil(gate.retryAfterS / 60)} 分钟后再试` };
 
   const exists = await db.user.findUnique({ where: { email: parsed.data.email } });
   if (exists) return { error: "该邮箱已注册" };

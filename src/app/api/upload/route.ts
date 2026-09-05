@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { makeKey, putObject } from "@/lib/storage";
 import { revalidatePath } from "next/cache";
+import { rateLimit, tooManyRequests, LIMITS } from "@/lib/rate-limit";
+import { log } from "@/lib/logger";
 import { wgs84ToGcj02 } from "@/lib/geo";
 
 export const runtime = "nodejs";
@@ -16,6 +18,9 @@ const MAX_EDGE = 2400;
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session?.userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const limited = rateLimit(`upload:${session.userId}`, LIMITS.upload.limit, LIMITS.upload.windowMs);
+  if (!limited.ok) return tooManyRequests(limited, "上传太频繁");
 
   const form = await req.formData();
   const tripId = String(form.get("tripId") ?? "");
@@ -117,6 +122,7 @@ export async function POST(req: NextRequest) {
 
   revalidatePath(`/trips/${tripId}`);
   revalidatePath("/trips");
+  log.info("upload.done", { userId: session.userId, tripId, ok: results.length, failed: failures.length });
   if (results.length === 0 && failures.length > 0) return NextResponse.json({ error: failures.join("；") }, { status: 415 });
   return NextResponse.json({ results, failures });
 }

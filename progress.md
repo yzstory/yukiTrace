@@ -217,6 +217,12 @@
 - 注意：`/invite` 需加入 proxy PUBLIC_PATHS，否则未登录会被重定向而看不到邀请内容
 - 新增文件：src/app/(app)/trips/[tripId]/member-actions.ts、members/page.tsx、src/app/invite/[token]/page.tsx、src/components/members/members-panel.tsx
 
+### 阶段 13：工程质量
+- **状态：** complete
+- 新增：vitest.config.mts、playwright.config.ts、e2e/smoke.spec.ts、src/lib/{logger,rate-limit}.ts、src/lib/__tests__/*、src/app/{error,global-error,not-found}.tsx、(app)/loading.tsx、(app)/trips/[tripId]/loading.tsx
+- 脚本：`pnpm test`（单测）、`pnpm test:e2e`（浏览器）
+- 关键发现：Playwright 的 iPhone 设备档使用 WebKit，正好是本项目的目标浏览器；dev server 必须用与 webServer 相同的 host（localhost）访问，否则 Next 16 拦截 /_next 资源导致不 hydrate
+
 ## 测试结果
 | 测试 | 输入 | 预期结果 | 实际结果 | 状态 |
 |------|------|---------|---------|------|
@@ -224,6 +230,11 @@
 | 全局账本 CNY 汇总 | 混合币种 | 按 amountCnyMinor 求和 | ¥7,246.66 | ✅ |
 | 邀请链接全流程 | 生成→未登录查看→登录→加入→用尽 | 各状态正确 | 全部符合预期，成员数 1→2，角色 EDITOR | ✅ |
 | 权限边界 | 非所有者访问成员页 | 无管理入口、有退出按钮 | 一致 | ✅ |
+| 单元测试 | pnpm test | 全绿 | 40 passed | ✅ |
+| 浏览器冒烟 | pnpm test:e2e（WebKit/iPhone 14） | 5 条主线通过 | 5 passed | ✅ |
+| 快速记录抽屉真机交互 | 浏览器点击 FAB → 地点/花费 | 抽屉打开并提交成功 | 通过 | ✅ |
+| 跨时区渲染（浏览器） | 服务器 TZ=UTC，旅程 Tokyo | 显示 14:10 | 通过 | ✅ |
+| 结构化日志 | 真实上传请求 | JSON 行含 userId/tripId | upload.done 输出正确 | ✅ |
 | SSH 连接 | ssh root@101.37.37.200 | 连接成功 | CONNECTED，Alibaba Cloud Linux 8 | ✅ |
 | 类型检查 | pnpm typecheck | 0 错误 | 0 错误 | ✅ |
 | Lint | pnpm lint | 0 错误 | 0 错误 | ✅ |
@@ -255,7 +266,7 @@
 | 高德真实地图渲染 / 回放动画 | 浏览器 + Key | 显示地图 | 未测（无 Key、无浏览器），降级 SVG 已验证 | ⏳ |
 | 高德 Web 服务 Key | 容器内直接请求 POI API | status=1 | status=1 / info=OK | ✅ |
 | 私有 OSS 文件权限 | owner / 其他用户 / 匿名 | 200 / 403 / 401 | 200 / 403 / 401，探针已删除 | ✅ |
-| 注册/登录 Server Action 端到端 | 浏览器 | 成功登录 | 未测（无浏览器，curl 无法直接调用 useActionState 表单） | ⏳ |
+| 注册/登录 Server Action 端到端 | Playwright WebKit | 成功注册并登录 | 通过 | ✅ |
 
 ## 错误日志
 | 时间戳 | 错误 | 尝试次数 | 解决方案 |

@@ -44,3 +44,7 @@ next-env.d.ts
 
 !.env.example
 /prisma/*.db
+
+# playwright
+/test-results/
+/playwright-report/

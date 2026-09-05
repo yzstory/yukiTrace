@@ -2,6 +2,8 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { log } from "@/lib/logger";
 import { db } from "@/lib/db";
 import { requireTripAccess } from "@/lib/dal";
 import { haversine, suggestMode } from "@/lib/geo";
@@ -97,8 +99,14 @@ export async function createStop(tripId: string, _prev: ActionState, formData: F
     },
   });
 
-  // 异步计算与上一站的距离（不阻塞返回）
-  void computeLegForStop(tripId, stop.id);
+  // 响应返回后再算路，失败要留下日志而不是静默吞掉
+  after(async () => {
+    try {
+      await computeLegForStop(tripId, stop.id);
+    } catch (err) {
+      log.error("leg.compute failed", { tripId, stopId: stop.id, err });
+    }
+  });
 
   revalidatePath(`/trips/${tripId}`);
   return { ok: true };
@@ -131,7 +139,13 @@ export async function updateStop(tripId: string, stopId: string, _prev: ActionSt
   const moved = before && (before.lat !== d.lat || before.lng !== d.lng || before.arriveAt.getTime() !== arriveAt.getTime());
   if (moved) {
     await db.stopLeg.deleteMany({ where: { OR: [{ fromStopId: stopId }, { toStopId: stopId }] } });
-    void recomputeAllLegs(tripId);
+    after(async () => {
+      try {
+        await recomputeAllLegs(tripId);
+      } catch (err) {
+        log.error("leg.recompute failed", { tripId, err });
+      }
+    });
   }
   revalidatePath(`/trips/${tripId}`);
   return { ok: true };
@@ -140,7 +154,13 @@ export async function updateStop(tripId: string, stopId: string, _prev: ActionSt
 export async function deleteStop(tripId: string, stopId: string) {
   await requireTripAccess(tripId, "EDITOR");
   await db.stop.delete({ where: { id: stopId, tripId } });
-  void recomputeAllLegs(tripId);
+  after(async () => {
+    try {
+      await recomputeAllLegs(tripId);
+    } catch (err) {
+      log.error("leg.recompute failed", { tripId, err });
+    }
+  });
   revalidatePath(`/trips/${tripId}`);
 }
 

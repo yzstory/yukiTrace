@@ -49,6 +49,9 @@ export function TripHero({ trip }: { trip: TripHeroData }) {
           <Link href={`/trips/${trip.id}/summary`} className="pressable glass rounded-full p-2 text-foreground" aria-label="旅程总结">
             <Sparkle className="size-4" />
           </Link>
+          <Link href={`/trips/${trip.id}/members`} className="pressable glass rounded-full p-2 text-foreground" aria-label="成员">
+            <Users className="size-4" />
+          </Link>
           {trip.canEdit && (
             <>
             <button type="button" onClick={() => setCoverOpen(true)} className="pressable glass rounded-full p-2 text-foreground" aria-label="更换封面">

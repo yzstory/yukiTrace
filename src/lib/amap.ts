@@ -1,5 +1,6 @@
 import "server-only";
 import type { LatLng } from "@/lib/geo";
+import { log } from "@/lib/logger";
 
 const KEY = () => process.env.AMAP_WEB_SERVICE_KEY;
 const BASE = "https://restapi.amap.com";
@@ -18,12 +19,12 @@ async function get<T>(path: string, params: Record<string, string>): Promise<T |
     if (!res.ok) return null;
     const json = (await res.json()) as T & { status?: string; info?: string };
     if (json.status !== "1") {
-      console.warn("[amap]", path, json.info);
+      log.warn("amap request rejected", { path, info: json.info });
       return null;
     }
     return json;
   } catch (e) {
-    console.warn("[amap] fetch failed", e);
+    log.warn("amap fetch failed", { path, err: e });
     return null;
   }
 }

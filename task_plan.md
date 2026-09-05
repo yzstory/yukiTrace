@@ -149,10 +149,14 @@
 - **状态：** complete
 
 ### 阶段 13：工程质量
-- [ ] error.tsx / not-found.tsx / loading.tsx
-- [ ] Vitest 覆盖 currency / geo / date；Playwright 冒烟
-- [ ] 结构化日志、AI 与上传限流、异步任务改 after()
-- **状态：** pending
+- [x] error.tsx / global-error.tsx / not-found.tsx / loading.tsx（列表页与旅程详情骨架屏）
+- [x] Vitest：currency / geo / date / rate-limit / logger 共 40 个用例
+- [x] Playwright（WebKit + iPhone 14 profile）5 条冒烟：注册建旅程、站点+日元花费+账本折算、地图与总结、成员与邀请、退出后重定向
+- [x] 结构化 JSON 日志 `src/lib/logger.ts`（敏感字段脱敏、Error 展开、timer 计时）
+- [x] 限流 `src/lib/rate-limit.ts`：AI 对话/票据/生成、上传、登录注册
+- [x] 异步算路改用 `after()` 并记录失败日志，不再 `void` 吞错
+- [x] 浏览器测试发现并修复两个真实缺陷：TripHero 的成员入口从未渲染（补丁锚点失配）；dev 环境从 127.0.0.1 访问被 Next 拦截 `/_next` 导致页面不 hydrate（补 `allowedDevOrigins`）
+- **状态：** complete
 
 ### 阶段 14：离线记录队列
 - [ ] IndexedDB 写队列 + 联网重放 + 待同步标记
