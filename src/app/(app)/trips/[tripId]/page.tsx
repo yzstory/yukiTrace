@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { BackButton } from "@/components/layout/back-button";
 import { TripHero } from "@/components/trips/trip-hero";
+import { TripTabs } from "@/components/trips/trip-tabs";
 import { Timeline } from "@/components/timeline/timeline";
 import { QuickAdd } from "@/components/quick-add/quick-add";
 import { requireTripAccess } from "@/lib/dal";
@@ -164,6 +165,7 @@ export default async function TripPage(props: PageProps<"/trips/[tripId]">) {
           canEdit,
         }}
       />
+      <TripTabs tripId={trip.id} />
       <Timeline days={days} trip={ttrip} />
       {canEdit && (
         <QuickAdd

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { ENTRY_TYPES } from "@/lib/entry-types";
 import { fmt } from "@/lib/date";
 import { cn } from "@/lib/utils";
@@ -7,12 +8,15 @@ import { deleteEntry } from "@/app/(app)/trips/[tripId]/actions";
 import { ExpenseChip } from "./expense-chip";
 import { PhotoStrip } from "./photo-strip";
 import { ItemMenu } from "./item-menu";
+import { EditDrawer } from "./edit-drawer";
+import { EntryForm, type StopOption } from "@/components/quick-add/entry-form";
 import type { TEntry } from "./types";
 
-export function EntryRow({ entry, tripId, homeCurrency, canEdit, nested }: { entry: TEntry; tripId: string; homeCurrency: string; canEdit: boolean; nested?: boolean }) {
+export function EntryRow({ entry, tripId, homeCurrency, canEdit, nested, stops = [], stopId }: { entry: TEntry; tripId: string; homeCurrency: string; canEdit: boolean; nested?: boolean; stops?: StopOption[]; stopId?: string | null }) {
   const cfg = ENTRY_TYPES[entry.type];
   const Icon = cfg.icon;
   const metaLine = summarizeMeta(entry);
+  const [editing, setEditing] = useState(false);
   return (
     <div className={cn("flex gap-3", nested ? "py-2.5" : "rounded-2xl bg-card p-4 card-shadow")}>
       <span className={cn("mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl", cfg.bg, cfg.color)}>
@@ -28,7 +32,7 @@ export function EntryRow({ entry, tripId, homeCurrency, canEdit, nested }: { ent
               {metaLine ? ` · ${metaLine}` : ""}
             </p>
           </div>
-          {canEdit && <ItemMenu label="条目" onDelete={() => deleteEntry(tripId, entry.id)} />}
+          {canEdit && <ItemMenu label="条目" onDelete={() => deleteEntry(tripId, entry.id)} onEdit={() => setEditing(true)} />}
         </div>
         {entry.note && <p className="mt-1.5 whitespace-pre-wrap text-subhead text-foreground/85">{entry.note}</p>}
         {entry.expenses.length > 0 && (
@@ -40,6 +44,11 @@ export function EntryRow({ entry, tripId, homeCurrency, canEdit, nested }: { ent
         )}
         <PhotoStrip photos={entry.photos} />
       </div>
+      {canEdit && (
+        <EditDrawer open={editing} onOpenChange={setEditing} title={`编辑${cfg.label}`}>
+          <EntryForm tripId={tripId} type={entry.type} stops={stops} homeCurrency={homeCurrency} defaultTime={entry.startAt} initial={{ ...entry, stopId }} onDone={() => setEditing(false)} />
+        </EditDrawer>
+      )}
     </div>
   );
 }

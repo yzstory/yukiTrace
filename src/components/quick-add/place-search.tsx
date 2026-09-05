@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { MapPin, LocateFixed, Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { wgs84ToGcj02 } from "@/lib/geo";
 
 export type PlacePick = { name: string; lat: number; lng: number; address?: string; city?: string; amapPoiId?: string };
 type Poi = { id: string; name: string; address: string; city: string; lat: number; lng: number };
@@ -52,7 +53,8 @@ export function PlaceSearch({ onPick, initial }: { onPick: (p: PlacePick) => voi
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setLoading(false);
-        pick({ name: q || "当前位置", lat: +pos.coords.latitude.toFixed(6), lng: +pos.coords.longitude.toFixed(6) });
+        const g = wgs84ToGcj02({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        pick({ name: q || "当前位置", lat: g.lat, lng: g.lng });
         setManual(true);
       },
       () => setLoading(false),

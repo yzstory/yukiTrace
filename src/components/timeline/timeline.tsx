@@ -24,6 +24,7 @@ export function Timeline({ days, trip }: { days: TDay[]; trip: TTrip }) {
   }
 
   let stopCounter = 0;
+  const stopOptions = days.flatMap((d) => d.stops.map((s) => ({ id: s.id, name: s.name, arriveAt: s.arriveAt })));
   return (
     <div className="flex flex-col gap-8">
       {days.map((day) => {
@@ -53,13 +54,13 @@ export function Timeline({ days, trip }: { days: TDay[]; trip: TTrip }) {
                   <div key={stop.id}>
                     {stop.legFromPrev && <LegDivider leg={stop.legFromPrev} />}
                     {!stop.legFromPrev && i > 0 && <div className="h-3" />}
-                    <StopCard stop={stop} trip={trip} index={stopCounter++} />
+                    <StopCard stop={stop} trip={trip} index={stopCounter++} stopOptions={stopOptions} />
                   </div>
                 ))}
                 {day.looseEntries.length > 0 && (
                   <div className={day.stops.length ? "mt-3 flex flex-col gap-3" : "flex flex-col gap-3"}>
                     {day.looseEntries.map((e) => (
-                      <EntryRow key={e.id} entry={e} tripId={trip.id} homeCurrency={trip.homeCurrency} canEdit={trip.canEdit} />
+                      <EntryRow key={e.id} entry={e} tripId={trip.id} homeCurrency={trip.homeCurrency} canEdit={trip.canEdit} stops={stopOptions} />
                     ))}
                   </div>
                 )}

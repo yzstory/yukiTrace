@@ -9,6 +9,7 @@ import { drivingRoute, walkingRoute, reverseGeocode, amapConfigured } from "@/li
 import { CURRENCIES, toMinor, convertMinor, FALLBACK_RATES_TO_CNY } from "@/lib/currency";
 import { deleteObject } from "@/lib/storage";
 import { EntryType, ExpenseCategory, StopType } from "@/generated/prisma/enums";
+import { Prisma } from "@/generated/prisma/client";
 import type { ActionState } from "@/app/(app)/trips/actions";
 
 export type { ActionState };
@@ -206,6 +207,35 @@ export async function createEntry(tripId: string, _prev: ActionState, formData: 
     await db.expense.create({ data: r.data });
   }
 
+  revalidatePath(`/trips/${tripId}`);
+  return { ok: true };
+}
+
+export async function updateEntry(tripId: string, entryId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireTripAccess(tripId, "EDITOR");
+  const parsed = entrySchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const d = parsed.data;
+  let meta: Record<string, unknown> | null = null;
+  if (d.meta) {
+    try {
+      meta = JSON.parse(d.meta);
+    } catch {
+      return { error: "附加信息格式错误" };
+    }
+  }
+  await db.entry.update({
+    where: { id: entryId, tripId },
+    data: {
+      stopId: d.stopId || null,
+      type: d.type,
+      title: d.title,
+      note: d.note || null,
+      startAt: new Date(d.startAt),
+      endAt: d.endAt ? new Date(d.endAt) : null,
+      meta: meta ? (meta as import("@/generated/prisma/internal/prismaNamespace").InputJsonValue) : Prisma.DbNull,
+    },
+  });
   revalidatePath(`/trips/${tripId}`);
   return { ok: true };
 }

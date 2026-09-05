@@ -53,6 +53,22 @@
   - src/components/layout/back-button.tsx
 
 ### 阶段 3：地图与账本视图
+- **状态：** complete
+- 执行的操作：
+  - 调用 dataviz skill，按其流程选型：分类用条形列表（直接标注 + 图标第二编码），按天用单序列柱状图；用 validate_palette.js 验证 iOS 7 色作分类色**不通过**（CVD ΔE 5.9、青色亮度越界、灰色饱和度不足），因此避免堆叠/多序列图，颜色只做装饰性身份
+  - 地图：AMapView（loader + 标记 + 折线 + moveAlong 回放 + 降级 SVG）、TripMap、FootprintMap、两个页面
+  - 账本：LedgerView 客户端组件（筛选/汇总/图表/明细），两个页面
+  - 照片：PhotoGrid + 页面（删除 / 设为封面）
+  - 编辑：updateEntry action；StopForm / EntryForm 支持 initial；EditDrawer
+  - geo.ts 新增 wgs84ToGcj02 与 DAY_COLORS
+- 创建/修改的文件：
+  - src/components/map/{types,amap-view,route-sketch,trip-map,footprint-map}.tsx
+  - src/components/ledger/ledger-view.tsx, src/components/photos/photo-grid.tsx
+  - src/components/trips/trip-tabs.tsx, src/components/timeline/edit-drawer.tsx
+  - src/app/(app)/trips/[tripId]/{map,ledger,photos}/page.tsx, src/app/(app)/{map,ledger}/page.tsx
+  - src/lib/geo.ts, src/app/globals.css（.yt-marker / .yt-mover）
+
+### 阶段 4：AI 助手
 - **状态：** pending
 
 ## 测试结果
@@ -72,6 +88,8 @@
 | 缩略图读取 | /api/files/…?w=300 | 200 image/webp 300px | 200 image/webp 300x225 | ✅ |
 | 文件路由鉴权 | 无 cookie | 401 | 401 | ✅ |
 | 高德搜索未配置降级 | /api/amap/search?q=札幌 | configured:false | {"results":[],"configured":false} | ✅ |
+| 阶段 3 六个页面 | curl + 会话 | 全部 200 且含关键文案 | map/ledger/photos/全局 map/全局 ledger/时间线 全 200，文案齐全 | ✅ |
+| 高德真实地图渲染 / 回放动画 | 浏览器 + Key | 显示地图 | 未测（无 Key、无浏览器），降级 SVG 已验证 | ⏳ |
 | 注册/登录 Server Action 端到端 | 浏览器 | 成功登录 | 未测（无浏览器，curl 无法直接调用 useActionState 表单） | ⏳ |
 
 ## 错误日志
@@ -82,7 +100,7 @@
 ## 五问重启检查
 | 问题 | 答案 |
 |------|------|
-| 我在哪里？ | 阶段 2 完成，开始阶段 3 |
+| 我在哪里？ | 阶段 3 完成，开始阶段 4 |
 | 我要去哪里？ | 阶段 1 搭骨架 → 阶段 2 核心记录 → 阶段 3 地图账本 → 阶段 4 AI → 阶段 5 带娃/回顾 → 阶段 6 部署 |
 | 目标是什么？ | 苹果风带娃旅行记录 + 账本 Web 应用，含高德地图与 AI 助手，部署到阿里云 |
 | 我学到了什么？ | 见 findings.md |

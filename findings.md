@@ -29,6 +29,9 @@
 - shadcn CLI 新版：`init -d -b radix --pointer`，无 `--base-color` 参数；默认 style 为 `radix-nova`，baseColor neutral，CSS 变量用 oklch
 - framer-motion 已更名为 `motion` 包（`import { motion } from "motion/react"`）
 - 认证决定：不用 Auth.js（与 Next 16 兼容风险），按 Next.js 官方 authentication 指南自建：bcryptjs 哈希 + jose 签发 HttpOnly 会话 cookie + DAL 层 `verifySession()`；`proxy.ts` 只做乐观重定向
+- 高德 JS API 使用 GCJ-02 坐标；浏览器 Geolocation 与照片 EXIF 为 WGS-84，在中国大陆范围内需转换（已实现 wgs84ToGcj02），国外无偏移
+- `@amap/amap-jsapi-types` 为全局 `declare namespace AMap`，需 triple-slash reference；MoveAnimation 的 `moving`/`movealong` 事件不在其 EventType 里
+- dataviz 验证：iOS 系统色（blue/purple/orange/green/pink/teal/gray）作分类调色板不通过 CVD 检查，图表避免多序列；如未来需要堆叠图需换经验证的调色板
 
 ## 技术决策
 | 决策 | 理由 |

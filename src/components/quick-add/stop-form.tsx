@@ -9,36 +9,39 @@ import { Label } from "@/components/ui/label";
 import { STOP_TYPES, BABY_TAGS } from "@/lib/entry-types";
 import { fmt } from "@/lib/date";
 import { StopType } from "@/generated/prisma/enums";
-import { createStop, type ActionState } from "@/app/(app)/trips/[tripId]/actions";
+import { createStop, updateStop, type ActionState } from "@/app/(app)/trips/[tripId]/actions";
+import type { TStop } from "@/components/timeline/types";
 import { PlaceSearch, type PlacePick } from "./place-search";
 import { Field, SelectField, ErrorText } from "./form-bits";
 import { cn } from "@/lib/utils";
 
-export function StopForm({ tripId, defaultTime, onDone }: { tripId: string; defaultTime: Date; onDone: () => void }) {
-  const [state, action, pending] = useActionState<ActionState, FormData>(createStop.bind(null, tripId), undefined);
-  const [place, setPlace] = useState<PlacePick | null>(null);
-  const [tags, setTags] = useState<string[]>([]);
+export function StopForm({ tripId, defaultTime, onDone, initial }: { tripId: string; defaultTime: Date; onDone: () => void; initial?: TStop }) {
+  const bound = initial ? updateStop.bind(null, tripId, initial.id) : createStop.bind(null, tripId);
+  const [state, action, pending] = useActionState<ActionState, FormData>(bound, undefined);
+  const initialPlace: PlacePick | null = initial ? { name: initial.name, lat: initial.lat, lng: initial.lng, address: initial.address ?? undefined, city: initial.city ?? undefined } : null;
+  const [place, setPlace] = useState<PlacePick | null>(initialPlace);
+  const [tags, setTags] = useState<string[]>(initial?.babyTags ?? []);
 
   useEffect(() => {
     if (state?.ok) {
-      toast.success("已添加站点");
+      toast.success(initial ? "已更新站点" : "已添加站点");
       onDone();
     }
-  }, [state, onDone]);
+  }, [state, onDone, initial]);
 
   return (
     <form action={action} className="flex flex-col gap-4">
-      <PlaceSearch onPick={setPlace} />
+      <PlaceSearch onPick={setPlace} initial={initialPlace} />
       <div className="grid grid-cols-2 gap-3">
         <SelectField
           label="类型"
           name="type"
-          defaultValue="OTHER"
+          defaultValue={initial?.type ?? "OTHER"}
           options={Object.values(StopType).map((t) => ({ value: t, label: STOP_TYPES[t].label }))}
         />
-        <Field label="到达时间" name="arriveAt" type="datetime-local" required defaultValue={fmt.inputDateTime(defaultTime)} />
+        <Field label="到达时间" name="arriveAt" type="datetime-local" required defaultValue={fmt.inputDateTime(initial?.arriveAt ?? defaultTime)} />
       </div>
-      <Field label="离开时间（可选）" name="leaveAt" type="datetime-local" />
+      <Field label="离开时间（可选）" name="leaveAt" type="datetime-local" defaultValue={initial?.leaveAt ? fmt.inputDateTime(initial.leaveAt) : ""} />
       <div className="flex flex-col gap-1.5">
         <Label className="text-footnote font-medium text-muted-foreground">婴儿友好</Label>
         <div className="flex flex-wrap gap-1.5">
@@ -62,11 +65,11 @@ export function StopForm({ tripId, defaultTime, onDone }: { tripId: string; defa
         <Label htmlFor="stop-note" className="text-footnote font-medium text-muted-foreground">
           备注
         </Label>
-        <Textarea id="stop-note" name="note" rows={2} className="rounded-xl bg-fill-secondary text-body" placeholder="这里怎么样？" />
+        <Textarea id="stop-note" name="note" rows={2} className="rounded-xl bg-fill-secondary text-body" placeholder="这里怎么样？" defaultValue={initial?.note ?? ""} />
       </div>
       <ErrorText>{state?.error}</ErrorText>
       <Button type="submit" disabled={pending || !place} className="h-12 rounded-xl text-body font-semibold">
-        {pending ? <Loader2 className="size-5 animate-spin" /> : "添加站点"}
+        {pending ? <Loader2 className="size-5 animate-spin" /> : initial ? "保存" : "添加站点"}
       </Button>
     </form>
   );

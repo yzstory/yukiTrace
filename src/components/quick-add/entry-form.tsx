@@ -11,7 +11,8 @@ import { ENTRY_TYPES } from "@/lib/entry-types";
 import { CURRENCIES } from "@/lib/currency";
 import { fmt } from "@/lib/date";
 import type { EntryType } from "@/generated/prisma/enums";
-import { createEntry, type ActionState } from "@/app/(app)/trips/[tripId]/actions";
+import { createEntry, updateEntry, type ActionState } from "@/app/(app)/trips/[tripId]/actions";
+import type { TEntry } from "@/components/timeline/types";
 import { Field, SelectField, ErrorText } from "./form-bits";
 
 export type StopOption = { id: string; name: string; arriveAt: Date };
@@ -24,6 +25,7 @@ export function EntryForm({
   defaultTime,
   defaultStopId,
   onDone,
+  initial,
 }: {
   tripId: string;
   type: EntryType;
@@ -32,19 +34,23 @@ export function EntryForm({
   defaultTime: Date;
   defaultStopId?: string;
   onDone: () => void;
+  initial?: TEntry & { stopId?: string | null };
 }) {
   const cfg = ENTRY_TYPES[type];
-  const [state, action, pending] = useActionState<ActionState, FormData>(createEntry.bind(null, tripId), undefined);
-  const [meta, setMeta] = useState<Record<string, string>>({});
-  const [withExpense, setWithExpense] = useState(type !== "MOMENT");
+  const bound = initial ? updateEntry.bind(null, tripId, initial.id) : createEntry.bind(null, tripId);
+  const [state, action, pending] = useActionState<ActionState, FormData>(bound, undefined);
+  const [meta, setMeta] = useState<Record<string, string>>(() =>
+    Object.fromEntries(Object.entries(initial?.meta ?? {}).map(([k, v]) => [k, v == null ? "" : String(v)]))
+  );
+  const [withExpense, setWithExpense] = useState(!initial && type !== "MOMENT");
   const [isBaby, setIsBaby] = useState(false);
 
   useEffect(() => {
     if (state?.ok) {
-      toast.success(`已记录${cfg.label}`);
+      toast.success(initial ? "已更新" : `已记录${cfg.label}`);
       onDone();
     }
-  }, [state, onDone, cfg.label]);
+  }, [state, onDone, cfg.label, initial]);
 
   const metaJson = useMemo(() => JSON.stringify(Object.fromEntries(Object.entries(meta).filter(([, v]) => v !== ""))), [meta]);
 
@@ -54,18 +60,18 @@ export function EntryForm({
       <input type="hidden" name="meta" value={metaJson} />
       <input type="hidden" name="category" value={cfg.defaultCategory} />
 
-      <Field label="标题" name="title" required placeholder={placeholderFor(type)} autoFocus />
+      <Field label="标题" name="title" required placeholder={placeholderFor(type)} autoFocus defaultValue={initial?.title ?? ""} />
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label={type === "HOTEL" ? "入住" : "时间"} name="startAt" type="datetime-local" required defaultValue={fmt.inputDateTime(defaultTime)} />
-        <Field label={type === "HOTEL" ? "退房" : "结束（可选）"} name="endAt" type="datetime-local" />
+        <Field label={type === "HOTEL" ? "入住" : "时间"} name="startAt" type="datetime-local" required defaultValue={fmt.inputDateTime(initial?.startAt ?? defaultTime)} />
+        <Field label={type === "HOTEL" ? "退房" : "结束（可选）"} name="endAt" type="datetime-local" defaultValue={initial?.endAt ? fmt.inputDateTime(initial.endAt) : ""} />
       </div>
 
       {stops.length > 0 && (
         <SelectField
           label="关联站点"
           name="stopId"
-          defaultValue={defaultStopId ?? ""}
+          defaultValue={initial?.stopId ?? defaultStopId ?? ""}
           options={[{ value: "", label: "不关联" }, ...stops.map((s) => ({ value: s.id, label: `${s.name} · ${fmt.dateTime(s.arriveAt)}` }))]}
         />
       )}
@@ -91,10 +97,10 @@ export function EntryForm({
         <Label htmlFor="entry-note" className="text-footnote font-medium text-muted-foreground">
           备注
         </Label>
-        <Textarea id="entry-note" name="note" rows={2} className="rounded-xl bg-fill-secondary text-body" placeholder="想说点什么…" />
+        <Textarea id="entry-note" name="note" rows={2} className="rounded-xl bg-fill-secondary text-body" placeholder="想说点什么…" defaultValue={initial?.note ?? ""} />
       </div>
 
-      <div className="rounded-xl bg-fill-secondary p-3">
+      {!initial && <div className="rounded-xl bg-fill-secondary p-3">
         <div className="flex items-center justify-between">
           <Label className="text-callout">同时记一笔花费</Label>
           <Switch checked={withExpense} onCheckedChange={setWithExpense} />
@@ -117,11 +123,11 @@ export function EntryForm({
             </div>
           </div>
         )}
-      </div>
+      </div>}
 
       <ErrorText>{state?.error}</ErrorText>
       <Button type="submit" disabled={pending} className="h-12 rounded-xl text-body font-semibold">
-        {pending ? <Loader2 className="size-5 animate-spin" /> : `记录${cfg.label}`}
+        {pending ? <Loader2 className="size-5 animate-spin" /> : initial ? "保存" : `记录${cfg.label}`}
       </Button>
     </form>
   );

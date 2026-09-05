@@ -273,3 +273,31 @@
   font-size: 0.75rem;
   line-height: 1.3;
 }
+
+/* ───────────── 地图标记 ───────────── */
+.yt-marker span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  border: 3px solid white;
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+  transition: transform 0.25s var(--ease-spring);
+}
+.yt-marker.is-selected span {
+  transform: scale(1.25);
+}
+.yt-mover {
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: var(--ios-red);
+  border: 3px solid white;
+  box-shadow: 0 0 0 6px rgb(255 59 48 / 0.25), 0 2px 8px rgb(0 0 0 / 0.3);
+}
+.amap-logo, .amap-copyright { opacity: 0.4 !important; }

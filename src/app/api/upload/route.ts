@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { makeKey, putObject } from "@/lib/storage";
 import { revalidatePath } from "next/cache";
+import { wgs84ToGcj02 } from "@/lib/geo";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -44,8 +45,9 @@ export async function POST(req: NextRequest) {
       const dt = exif?.DateTimeOriginal ?? exif?.CreateDate;
       if (dt instanceof Date && !isNaN(dt.getTime())) takenAt = dt;
       if (typeof exif?.latitude === "number" && typeof exif?.longitude === "number") {
-        lat = exif.latitude;
-        lng = exif.longitude;
+        const g = wgs84ToGcj02({ lat: exif.latitude, lng: exif.longitude });
+        lat = g.lat;
+        lng = g.lng;
       }
     } catch {
       /* ignore */

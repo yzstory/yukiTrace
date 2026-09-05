@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "motion/react";
 import { MapPin, Baby, CloudSun } from "lucide-react";
 import { STOP_TYPES, BABY_TAGS } from "@/lib/entry-types";
@@ -9,11 +10,14 @@ import { EntryRow } from "./entry-row";
 import { ExpenseChip } from "./expense-chip";
 import { PhotoStrip } from "./photo-strip";
 import { ItemMenu } from "./item-menu";
+import { EditDrawer } from "./edit-drawer";
+import { StopForm } from "@/components/quick-add/stop-form";
 import type { TStop, TTrip } from "./types";
 
-export function StopCard({ stop, trip, index }: { stop: TStop; trip: TTrip; index: number }) {
+export function StopCard({ stop, trip, index, stopOptions = [] }: { stop: TStop; trip: TTrip; index: number; stopOptions?: Array<{ id: string; name: string; arriveAt: Date }> }) {
   const cfg = STOP_TYPES[stop.type];
   const Icon = cfg.icon;
+  const [editing, setEditing] = useState(false);
   return (
     <motion.article
       initial={{ opacity: 0, y: 12 }}
@@ -40,7 +44,7 @@ export function StopCard({ stop, trip, index }: { stop: TStop; trip: TTrip; inde
                 ) : null}
               </p>
             </div>
-            {trip.canEdit && <ItemMenu label="站点" onDelete={() => deleteStop(trip.id, stop.id)} />}
+            {trip.canEdit && <ItemMenu label="站点" onDelete={() => deleteStop(trip.id, stop.id)} onEdit={() => setEditing(true)} />}
           </div>
           {stop.address && (
             <p className="mt-1 flex items-start gap-1 text-caption text-label-tertiary">
@@ -76,9 +80,14 @@ export function StopCard({ stop, trip, index }: { stop: TStop; trip: TTrip; inde
       {stop.entries.length > 0 && (
         <div className="mt-3 divide-y divide-border/60 border-t border-border/60">
           {stop.entries.map((e) => (
-            <EntryRow key={e.id} entry={e} tripId={trip.id} homeCurrency={trip.homeCurrency} canEdit={trip.canEdit} nested />
+            <EntryRow key={e.id} entry={e} tripId={trip.id} homeCurrency={trip.homeCurrency} canEdit={trip.canEdit} nested stops={stopOptions} stopId={stop.id} />
           ))}
         </div>
+      )}
+      {trip.canEdit && (
+        <EditDrawer open={editing} onOpenChange={setEditing} title="编辑站点">
+          <StopForm tripId={trip.id} defaultTime={stop.arriveAt} initial={stop} onDone={() => setEditing(false)} />
+        </EditDrawer>
       )}
     </motion.article>
   );

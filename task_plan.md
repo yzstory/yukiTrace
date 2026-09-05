@@ -4,7 +4,7 @@
 用 Next.js 做一个苹果风格的「带娃旅行日记 + 账本」网页应用，能记录行程（航班/租车/住宿/餐饮/游玩）、花费（多币种）、照片与备注，在高德地图上展示路线与站间距离，并内嵌 AI 助手（OpenAI 兼容接口）降低记录成本；第一版部署到阿里云 ECS（Docker Compose），后续可开放注册并演进为 App。
 
 ## 当前阶段
-阶段 2 完成，进入阶段 3（地图与账本视图）
+阶段 3 完成，进入阶段 4（AI 助手）
 
 ## 各阶段
 
@@ -41,12 +41,19 @@
 - **状态：** complete
 
 ### 阶段 3：地图与账本视图
-- [ ] 高德 JS API 2.0 集成（@amap/amap-jsapi-loader），自定义地图样式贴近苹果风
-- [ ] 全屏地图：所有站点连线，按天着色；点击站点弹底部半屏抽屉（照片 + 条目）
-- [ ] 路线「回放」动画：小点沿路线移动，配当天照片渐显
-- [ ] 账本视图：总额、分类饼图、按天柱状图、多币种折算、按「宝宝相关」筛选
-- [ ] 站点/条目详情页、编辑、删除
-- **状态：** pending
+- [x] 高德 JS API 2.0 集成（@amap/amap-jsapi-loader 动态 import，安全密钥，whitesmoke 样式，自定义 HTML 数字标记）
+- [x] 无 Key 降级：RouteSketch SVG 路线示意图（等距投影），页面结构不变
+- [x] 旅程地图页 `/trips/[id]/map`：全屏地图、按天着色路线、Day 筛选 chip、底部横向站点卡片、点击弹非模态抽屉（地址/条目/照片/跳时间线）
+- [x] 路线「回放」：AMap.MoveAnimation moveAlong，红点沿路线移动并跟随视角，结束回到全览
+- [x] 全局足迹页 `/map`：所有旅程站点按旅程着色，KPI（旅程/城市/直线里程），点击跳到对应旅程地图
+- [x] 旅程账本页 `/trips/[id]/ledger`：英雄总额、外币明细、KPI（日均/宝宝相关占比/笔数）、单行筛选 chip、分类条形列表（图标+文字第二编码）、按天单序列柱状图（recharts，hover tooltip）、按天分组明细可删
+- [x] 全局账本页 `/ledger`：本年花费英雄数字、累计/宝宝/旅程数、累计按分类、按旅程列表
+- [x] 照片页 `/trips/[id]/photos`：按天网格、全屏灯箱（上一张/下一张/删除/设为封面）
+- [x] 旅程四 Tab 分段导航（时间线/地图/账本/照片，motion layoutId 滑动指示）
+- [x] 站点/条目编辑：ItemMenu「编辑」打开抽屉，复用 StopForm/EntryForm（initial 模式），新增 updateEntry action
+- [x] WGS-84 → GCJ-02 转换：浏览器定位与照片 EXIF GPS 在中国大陆范围内转高德坐标
+- [x] 验证：typecheck / lint / build 通过；curl 验证 6 个页面渲染
+- **状态：** complete
 
 ### 阶段 4：AI 助手（OpenAI 兼容）
 - [ ] 接入 Vercel AI SDK（`ai` + `@ai-sdk/openai-compatible`），baseURL / apiKey / model 全部由环境变量配置
@@ -108,6 +115,8 @@
 | `pnpm add prisma` 装到 8.0.0-rc 与 client 7 不匹配 | 1 | 固定 `prisma@7`，移到 devDependencies |
 | Docker daemon 未运行 | 1 | `open -a OrbStack` 后重试 |
 | `PageProps<"/login">` 类型报错 | 1 | 运行 `pnpm next typegen` 重新生成路由类型 |
+| zsh 中用 `path` 做循环变量覆盖了 $PATH，后续命令全部找不到 | 1 | 改用其他变量名 |
+| @amap/amap-jsapi-types 是全局声明，未被 tsc 拾取 | 1 | 文件头加 `/// <reference types>`；去掉自定义 Window.AMap 声明 |
 | React Compiler lint：effect 内 setState / map 回调里修改闭包变量 | 1 | 搜索改由 onChange 触发；里程改为 reduce 计算 |
 | Prisma Json 字段类型不接受 Record<string, unknown> | 1 | 断言为 InputJsonValue |
 | 用 curl 直接 POST Server Action 测注册返回 500 | 1 | useActionState 表单不渲染 ACTION_ID，改为 tsx 脚本种子用户 + jose 签发会话验证受保护页面 |
