@@ -40,6 +40,7 @@ export default async function TripPage(props: PageProps<"/trips/[tripId]">) {
       expenses: { where: { stopId: null, entryId: null }, orderBy: { paidAt: "asc" } },
       photos: { where: { stopId: null, entryId: null }, orderBy: { takenAt: "asc" } },
       dailyNotes: true,
+      members: { select: { userId: true } },
       babyLogs: { orderBy: { at: "asc" } },
     },
   });
@@ -151,6 +152,7 @@ export default async function TripPage(props: PageProps<"/trips/[tripId]">) {
     canEdit,
     aiConfigured: aiConfigured(),
     timezone: trip.timezone,
+    multiMember: trip.members.length > 1,
   };
 
   return (

@@ -10,6 +10,8 @@ import { logout } from "@/app/(auth)/actions";
 import { db } from "@/lib/db";
 import { imageUrl } from "@/lib/storage";
 import { fmt, babyAge } from "@/lib/date";
+import { reviewableYears } from "@/lib/ai/year-review";
+import { Sparkle } from "lucide-react";
 
 export const metadata = { title: "我" };
 
@@ -34,6 +36,7 @@ export default async function MePage() {
     }
   }
   const pairs = Array.from(byCity.entries()).filter(([, l]) => l.length >= 2 && l.some((x) => x.photoKey));
+  const years = await reviewableYears(user.id);
 
   return (
     <>
@@ -47,6 +50,22 @@ export default async function MePage() {
           </div>
         </div>
       </div>
+
+      {years.length > 0 && (
+        <>
+          <h2 className="mb-2 mt-6 flex items-center gap-1.5 px-1 text-footnote font-semibold uppercase tracking-wide text-muted-foreground">
+            <Sparkle className="size-3.5 text-ios-purple" /> 年度回顾
+          </h2>
+          <div className="no-scrollbar flex gap-2 overflow-x-auto">
+            {years.map((y) => (
+              <Link key={y} href={`/year/${y}`} className="flex shrink-0 items-center gap-2 rounded-2xl bg-card px-4 py-3 card-shadow">
+                <span className="text-headline">{y}</span>
+                <ChevronRight className="size-4 text-label-tertiary" />
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
 
       <h2 className="mb-2 mt-6 flex items-center gap-1.5 px-1 text-footnote font-semibold uppercase tracking-wide text-muted-foreground">
         <Baby className="size-3.5" /> 同一个地方，不同的年纪
@@ -82,6 +101,10 @@ export default async function MePage() {
       <h2 className="mb-2 mt-6 px-1 text-footnote font-semibold uppercase tracking-wide text-muted-foreground">设置</h2>
       <div className="divide-y divide-border/60 rounded-2xl bg-card card-shadow">
         {process.env.VAPID_PUBLIC_KEY && <PushToggle publicKey={process.env.VAPID_PUBLIC_KEY} />}
+        <Link href="/settings/mcp" className="flex items-center justify-between px-4 py-3 text-callout">
+          MCP 接入 <span className="text-caption text-muted-foreground">在 Claude 里问自己的旅行记录</span>
+          <ChevronRight className="size-4 text-label-tertiary" />
+        </Link>
         <Link href="/trips" className="flex items-center justify-between px-4 py-3 text-callout">
           添加到主屏幕使用 <span className="text-caption text-muted-foreground">Safari 分享 → 添加到主屏幕</span>
           <ChevronRight className="size-4 text-label-tertiary" />

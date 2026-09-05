@@ -248,6 +248,13 @@
 - 洞察刻意用统计而非模型：结果稳定、零成本、可解释，AI 只在用户主动提问时介入
 - 新增：src/lib/ai/{memory,global-tools,on-this-day,insights}.ts、src/app/api/ai/{ask,import}、src/app/(app)/ask、src/components/ai/global-ask.tsx、src/components/trips/on-this-day-card.tsx、src/components/ledger/insights-row.tsx、src/components/quick-add/import-form.tsx
 
+### 阶段 18：生成与开放
+- **状态：** complete
+- 迁移：`20260905052048_mcp_tokens`
+- 取舍：PDF 用打印样式而非 PDF 库（中文字体、排版复用 CSS 都更省事）；MCP 手写 JSON-RPC 而非引 SDK（SDK 的 HTTP transport 需要 Node 原生 req/res，与 Route Handler 不合）
+- 未做：地图回放录制成视频（成本高、替代方案已够用），已在计划中说明
+- 新增：src/lib/ai/year-review.ts、src/lib/mcp-tokens.ts、src/app/api/mcp、src/app/(app)/year/[year]、settings/mcp、trips/[tripId]/album、src/components/summary/year-slides.tsx、src/components/settings/mcp-panel.tsx、src/components/photos/print-button.tsx
+
 ## 测试结果
 | 测试 | 输入 | 预期结果 | 实际结果 | 状态 |
 |------|------|---------|---------|------|
@@ -270,6 +277,10 @@
 | 智能导入 | 粘贴航班+酒店文本 | 解析出 2 条草稿 | FLIGHT + HOTEL，meta 字段齐全 | ✅ |
 | 那年今日 | 去年今天的站点 | 卡片显示地点与月龄 | 「1 年前的今天 小樽运河 1 岁 2 个月」 | ✅ |
 | 消费洞察 | 有花费的旅程 | 分类占比等 | 洞察/日均/餐饮占了/宝宝相关 | ✅ |
+| MCP 协议 | initialize / tools/list / tools/call | 符合 JSON-RPC 与 MCP 规范 | 握手成功，5 个工具带 JSON Schema，listTrips 返回真实数据 | ✅ |
+| MCP 鉴权 | 无令牌 / 错令牌 | 401 | 401 + WWW-Authenticate | ✅ |
+| 年度回顾 | 当年数据 | 统计 + 给宝宝的信 | 全部渲染 | ✅ |
+| 打印相册 | /album | 打印样式与照片 | 200，含导出按钮与内容 | ✅ |
 | 单元测试 | pnpm test | 全绿 | 40 passed | ✅ |
 | 浏览器冒烟 | pnpm test:e2e（WebKit/iPhone 14） | 5 条主线通过 | 5 passed | ✅ |
 | 快速记录抽屉真机交互 | 浏览器点击 FAB → 地点/花费 | 抽屉打开并提交成功 | 通过 | ✅ |

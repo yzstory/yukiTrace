@@ -11,6 +11,7 @@ export function TripTabs({ tripId }: { tripId: string }) {
     { href: `/trips/${tripId}/map`, label: "地图" },
     { href: `/trips/${tripId}/ledger`, label: "账本" },
     { href: `/trips/${tripId}/photos`, label: "照片" },
+    { href: `/trips/${tripId}/album`, label: "相册" },
   ];
   return (
     <nav className="mb-5 flex rounded-xl bg-fill p-1">

@@ -56,6 +56,61 @@ export async function generateDailyDraft(tripId: string, date: string, tone: "de
   return { draft };
 }
 
+/**
+ * 家庭日记：把当天所有成员各自记录的内容合成一段共同的日记。
+ * 与 generateDailyDraft 的区别是会标注「谁记的」，适合多人同行。
+ */
+export async function generateFamilyDigest(tripId: string, date: string): Promise<{ draft?: string; error?: string }> {
+  await requireTripAccess(tripId, "EDITOR");
+  if (!aiConfigured()) return { error: "AI 未配置" };
+  const gate = rateLimit(`ai:digest:${tripId}`, LIMITS.aiGenerate.limit, LIMITS.aiGenerate.windowMs);
+  if (!gate.ok) return { error: `生成太频繁，请 ${gate.retryAfterS} 秒后再试` };
+
+  const trip = await db.trip.findUniqueOrThrow({ where: { id: tripId } });
+  const day = new Date(date);
+  const next = new Date(day.getTime() + 86400_000);
+
+  const [expenses, photos, babyLogs, stops] = await Promise.all([
+    db.expense.findMany({ where: { tripId, paidAt: { gte: day, lt: next } }, include: { paidBy: { select: { name: true } } } }),
+    db.photo.findMany({ where: { tripId, createdAt: { gte: day, lt: next } }, include: { uploader: { select: { name: true } } } }),
+    db.babyLog.findMany({ where: { tripId, at: { gte: day, lt: next } }, orderBy: { at: "asc" } }),
+    db.stop.findMany({ where: { tripId, arriveAt: { gte: day, lt: next } }, orderBy: { arriveAt: "asc" } }),
+  ]);
+
+  if (stops.length === 0 && expenses.length === 0 && photos.length === 0) return { error: "这一天还没有记录" };
+
+  // 按成员归集，让模型知道谁记了什么
+  const byPerson = new Map<string, string[]>();
+  const add = (who: string, what: string) => byPerson.set(who, [...(byPerson.get(who) ?? []), what]);
+  expenses.forEach((e) => add(e.paidBy?.name ?? "有人", `记了一笔${e.title} ${formatMoney(e.amountMinor, e.currency, { showCode: true })}`));
+  photos.forEach((p) => add(p.uploader?.name ?? "有人", `拍了照片${p.aiCaption ? `：${p.aiCaption}` : ""}`));
+
+  const facts = [
+    `日期：${fmt.dateFull(day, trip.timezone)}`,
+    stops.length ? `去了：${stops.map((s) => `${fmt.time(s.arriveAt, s.timezone ?? trip.timezone)} ${s.name}${s.note ? `（${s.note}）` : ""}`).join("；")}` : "",
+    Array.from(byPerson).map(([who, items]) => `${who}：${items.join("；")}`).join("\n"),
+    babyLogs.length ? `${trip.babyName ?? "宝宝"}：${babyLogs.map((b) => `${fmt.time(b.at, trip.timezone)} ${b.type}${b.note ? ` ${b.note}` : ""}`).join("；")}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const { text } = await generateText({
+    model: chatModel(),
+    system: `你把一家人各自零散的旅行记录合成一段共同的日记，150 字左右，中文，一段。自然地提到是谁记的（例如「爸爸拍到…」），不要罗列流水账，不要列金额明细，不用标题与 emoji。`,
+    prompt: facts,
+  });
+
+  const draft = text.trim();
+  await db.dailyNote.upsert({
+    where: { tripId_date: { tripId, date: day } },
+    update: { aiDraft: draft },
+    create: { tripId, date: day, content: "", aiDraft: draft },
+  });
+  log.info("ai.familyDigest", { tripId, date, chars: draft.length });
+  revalidatePath(`/trips/${tripId}`);
+  return { draft };
+}
+
 /** 生成整段旅程的游记与总结要点 */
 export async function generateTripSummary(tripId: string): Promise<{ text?: string; error?: string }> {
   await requireTripAccess(tripId);

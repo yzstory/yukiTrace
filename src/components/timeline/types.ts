@@ -59,4 +59,5 @@ export type TTrip = {
   canEdit: boolean;
   aiConfigured: boolean;
   timezone: string;
+  multiMember: boolean;
 };

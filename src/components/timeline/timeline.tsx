@@ -45,7 +45,7 @@ export function Timeline({ days, trip }: { days: TDay[]; trip: TTrip }) {
               )}
             </header>
 
-            <DailyNote tripId={trip.id} date={day.date} note={day.note} aiDraft={day.aiDraft} canEdit={trip.canEdit} aiConfigured={trip.aiConfigured} hasContent={!empty} tz={trip.timezone} />
+            <DailyNote tripId={trip.id} date={day.date} note={day.note} aiDraft={day.aiDraft} canEdit={trip.canEdit} aiConfigured={trip.aiConfigured} hasContent={!empty} tz={trip.timezone} multiMember={trip.multiMember} />
             <BabyStrip logs={day.babyLogs} tripId={trip.id} canEdit={trip.canEdit} babyName={trip.babyName} tz={trip.timezone} />
 
             {empty ? (

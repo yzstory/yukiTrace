@@ -25,6 +25,7 @@ model User {
   invites     TripInvite[]
   pushSubs    PushSubscription[]
   embeddings  Embedding[]
+  mcpTokens   McpToken[]
 }
 
 enum MemberRole {
@@ -393,6 +394,23 @@ model PushSubscription {
   babyAlert Boolean  @default(true)
   createdAt DateTime @default(now())
   lastSentAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// 外部助手（Claude 等）通过 MCP 访问旅行记录的令牌
+model McpToken {
+  id         String    @id @default(cuid())
+  userId     String
+  name       String
+  /// 只存哈希，明文仅在创建时展示一次
+  tokenHash  String    @unique
+  /// 展示用前缀，例如 trc_a1b2…
+  prefix     String
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

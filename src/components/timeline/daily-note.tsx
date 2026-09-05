@@ -6,15 +6,27 @@ import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { upsertDailyNote } from "@/app/(app)/trips/[tripId]/actions";
-import { generateDailyDraft } from "@/app/(app)/trips/[tripId]/ai-actions";
+import { generateDailyDraft, generateFamilyDigest } from "@/app/(app)/trips/[tripId]/ai-actions";
 import { fmt } from "@/lib/date";
 
-export function DailyNote({ tripId, date, note, aiDraft, canEdit, aiConfigured, hasContent, tz }: { tripId: string; date: Date; note: string | null; aiDraft?: string | null; canEdit: boolean; aiConfigured?: boolean; hasContent?: boolean; tz?: string | null }) {
+export function DailyNote({ tripId, date, note, aiDraft, canEdit, aiConfigured, hasContent, tz, multiMember }: { tripId: string; date: Date; note: string | null; aiDraft?: string | null; canEdit: boolean; aiConfigured?: boolean; hasContent?: boolean; tz?: string | null; multiMember?: boolean }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(note ?? "");
   const [draft, setDraft] = useState(aiDraft ?? null);
   const [pending, start] = useTransition();
   const [drafting, startDraft] = useTransition();
+
+  function askDigest() {
+    startDraft(async () => {
+      const r = await generateFamilyDigest(tripId, fmt.inputDate(date, tz));
+      if (r.error) {
+        toast.error(r.error);
+        return;
+      }
+      setDraft(r.draft!);
+      setEditing(true);
+    });
+  }
 
   function askDraft(tone: "default" | "to_baby") {
     startDraft(async () => {
@@ -60,6 +72,11 @@ export function DailyNote({ tripId, date, note, aiDraft, canEdit, aiConfigured, 
             <Button size="sm" variant="ghost" className="rounded-lg" disabled={drafting} onClick={() => askDraft("to_baby")}>
               {drafting ? <Loader2 className="size-4 animate-spin" /> : "换成写给宝宝的口吻"}
             </Button>
+            {multiMember && (
+              <Button size="sm" variant="ghost" className="rounded-lg" disabled={drafting} onClick={askDigest}>
+                合成全家的
+              </Button>
+            )}
           </div>
         </div>
       )}

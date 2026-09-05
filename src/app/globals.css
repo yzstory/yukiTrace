@@ -360,3 +360,32 @@
     --label-tertiary: oklch(0.78 0.01 260);
   }
 }
+
+/* ───────────── 打印版相册 ───────────── */
+@media print {
+  /* 打印时隐藏所有导航与浮层，只留相册正文 */
+  nav,
+  [data-sonner-toaster],
+  .print\:hidden {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  .album {
+    max-width: none;
+  }
+  .album section {
+    break-inside: avoid;
+  }
+  .album figure {
+    break-inside: avoid;
+  }
+  @page {
+    margin: 14mm;
+  }
+}
