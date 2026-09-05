@@ -255,6 +255,15 @@
 - 未做：地图回放录制成视频（成本高、替代方案已够用），已在计划中说明
 - 新增：src/lib/ai/year-review.ts、src/lib/mcp-tokens.ts、src/app/api/mcp、src/app/(app)/year/[year]、settings/mcp、trips/[tripId]/album、src/components/summary/year-slides.tsx、src/components/settings/mcp-panel.tsx、src/components/photos/print-button.tsx
 
+### 部署（2026-09-05）
+- 生产原状：仅 2 个迁移、1 用户 1 旅程，数据量极小
+- 迁移前做了一次性快照 `pre-deploy-20260905-1339.sql`（23K，非备份系统）
+- 补齐生产 .env：TZ、VAPID 三项、CRON_SECRET（新生成）；AI_TRANSCRIBE_MODEL / AI_EMBEDDING_MODEL 留空待填
+- 本机 buildx 构建 amd64（runner 254MB / migrate 294MB），gzip 流式传输约 20 秒
+- 6 个迁移一次性应用成功，表数 15 → 18，原有数据完好
+- 发现 alpine 缺 tzdata 导致 TZ 不生效，已在 runner 镜像补上并重新部署，容器时间为 CST
+- 已安装 crontab：每小时调用 /api/cron/briefing
+
 ## 测试结果
 | 测试 | 输入 | 预期结果 | 实际结果 | 状态 |
 |------|------|---------|---------|------|
@@ -281,6 +290,9 @@
 | MCP 鉴权 | 无令牌 / 错令牌 | 401 | 401 + WWW-Authenticate | ✅ |
 | 年度回顾 | 当年数据 | 统计 + 给宝宝的信 | 全部渲染 | ✅ |
 | 打印相册 | /album | 打印样式与照片 | 200，含导出按钮与内容 | ✅ |
+| 生产部署 | 6 个迁移 + 新镜像 | 迁移成功、数据完好、页面正常 | 迁移 8 条记录、18 张表、1 用户 1 旅程保留 | ✅ |
+| 生产鉴权边界 | 未登录访问各页 | 受保护 307、公开 200 | 完全符合 | ✅ |
+| 生产 cron 与 MCP | 无口令 / 有口令 | 401 / 200 | 401 / {"ok":true} | ✅ |
 | 单元测试 | pnpm test | 全绿 | 40 passed | ✅ |
 | 浏览器冒烟 | pnpm test:e2e（WebKit/iPhone 14） | 5 条主线通过 | 5 passed | ✅ |
 | 快速记录抽屉真机交互 | 浏览器点击 FAB → 地点/花费 | 抽屉打开并提交成功 | 通过 | ✅ |
