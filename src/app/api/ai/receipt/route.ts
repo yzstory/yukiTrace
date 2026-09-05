@@ -9,6 +9,7 @@ import { ExpenseCategory, EntryType } from "@/generated/prisma/enums";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+const MAX_RECEIPT_BYTES = 15 * 1024 * 1024;
 
 const schema = z.object({
   kind: z.enum(["receipt", "flight", "hotel", "car_rental", "train", "other"]).describe("图片类型"),
@@ -34,9 +35,16 @@ export async function POST(req: NextRequest) {
   const file = form.get("file");
   const homeCurrency = String(form.get("homeCurrency") ?? "CNY");
   if (!(file instanceof File)) return NextResponse.json({ error: "no file" }, { status: 400 });
+  if (!file.type.startsWith("image/")) return NextResponse.json({ error: "请选择图片文件" }, { status: 415 });
+  if (file.size > MAX_RECEIPT_BYTES) return NextResponse.json({ error: "图片不能超过 15MB" }, { status: 413 });
 
   const input = Buffer.from(await file.arrayBuffer());
-  const image = await sharp(input, { failOn: "none" }).rotate().resize({ width: 1600, withoutEnlargement: true }).jpeg({ quality: 85 }).toBuffer();
+  let image: Buffer;
+  try {
+    image = await sharp(input, { failOn: "none" }).rotate().resize({ width: 1600, withoutEnlargement: true }).jpeg({ quality: 85 }).toBuffer();
+  } catch {
+    return NextResponse.json({ error: "图片无法读取，请换一张重试" }, { status: 400 });
+  }
 
   try {
     const { object } = await generateObject({
@@ -46,8 +54,11 @@ export async function POST(req: NextRequest) {
         {
           role: "user",
           content: [
-            { type: "text", text: `识别这张图片（收据 / 航班确认 / 酒店预订 / 租车合同 / 车票等），抽取结构化信息。主币种是 ${homeCurrency}；若图片中的货币符号是 ¥ 且商家在日本则为 JPY。支持的货币：${CURRENCIES.map((c) => c.code).join(",")}。看不清的字段填 null。` },
-            { type: "image", image, mediaType: "image/jpeg" },
+            {
+              type: "text",
+              text: `识别这张图片（收据 / 航班确认 / 酒店预订 / 租车合同 / 车票等）。只返回一个 JSON 对象，不要数组、Markdown 或解释，并且必须包含全部字段：{"kind":"other","title":"无法识别的图片","amount":null,"currency":null,"paidAt":null,"category":null,"entryType":null,"meta":{},"items":[],"note":null}。kind 只能是 receipt/flight/hotel/car_rental/train/other；category 只能是 TRANSPORT/ACCOMMODATION/FOOD/ACTIVITY/SHOPPING/BABY/OTHER 或 null；entryType 只能是 FLIGHT/CAR_RENTAL/TRAIN/TAXI/HOTEL/MEAL/ACTIVITY/SHOPPING/MOMENT 或 null；meta 的值必须是字符串，items 最多 10 条。主币种是 ${homeCurrency}；若图片中的货币符号是 ¥ 且商家在日本则为 JPY。支持的货币：${CURRENCIES.map((c) => c.code).join(",")}。看不清的字段填 null。`,
+            },
+            { type: "file", data: image, mediaType: "image/jpeg", filename: "receipt.jpg" },
           ],
         },
       ],

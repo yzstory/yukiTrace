@@ -121,6 +121,13 @@ ShareLink(id, tripId, token, hideExpense, expiresAt)
 - 数据模型已有 `TripMember` 与 OWNER/EDITOR/VIEWER，但业务层没有成员邀请、加入和角色管理流程；README 中的“多用户与权限”更准确地说是底层已具备、产品流程待补
 - PWA 当前是读缓存，没有离线写入队列、冲突处理和恢复同步；旅行场景的网络不稳定，这是产品差异化价值最高的扩展之一
 
+## 阶段 10 AI 本地照片上传发现
+- AI 窗口的图片入口不是通用聊天附件，而是“票据/订单图片 → 视觉模型结构化识别 → 文本发给工具型 AI”链路
+- 限制选图来源的直接原因是唯一 file input 带 `capture="environment"`；同时保留两个 input（相机与本地照片）可在不改服务端 AI 协议的前提下完成需求
+- 当前 AI SDK 的模型消息中 `image` part 已弃用，本地源码建议使用 `{ type: "file", data: Buffer, mediaType: "image/jpeg" }`
+- `qwen3.7-plus` 网关在 `response_format=json_object` 时要求消息文本显式出现 `json`；这是票据识别首次真实端到端测试才暴露的兼容条件
+- 当前企业网关对 `json_schema` 的 strict 约束不完全可靠，实测将要求的对象包装为数组；`json_object` 配合提示词内完整字段模板能稳定返回可校验对象
+
 ## 资源
 - 服务器：101.37.37.200（阿里云 ECS，Alibaba Cloud Linux 8），目录 /root/docker-compose/yukiTrace
 - 高德开放平台：https://lbs.amap.com/

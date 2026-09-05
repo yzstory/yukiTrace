@@ -5,7 +5,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Sparkles, SendHorizonal, Loader2, Camera, Square, Wrench, BookOpenText, ListChecks } from "lucide-react";
+import { Sparkles, SendHorizonal, Loader2, Camera, ImagePlus, Square, Wrench, BookOpenText, ListChecks } from "lucide-react";
 import { toast } from "sonner";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,8 @@ const TOOL_LABELS: Record<string, string> = {
   saveDailyNote: "写日记",
 };
 
+const MAX_RECEIPT_BYTES = 15 * 1024 * 1024;
+
 export function AiChat({ tripId, homeCurrency, configured, canEdit }: { tripId: string; homeCurrency: string; configured: boolean; canEdit: boolean }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -32,7 +34,8 @@ export function AiChat({ tripId, homeCurrency, configured, canEdit }: { tripId: 
   const [busy, setBusy] = useState<string | null>(null);
   const reduceMotion = useReducedMotion();
   const [, start] = useTransition();
-  const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const photoRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   const { messages, sendMessage, status, stop, setMessages } = useChat({
@@ -54,6 +57,14 @@ export function AiChat({ tripId, homeCurrency, configured, canEdit }: { tripId: 
   }
 
   async function onReceipt(file: File) {
+    if (!file.type.startsWith("image/")) {
+      toast.error("请选择图片文件");
+      return;
+    }
+    if (file.size > MAX_RECEIPT_BYTES) {
+      toast.error("图片不能超过 15MB");
+      return;
+    }
     setBusy("正在识别票据…");
     try {
       const fd = new FormData();
@@ -181,11 +192,52 @@ export function AiChat({ tripId, homeCurrency, configured, canEdit }: { tripId: 
                 }}
                 className="flex items-end gap-2 border-t border-border/60 px-3 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
               >
-                <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => e.target.files?.[0] && onReceipt(e.target.files[0])} />
+                <input
+                  ref={cameraRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.currentTarget.files?.[0];
+                    e.currentTarget.value = "";
+                    if (file) void onReceipt(file);
+                  }}
+                />
+                <input
+                  ref={photoRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.currentTarget.files?.[0];
+                    e.currentTarget.value = "";
+                    if (file) void onReceipt(file);
+                  }}
+                />
                 {canEdit && (
-                  <button type="button" onClick={() => fileRef.current?.click()} disabled={!!busy} className="flex size-10 shrink-0 items-center justify-center rounded-full bg-fill text-primary" aria-label="拍票据">
-                    <Camera className="size-5" />
-                  </button>
+                  <div className="flex shrink-0 gap-1">
+                    <button
+                      type="button"
+                      onClick={() => cameraRef.current?.click()}
+                      disabled={!!busy || streaming}
+                      className="flex size-10 items-center justify-center rounded-full bg-fill text-primary disabled:opacity-40"
+                      aria-label="拍照识别"
+                      title="拍照识别"
+                    >
+                      <Camera className="size-5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => photoRef.current?.click()}
+                      disabled={!!busy || streaming}
+                      className="flex size-10 items-center justify-center rounded-full bg-fill text-primary disabled:opacity-40"
+                      aria-label="从相册或本地选择照片"
+                      title="从相册或本地选择"
+                    >
+                      <ImagePlus className="size-5" />
+                    </button>
+                  </div>
                 )}
                 <textarea
                   value={input}

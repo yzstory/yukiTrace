@@ -2,6 +2,23 @@
 
 ## 会话：2026-09-05
 
+### 阶段 10：AI 本地照片上传
+- **状态：** in_progress
+- 用户要求 AI 窗口在现有“拍照识别”之外支持本地照片/相册选择，完成后部署并推送
+- 已按 `planning-with-files-zh` 恢复项目状态，并根据 `ai-sdk` 规则查阅当前本地 SDK 文档与源码
+- 现有入口为 `accept="image/*" capture="environment"`，选图后走 `/api/ai/receipt` 结构化识别，再将识别结果转为文本发给旅程 AI
+- 已在 AI 输入区保留后置相机 input，并新增不带 `capture` 的本地照片 input；两个入口都会清空 input value，支持连续重选同一张照片
+- 客户端与 `/api/ai/receipt` 同步增加图片 MIME 和 15MB 大小校验，服务端将无法解码的图片返回可读 400 错误
+- 修改文件：`src/components/ai/ai-chat.tsx`、`src/app/api/ai/receipt/route.ts`
+- `git diff --check`、`pnpm typecheck`、`pnpm lint`、`pnpm build` 全部通过；构建仍有已知 `Couldn't load fs/zlib` 提示，不影响成功产出 17 个页面
+- 生产新镜像已部署；非图片表单测试正确返回 415，但首次真实 PNG 识别返回 500，正在检查 `qwen3.7-plus` 与 `generateObject` 结构化输出的兼容性
+- 容器日志确认 500 根因：网关在 `response_format=json_object` 时要求 messages 显式包含 `json`；同时 AI SDK 警告 `image` content part 已弃用
+- 已在提示词中明确要求 JSON 对象，并按当前 AI SDK 源码将图片改为 `{ type: "file", data, mediaType }`
+- 直接网关测试发现 `json_schema` 虽返回 200，但模型仍可能将对象包成数组；改用 `json_object` + 明确的完整字段模板后，相同模型返回单个对象且 10 个必需字段齐全
+- 最终镜像已部署到 101.37.37.200；生产 `/api/ai/receipt` 通过本地 JPEG + `FormData` 端到端测试，返回 HTTP 200、`kind=other`、title 与全部 10 个字段
+- 边界验证：非图片返回 415，生产登录页返回 200，视觉模型保持 `qwen3.7-plus`
+- **状态：** complete
+
 ### 项目接续审计
 - **状态：** complete
 - 使用 `planning-with-files-zh` 恢复并核对 `task_plan.md`、`progress.md`、`findings.md`；session-catchup 无未同步上下文
