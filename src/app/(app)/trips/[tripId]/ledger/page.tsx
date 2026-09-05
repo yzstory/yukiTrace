@@ -6,6 +6,7 @@ import { requireTripAccess } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { dayIndex, tripDays, dayDate } from "@/lib/date";
 import { deleteExpense } from "@/app/(app)/trips/[tripId]/actions";
+import { Download } from "lucide-react";
 
 export const metadata = { title: "账本" };
 
@@ -41,7 +42,12 @@ export default async function TripLedgerPage(props: PageProps<"/trips/[tripId]/l
   return (
     <>
       <BackButton href="/trips" label="旅程" />
-      <h1 className="mb-3 text-title-1">{trip.title}</h1>
+      <div className="mb-3 flex items-center justify-between">
+        <h1 className="text-title-1">{trip.title}</h1>
+        <a href={`/api/export/${tripId}?kind=expenses`} className="flex items-center gap-1 rounded-full bg-card px-3 py-1.5 text-footnote font-medium text-primary card-shadow" download>
+          <Download className="size-3.5" /> 导出 CSV
+        </a>
+      </div>
       <TripTabs tripId={tripId} />
       <LedgerView expenses={expenses} days={days} homeCurrency={trip.homeCurrency} canEdit={role !== "VIEWER"} onDelete={onDelete} />
     </>

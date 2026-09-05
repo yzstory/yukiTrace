@@ -40,6 +40,7 @@ export default async function TripPage(props: PageProps<"/trips/[tripId]">) {
       expenses: { where: { stopId: null, entryId: null }, orderBy: { paidAt: "asc" } },
       photos: { where: { stopId: null, entryId: null }, orderBy: { takenAt: "asc" } },
       dailyNotes: true,
+      babyLogs: { orderBy: { at: "asc" } },
     },
   });
   if (!trip) notFound();
@@ -111,6 +112,7 @@ export default async function TripPage(props: PageProps<"/trips/[tripId]">) {
     looseEntries: [],
     looseExpenses: [],
     loosePhotos: [],
+    babyLogs: [],
     totalHomeMinor: 0,
   }));
   const dayFor = (d: Date) => {
@@ -133,6 +135,7 @@ export default async function TripPage(props: PageProps<"/trips/[tripId]">) {
     d.totalHomeMinor += e.amountHomeMinor;
   }
   for (const p of trip.photos.map(toPhoto)) dayFor(p.takenAt ?? trip.startDate).loosePhotos.push(p);
+  for (const b of trip.babyLogs) dayFor(b.at).babyLogs.push({ id: b.id, type: b.type, at: b.at, note: b.note });
 
   const totalHomeMinor = days.reduce((a, d) => a + d.totalHomeMinor, 0);
 

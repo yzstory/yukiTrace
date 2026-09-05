@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "motion/react";
-import { Pencil, Footprints, Wallet, Baby, Users, ImagePlus, Route, ListChecks } from "lucide-react";
+import { Pencil, Footprints, Wallet, Baby, Users, ImagePlus, Route, ListChecks, Sparkle } from "lucide-react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { formatMoney } from "@/lib/currency";
 import { formatDistance } from "@/lib/geo";
@@ -50,8 +50,12 @@ export function TripHero({ trip }: { trip: TripHeroData }) {
           <h1 className="mt-0.5 text-large-title text-white">{trip.title}</h1>
           {trip.description && <p className="mt-1 text-subhead text-white/85">{trip.description}</p>}
         </div>
-        {trip.canEdit && (
-          <div className="absolute right-3 top-3 flex gap-2 safe-top">
+        <div className="absolute right-3 top-3 flex gap-2 safe-top">
+          <Link href={`/trips/${trip.id}/summary`} className="glass rounded-full p-2 text-foreground" aria-label="旅程总结">
+            <Sparkle className="size-4" />
+          </Link>
+          {trip.canEdit && (
+            <>
             <button type="button" onClick={() => setCoverOpen(true)} className="glass rounded-full p-2 text-foreground" aria-label="更换封面">
               <ImagePlus className="size-4" />
             </button>
@@ -61,8 +65,9 @@ export function TripHero({ trip }: { trip: TripHeroData }) {
             <Link href={`/trips/${trip.id}/edit`} className="glass rounded-full p-2 text-foreground" aria-label="编辑旅程">
               <Pencil className="size-4" />
             </Link>
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-3 divide-x divide-border/60 px-2 py-3 text-center">

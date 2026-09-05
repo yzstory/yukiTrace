@@ -4,7 +4,7 @@
 用 Next.js 做一个苹果风格的「带娃旅行日记 + 账本」网页应用，能记录行程（航班/租车/住宿/餐饮/游玩）、花费（多币种）、照片与备注，在高德地图上展示路线与站间距离，并内嵌 AI 助手（OpenAI 兼容接口）降低记录成本；第一版部署到阿里云 ECS（Docker Compose），后续可开放注册并演进为 App。
 
 ## 当前阶段
-阶段 4 完成，进入阶段 5（带娃专属与回顾分享）
+阶段 5 完成，进入阶段 6（部署与验证）
 
 ## 各阶段
 
@@ -68,17 +68,18 @@
 - **状态：** complete
 
 ### 阶段 5：带娃专属与回顾分享
-- [ ] 宝宝状态轻量打卡：喂奶 / 换尿布 / 睡眠
-- [ ] 装备清单模板（可复用、勾选）
-- [ ] 站点婴儿友好标签：母婴室 / 儿童座椅 / 推车友好
-- [ ] 照片 EXIF 自动归位（exifr 读 GPS + 时间 → 匹配或自动创建站点）
-- [ ] 天气自动补全（高德天气 API，按站点坐标 + 日期）
-- [ ] 成长对照：同一地点不同年份照片并排
-- [ ] 旅程总结页（Wrapped 风格，可导出长图）
-- [ ] 只读分享链接（可隐藏花费）
-- [ ] 导出 PDF 相册 / CSV 账单
-- [ ] PWA：离线记录、联网同步
-- **状态：** pending
+- [x] 宝宝状态打卡：喂奶/换尿布/睡/醒/吃药/其他，快速记录抽屉「宝宝」入口，时间线每日 BabyStrip（可删）
+- [x] 装备清单：模板 + AI 生成 + 勾选/增删/重置（阶段 4 已完成）
+- [x] 站点婴儿友好标签（阶段 2 已完成）
+- [x] 照片 EXIF 自动归位（阶段 2 已完成）+ WGS-84→GCJ-02
+- [x] 天气：高德逆地理拿 adcode，到达时间在 ±12h 内自动补实况天气，StopCard 显示
+- [x] 成长对照：/me 「同一个地方，不同的年纪」——同一城市在不同旅程各取一张照片并排，标出当时月龄
+- [x] 旅程总结页 `/trips/[id]/summary`：Wrapped 风格 4:5 卡片（封面/足迹/花费/宝宝/最丰富的一天/照片），html-to-image 保存长图，Web Share
+- [x] 只读分享链接：ShareLink 生成/撤销/隐藏花费开关（编辑页），公开页 `/share/[token]`（免登录，含路线示意图与照片），`/api/files` 支持 `?t=token` 校验旅程归属
+- [x] 导出：CSV 花费明细（UTF-8 BOM，Excel 可直接打开），账本页「导出 CSV」；PDF 相册未做（用长图 + 分享链接替代）
+- [x] PWA：manifest.ts、图标（sharp 生成 192/512/maskable/180）、sw.js（静态 cache-first / 图片 SWR / 页面 network-first / 离线页）、生产环境注册
+- [x] 验证：typecheck / lint / build 通过；curl 验证分享页、token 文件鉴权、总结、成长对照、CSV、manifest/sw/offline
+- **状态：** complete
 
 ### 阶段 6：部署与验证
 - [ ] 服务器 `/root/docker-compose/yukiTrace` 部署 docker-compose（app + postgres + 可选 caddy 反代 HTTPS）
@@ -117,6 +118,8 @@
 | `pnpm add prisma` 装到 8.0.0-rc 与 client 7 不匹配 | 1 | 固定 `prisma@7`，移到 devDependencies |
 | Docker daemon 未运行 | 1 | `open -a OrbStack` 后重试 |
 | `PageProps<"/login">` 类型报错 | 1 | 运行 `pnpm next typegen` 重新生成路由类型 |
+| proxy matcher 未排除 sw.js / offline.html 导致 307 到登录页 | 1 | matcher 增加排除项 |
+| 加字段后 typecheck 报 adcode 不存在 | 1 | 手动 `prisma generate`（migrate dev 后客户端未刷新） |
 | zsh 中用 `path` 做循环变量覆盖了 $PATH，后续命令全部找不到 | 1 | 改用其他变量名 |
 | @amap/amap-jsapi-types 是全局声明，未被 tsc 拾取 | 1 | 文件头加 `/// <reference types>`；去掉自定义 Window.AMap 声明 |
 | React Compiler lint：effect 内 setState / map 回调里修改闭包变量 | 1 | 搜索改由 onChange 触发；里程改为 reduce 计算 |

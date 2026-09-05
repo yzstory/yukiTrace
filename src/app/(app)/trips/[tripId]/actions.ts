@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireTripAccess } from "@/lib/dal";
 import { haversine, suggestMode } from "@/lib/geo";
-import { drivingRoute, walkingRoute, reverseGeocode, amapConfigured } from "@/lib/amap";
+import { drivingRoute, walkingRoute, reverseGeocode, amapConfigured, liveWeather } from "@/lib/amap";
+import { BabyLogType } from "@/generated/prisma/enums";
 import { CURRENCIES, toMinor, convertMinor, FALLBACK_RATES_TO_CNY } from "@/lib/currency";
 import { deleteObject } from "@/lib/storage";
 import { EntryType, ExpenseCategory, StopType } from "@/generated/prisma/enums";
@@ -41,10 +42,18 @@ export async function createStop(tripId: string, _prev: ActionState, formData: F
 
   let address = d.address || null;
   let city = d.city || null;
-  if ((!address || !city) && amapConfigured()) {
+  let adcode: string | null = null;
+  let weather: { weather: string; temperature: string } | null = null;
+  if (amapConfigured()) {
     const geo = await reverseGeocode({ lat: d.lat, lng: d.lng });
-    address ??= geo?.address ?? null;
-    city ??= geo?.city ?? null;
+    address ??= geo?.address || null;
+    city ??= geo?.city || null;
+    adcode = geo?.adcode ?? null;
+    // 只有当到达时间在当前 ±12 小时内，实况天气才有记录意义
+    if (adcode && Math.abs(new Date(d.arriveAt).getTime() - Date.now()) < 12 * 3600_000) {
+      const w = await liveWeather(adcode);
+      if (w) weather = { weather: w.weather, temperature: w.temperature };
+    }
   }
 
   const count = await db.stop.count({ where: { tripId } });
@@ -58,6 +67,8 @@ export async function createStop(tripId: string, _prev: ActionState, formData: F
       address,
       city,
       amapPoiId: d.amapPoiId || null,
+      adcode,
+      weather: weather ?? undefined,
       arriveAt: new Date(d.arriveAt),
       leaveAt: d.leaveAt ? new Date(d.leaveAt) : null,
       note: d.note || null,
@@ -374,6 +385,25 @@ export async function deletePhoto(tripId: string, photoId: string) {
 export async function updatePhotoCaption(tripId: string, photoId: string, caption: string) {
   await requireTripAccess(tripId, "EDITOR");
   await db.photo.update({ where: { id: photoId, tripId }, data: { caption: caption.trim() || null } });
+  revalidatePath(`/trips/${tripId}`);
+}
+
+// ───────────────────────── 宝宝状态 ─────────────────────────
+
+const babyLogSchema = z.object({ type: z.nativeEnum(BabyLogType), at: z.string().min(1, "请选择时间"), note: optStr });
+
+export async function createBabyLog(tripId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireTripAccess(tripId, "EDITOR");
+  const parsed = babyLogSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  await db.babyLog.create({ data: { tripId, type: parsed.data.type, at: new Date(parsed.data.at), note: parsed.data.note || null } });
+  revalidatePath(`/trips/${tripId}`);
+  return { ok: true };
+}
+
+export async function deleteBabyLog(tripId: string, id: string) {
+  await requireTripAccess(tripId, "EDITOR");
+  await db.babyLog.delete({ where: { id, tripId } });
   revalidatePath(`/trips/${tripId}`);
 }
 

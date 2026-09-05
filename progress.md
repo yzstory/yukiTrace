@@ -82,6 +82,25 @@
   - src/components/timeline/{types,timeline}.tsx, src/components/trips/trip-hero.tsx, src/app/(app)/trips/[tripId]/page.tsx
 
 ### 阶段 5：带娃专属与回顾分享
+- **状态：** complete
+- 执行的操作：
+  - Stop.adcode 迁移；amap.reverseGeocode 返回 adcode；createStop 补天气
+  - 宝宝状态：createBabyLog/deleteBabyLog、BabyLogForm、BabyStrip、TDay.babyLogs
+  - 分享：share-actions、ShareSettings、/share/[token]、/api/files token 校验
+  - 总结：SummarySlides + summary/page.tsx（统计、「第一次」抽取、最丰富一天）
+  - 成长对照：/me 重写
+  - CSV：/api/export/[tripId]
+  - PWA：manifest.ts、public/sw.js、offline.html、icons、RegisterSW；proxy matcher 排除
+- 创建/修改的文件：
+  - prisma/schema.prisma, prisma/migrations/20260905004625_stop_adcode
+  - src/lib/amap.ts, src/app/(app)/trips/[tripId]/{actions.ts,share-actions.ts,summary/page.tsx,edit/page.tsx,ledger/page.tsx}
+  - src/components/quick-add/{baby-log-form,quick-add}.tsx, src/components/timeline/{baby-strip,types,timeline}.tsx
+  - src/components/share/share-settings.tsx, src/app/share/[token]/page.tsx, src/app/api/files/[...key]/route.ts
+  - src/components/summary/summary-slides.tsx, src/components/trips/trip-hero.tsx
+  - src/app/(app)/me/page.tsx, src/app/api/export/[tripId]/route.ts
+  - src/app/manifest.ts, public/sw.js, public/offline.html, public/icons/*, src/app/icon.png, src/components/pwa/register-sw.tsx, src/app/layout.tsx, src/proxy.ts
+
+### 阶段 6：部署与验证
 - **状态：** pending
 
 ## 测试结果
@@ -105,6 +124,12 @@
 | AI chat 工具循环 | mock OpenAI，"刚吃了拉面 2800 日元" | tool_call addExpense → 写库 → 文本回复 | 流中出现 tool-input/output-available、text-delta；账本出现「拉面 ¥2,800 JPY」 | ✅ |
 | AI receipt 识别 | mock + 测试图片 | 返回结构化 JSON | 200，kind/title/amount/items 齐全 | ✅ |
 | AI 未配置 / 未登录 | POST /api/ai/chat | 503 / 401 | 401（未登录）；503 分支代码存在未单测 | ✅ |
+| 分享页免登录 | /share/testtoken123 | 200 且隐藏花费 | 200，含站点/日记/路线图，无花费 | ✅ |
+| 分享 token 文件鉴权 | /api/files/…?t=正确/错误 | 200 / 401 | 200 / 401 | ✅ |
+| 总结页 | /trips/[id]/summary | 统计与「第一次」 | 200，坐了 1 次飞机、第一次坐飞机、最丰富的一天 | ✅ |
+| CSV 导出 | /api/export/[id] | 200 text/csv 带 BOM | 200，3 行含表头，中文文件名 | ✅ |
+| PWA 资产 | manifest / sw.js / offline.html / icon | 全 200 | 修 proxy 后全 200 | ✅ |
+| 长图生成 / 离线 SW 行为 | 浏览器 | 下载 PNG / 离线可看 | 未测（无浏览器） | ⏳ |
 | 真实模型对话质量 | 真实 API Key | 合理拆解与工具选择 | 未测（无 Key） | ⏳ |
 | 高德真实地图渲染 / 回放动画 | 浏览器 + Key | 显示地图 | 未测（无 Key、无浏览器），降级 SVG 已验证 | ⏳ |
 | 注册/登录 Server Action 端到端 | 浏览器 | 成功登录 | 未测（无浏览器，curl 无法直接调用 useActionState 表单） | ⏳ |
@@ -117,7 +142,7 @@
 ## 五问重启检查
 | 问题 | 答案 |
 |------|------|
-| 我在哪里？ | 阶段 4 完成，开始阶段 5 |
+| 我在哪里？ | 阶段 5 完成，开始阶段 6 部署 |
 | 我要去哪里？ | 阶段 1 搭骨架 → 阶段 2 核心记录 → 阶段 3 地图账本 → 阶段 4 AI → 阶段 5 带娃/回顾 → 阶段 6 部署 |
 | 目标是什么？ | 苹果风带娃旅行记录 + 账本 Web 应用，含高德地图与 AI 助手，部署到阿里云 |
 | 我学到了什么？ | 见 findings.md |

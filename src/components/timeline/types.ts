@@ -1,4 +1,6 @@
-import type { EntryType, ExpenseCategory, StopType, TravelMode } from "@/generated/prisma/enums";
+import type { BabyLogType, EntryType, ExpenseCategory, StopType, TravelMode } from "@/generated/prisma/enums";
+
+export type TBabyLog = { id: string; type: BabyLogType; at: Date; note: string | null };
 
 export type TPhoto = { id: string; url: string; thumbUrl: string; width: number | null; height: number | null; caption: string | null; takenAt: Date | null };
 export type TExpense = { id: string; title: string; amountMinor: number; currency: string; amountHomeMinor: number; category: ExpenseCategory; isBaby: boolean; paidAt: Date };
@@ -42,6 +44,7 @@ export type TDay = {
   looseEntries: TEntry[];
   looseExpenses: TExpense[];
   loosePhotos: TPhoto[];
+  babyLogs: TBabyLog[];
   totalHomeMinor: number;
 };
 export type TTrip = {

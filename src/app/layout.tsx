@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Toaster } from "@/components/ui/sonner";
+import { RegisterSW } from "@/components/pwa/register-sw";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -8,6 +9,7 @@ export const metadata: Metadata = {
   applicationName: "Trace",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Trace" },
   formatDetection: { telephone: false },
+  icons: { apple: "/icons/icon-180.png" },
 };
 
 export const viewport: Viewport = {
@@ -27,6 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         {children}
         <Toaster position="top-center" />
+        <RegisterSW />
       </body>
     </html>
   );

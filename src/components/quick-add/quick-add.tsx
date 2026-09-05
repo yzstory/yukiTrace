@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Plus, MapPin, Wallet, Camera, ChevronLeft } from "lucide-react";
+import { Plus, MapPin, Wallet, Camera, ChevronLeft, Baby } from "lucide-react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { ENTRY_TYPES, ENTRY_TYPE_ORDER } from "@/lib/entry-types";
 import type { EntryType } from "@/generated/prisma/enums";
@@ -11,8 +11,9 @@ import { StopForm } from "./stop-form";
 import { EntryForm, type StopOption } from "./entry-form";
 import { ExpenseForm } from "./expense-form";
 import { PhotoUploader } from "./photo-uploader";
+import { BabyLogForm } from "./baby-log-form";
 
-type Mode = { kind: "menu" } | { kind: "stop" } | { kind: "entry"; type: EntryType } | { kind: "expense" } | { kind: "photo" };
+type Mode = { kind: "menu" } | { kind: "stop" } | { kind: "entry"; type: EntryType } | { kind: "expense" } | { kind: "photo" } | { kind: "baby" };
 
 export function QuickAdd({ tripId, stops, homeCurrency, tripStart, tripEnd }: { tripId: string; stops: StopOption[]; homeCurrency: string; tripStart: Date; tripEnd: Date }) {
   const [open, setOpen] = useState(false);
@@ -31,7 +32,7 @@ export function QuickAdd({ tripId, stops, homeCurrency, tripStart, tripEnd }: { 
   }, []);
 
   const title =
-    mode.kind === "menu" ? "记录" : mode.kind === "stop" ? "添加站点" : mode.kind === "entry" ? `记录${ENTRY_TYPES[mode.type].label}` : mode.kind === "expense" ? "记一笔" : "上传照片";
+    mode.kind === "menu" ? "记录" : mode.kind === "stop" ? "添加站点" : mode.kind === "entry" ? `记录${ENTRY_TYPES[mode.type].label}` : mode.kind === "expense" ? "记一笔" : mode.kind === "baby" ? "宝宝状态" : "上传照片";
 
   return (
     <>
@@ -76,6 +77,7 @@ export function QuickAdd({ tripId, stops, homeCurrency, tripStart, tripEnd }: { 
                   <ExpenseForm tripId={tripId} stops={stops} homeCurrency={homeCurrency} defaultTime={defaultTime} defaultStopId={defaultStopId} onDone={close} />
                 )}
                 {mode.kind === "photo" && <PhotoUploader tripId={tripId} stops={stops} defaultStopId={defaultStopId} onDone={close} />}
+                {mode.kind === "baby" && <BabyLogForm tripId={tripId} defaultTime={defaultTime} onDone={close} />}
               </motion.div>
             </AnimatePresence>
           </div>
@@ -90,10 +92,11 @@ function Menu({ onPick }: { onPick: (m: Mode) => void }) {
     { mode: { kind: "stop" }, label: "地点", icon: MapPin, color: "text-primary", bg: "bg-primary/12" },
     { mode: { kind: "expense" }, label: "花费", icon: Wallet, color: "text-ios-green", bg: "bg-ios-green/15" },
     { mode: { kind: "photo" }, label: "照片", icon: Camera, color: "text-ios-pink", bg: "bg-ios-pink/12" },
+    { mode: { kind: "baby" }, label: "宝宝", icon: Baby, color: "text-ios-teal", bg: "bg-ios-teal/15" },
   ];
   return (
     <div className="flex flex-col gap-5 pt-1">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-4 gap-3">
         {primary.map((p) => (
           <Tile key={p.label} label={p.label} icon={p.icon} color={p.color} bg={p.bg} onClick={() => onPick(p.mode)} big />
         ))}

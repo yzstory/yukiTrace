@@ -64,13 +64,15 @@ export async function searchPoi(keywords: string, city?: string): Promise<PoiRes
 }
 
 /** 逆地理编码：坐标 → 地址 */
-export async function reverseGeocode(p: LatLng): Promise<{ address: string; city: string } | null> {
-  type Resp = { regeocode: { formatted_address: string; addressComponent: { city: string | unknown[]; province: string } } };
+export async function reverseGeocode(p: LatLng): Promise<{ address: string; city: string; adcode: string | null } | null> {
+  type Resp = { regeocode: { formatted_address: string | unknown[]; addressComponent: { city: string | unknown[]; province: string; adcode?: string | unknown[] } } };
   const data = await get<Resp>("/v3/geocode/regeo", { location: `${p.lng},${p.lat}`, extensions: "base" });
   if (!data) return null;
   const c = data.regeocode.addressComponent;
   const city = typeof c.city === "string" && c.city ? c.city : c.province;
-  return { address: data.regeocode.formatted_address, city };
+  const address = typeof data.regeocode.formatted_address === "string" ? data.regeocode.formatted_address : "";
+  const adcode = typeof c.adcode === "string" && c.adcode ? c.adcode : null;
+  return { address, city, adcode };
 }
 
 export type RouteResult = { distanceM: number; durationS: number; polyline?: string };
@@ -111,9 +113,9 @@ export async function walkingRoute(from: LatLng, to: LatLng): Promise<RouteResul
 
 export type WeatherInfo = { weather: string; temperature: string; winddirection: string; humidity: string };
 
-/** 实况天气（需要 adcode 或城市名） */
-export async function liveWeather(city: string): Promise<WeatherInfo | null> {
+/** 实况天气（adcode） */
+export async function liveWeather(adcode: string): Promise<WeatherInfo | null> {
   type Resp = { lives: WeatherInfo[] };
-  const data = await get<Resp>("/v3/weather/weatherInfo", { city, extensions: "base" });
+  const data = await get<Resp>("/v3/weather/weatherInfo", { city: adcode, extensions: "base" });
   return data?.lives[0] ?? null;
 }

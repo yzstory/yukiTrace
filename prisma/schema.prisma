@@ -97,6 +97,8 @@ model Stop {
   address   String?
   city      String?
   amapPoiId String?
+  /// 高德行政区编码，用于天气查询
+  adcode    String?
   arriveAt  DateTime
   leaveAt   DateTime?
   order     Int      @default(0)

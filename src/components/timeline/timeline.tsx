@@ -5,12 +5,13 @@ import { StopCard } from "./stop-card";
 import { EntryRow } from "./entry-row";
 import { LegDivider } from "./leg-divider";
 import { DailyNote } from "./daily-note";
+import { BabyStrip } from "./baby-strip";
 import { ExpenseChip } from "./expense-chip";
 import { PhotoStrip } from "./photo-strip";
 import type { TDay, TTrip } from "./types";
 
 export function Timeline({ days, trip }: { days: TDay[]; trip: TTrip }) {
-  const hasContent = days.some((d) => d.stops.length || d.looseEntries.length || d.looseExpenses.length || d.loosePhotos.length || d.note);
+  const hasContent = days.some((d) => d.stops.length || d.looseEntries.length || d.looseExpenses.length || d.loosePhotos.length || d.note || d.babyLogs.length);
   if (!hasContent) {
     return (
       <div className="flex flex-col items-center rounded-3xl bg-card px-6 py-14 text-center card-shadow">
@@ -28,7 +29,7 @@ export function Timeline({ days, trip }: { days: TDay[]; trip: TTrip }) {
   return (
     <div className="flex flex-col gap-8">
       {days.map((day) => {
-        const empty = !day.stops.length && !day.looseEntries.length && !day.looseExpenses.length && !day.loosePhotos.length && !day.note;
+        const empty = !day.stops.length && !day.looseEntries.length && !day.looseExpenses.length && !day.loosePhotos.length && !day.note && !day.babyLogs.length;
         if (empty && !trip.canEdit) return null;
         return (
           <section key={day.index} id={`day-${day.index}`}>
@@ -45,6 +46,7 @@ export function Timeline({ days, trip }: { days: TDay[]; trip: TTrip }) {
             </header>
 
             <DailyNote tripId={trip.id} date={day.date} note={day.note} aiDraft={day.aiDraft} canEdit={trip.canEdit} aiConfigured={trip.aiConfigured} hasContent={!empty} />
+            <BabyStrip logs={day.babyLogs} tripId={trip.id} canEdit={trip.canEdit} babyName={trip.babyName} />
 
             {empty ? (
               <p className="rounded-2xl border border-dashed border-border px-4 py-5 text-center text-footnote text-label-tertiary">这一天还没有记录</p>
