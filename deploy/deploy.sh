@@ -10,8 +10,31 @@ DIR=${DEPLOY_DIR:-/root/docker-compose/yukiTrace}
 SSH="ssh -i $KEY -o StrictHostKeyChecking=no $HOST"
 WITH_MIGRATE=${1:-}
 
+read_remote_env() {
+  local name=$1
+  local value
+  value=$($SSH "sed -n 's/^${name}=//p' '$DIR/.env' | tail -n 1")
+  value=${value%$'\r'}
+
+  if [[ ${#value} -ge 2 ]]; then
+    local first=${value:0:1}
+    local last=${value: -1}
+    if [[ "$first" == "$last" && ( "$first" == '"' || "$first" == "'" ) ]]; then
+      value=${value:1:${#value}-2}
+    fi
+  fi
+
+  printf '%s' "$value"
+}
+
+AMAP_BUILD_JS_KEY=${NEXT_PUBLIC_AMAP_JS_KEY:-$(read_remote_env NEXT_PUBLIC_AMAP_JS_KEY)}
+AMAP_BUILD_SECURITY_CODE=${NEXT_PUBLIC_AMAP_SECURITY_CODE:-$(read_remote_env NEXT_PUBLIC_AMAP_SECURITY_CODE)}
+PUBLIC_BUILD_ARGS=()
+[[ -n "$AMAP_BUILD_JS_KEY" ]] && PUBLIC_BUILD_ARGS+=(--build-arg "NEXT_PUBLIC_AMAP_JS_KEY=$AMAP_BUILD_JS_KEY")
+[[ -n "$AMAP_BUILD_SECURITY_CODE" ]] && PUBLIC_BUILD_ARGS+=(--build-arg "NEXT_PUBLIC_AMAP_SECURITY_CODE=$AMAP_BUILD_SECURITY_CODE")
+
 echo "▶ 构建 runner (linux/amd64)"
-docker buildx build --platform linux/amd64 --target runner -t yukitrace:latest --load . >/dev/null
+docker buildx build --platform linux/amd64 --target runner -t yukitrace:latest --load "${PUBLIC_BUILD_ARGS[@]}" . >/dev/null
 if [[ "$WITH_MIGRATE" == "--with-migrate" ]]; then
   echo "▶ 构建 migrate (linux/amd64)"
   docker buildx build --platform linux/amd64 --target migrate -t yukitrace-migrate:latest --load . >/dev/null

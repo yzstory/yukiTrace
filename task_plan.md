@@ -4,7 +4,7 @@
 用 Next.js 做一个苹果风格的「带娃旅行日记 + 账本」网页应用，能记录行程（航班/租车/住宿/餐饮/游玩）、花费（多币种）、照片与备注，在高德地图上展示路线与站间距离，并内嵌 AI 助手（OpenAI 兼容接口）降低记录成本；第一版部署到阿里云 ECS（Docker Compose），后续可开放注册并演进为 App。
 
 ## 当前阶段
-阶段 11–18 全部完成并已部署到生产（http://101.37.37.200:3100）
+阶段 11–19 全部完成并已部署到生产（http://trace.aiyuki.cc）
 
 ## 各阶段
 
@@ -206,12 +206,20 @@
 - [x] 验证：MCP 走通真实协议握手与工具调用（listTrips 返回 3 段旅程及人民币合计）；年度回顾、相册、令牌页均正常
 - **状态：** complete
 
+### 阶段 19：高德 JS API Key 生产配置
+- [x] 确认 `NEXT_PUBLIC_AMAP_JS_KEY` 必须在 `next build` 时注入，运行时只更新 `.env` 不会改变浏览器 bundle
+- [x] Docker 构建与部署脚本支持安全传入高德公开变量，且不把真实 Key 提交到仓库
+- [x] 备份并更新服务器 `.env` 中的 `NEXT_PUBLIC_AMAP_JS_KEY`
+- [x] 重建、部署并验证生产 bundle 已注入 Key
+- [x] 运行工程检查并推送部署链路修复
+- **状态：** complete
+
 ## 关键问题
 0. **DNS：为 `trace.aiyuki.cc` 添加 A 记录指向 101.37.37.200**；无需对公网放行 3100，流量统一走 nginx 的 80
 1. **HTTPS：** 当前仍为 HTTP，登录凭据、Secure Cookie、PWA 安装和浏览器定位都受影响
 2. **数据备份：** 生产 PostgreSQL 尚无定时 `pg_dump` 或异地备份
 3. **访问防护：** 生产 `ALLOW_SIGNUP=true`，登录、注册、AI、高德和上传端点尚无限流
-4. **前端地图凭据：** 高德 Web 服务 Key 已验证可用，但 JS API Key 与安全密钥仍未配置
+4. **前端地图凭据：** 高德 Web 服务 Key 与 JS API Key 已配置；`NEXT_PUBLIC_AMAP_SECURITY_CODE` 仍为空，若该 JS Key 是 2021 年 12 月后申请，需补安全密钥才能稳定使用
 5. **工程保障：** 当前无自动化测试、CI、应用健康检查和告警
 
 ## 已做决策
@@ -254,6 +262,8 @@
 | OSS SDK 写入/读取成功，但参考项目公开域名读取测试对象返回 403 | 1 | 临时对象已删除；检查现有鉴权文件路由，改用私有 Bucket 的应用代理或签名 URL，避免上传后图片不可见 |
 | standalone 容器内的独立探针无法动态导入 `jose`，私有代理首次端到端测试中断 | 1 | 临时 OSS 对象已删除；改用 Node 原生 HMAC 生成兼容 HS256 测试会话，不重复模块导入方案 |
 | AI 本地 PNG 经 `/api/ai/receipt` 真实测试返回 500 | 2 | 首次在提示词增加 JSON 关键字；第二次确认空对象不满足 schema，改为 `json_object` + 完整字段模板并直接网关验证通过 |
+| 首次查找 Next.js 环境变量文档路径不存在 | 1 | 按 Next 16 包内目录定位到 `01-app/02-guides/environment-variables.md` 并完整阅读 |
+| 远程 shell 检查配置长度时引号嵌套导致本地 zsh 解析失败 | 1 | 不再复用复杂 `case` 方案，改用简单 awk 只输出原始值长度 |
 
 ## 备注
 - 服务器：101.37.37.200，root，密钥 ~/Downloads/ipad.pem，目录 /root/docker-compose/yukiTrace（已部署运行）

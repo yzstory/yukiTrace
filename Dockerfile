@@ -14,7 +14,11 @@ RUN pnpm install --frozen-lockfile
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ARG NEXT_PUBLIC_AMAP_JS_KEY=""
+ARG NEXT_PUBLIC_AMAP_SECURITY_CODE=""
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PUBLIC_AMAP_JS_KEY="${NEXT_PUBLIC_AMAP_JS_KEY}"
+ENV NEXT_PUBLIC_AMAP_SECURITY_CODE="${NEXT_PUBLIC_AMAP_SECURITY_CODE}"
 RUN pnpm prisma generate && pnpm build
 
 # ── 迁移镜像：postgres:16-alpine 自带 psql，比装 prisma CLI 小一个数量级 ──

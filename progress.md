@@ -1,5 +1,17 @@
 # 进度日志
 
+### 阶段 19：高德 JS API Key 生产配置
+- 用户提供新的高德 JS API Key，要求替换生产配置
+- 已核对 Next.js 16 包内文档：`NEXT_PUBLIC_*` 在构建期间内联并冻结，服务器运行时 `.env` 不能补进已经生成的客户端代码
+- 已确认当前 `.dockerignore` 排除 `.env`，Dockerfile 与部署脚本也未传 build arg；这是此前页面持续显示“未配置高德 Key”的直接原因
+- 已修改 Dockerfile 与 `deploy/deploy.sh`：构建阶段接收高德公开变量，部署脚本优先使用本地显式值，否则从服务器 `.env` 读取；Key 本身不进入仓库
+- 服务器原 `.env` 已备份为 `.env.bak-amap-js-20260905-211455`，新 JS Key 已写入，权限保持 `600 root:root`
+- `NEXT_PUBLIC_AMAP_SECURITY_CODE` 当前是空字符串；部署脚本会正确视为空值，不传入构建
+- `pnpm typecheck`、`pnpm lint`、`pnpm test` 全部通过；Vitest 6 个文件、47 个用例通过
+- 本机 buildx 成功构建 linux/amd64 runner，镜像已传输并重建生产 `yukitrace-app`
+- 生产验证：容器 running；静态 bundle 能匹配容器环境中的 JS Key；高德 JS API 2.0 脚本 HTTP 200、响应约 966 KB，未出现常见 Key 错误标识；应用 3100 与 nginx 域名入口均返回 200
+- 待外部条件：安全密钥未提供，无法验证需要 `securityJsCode` 的新制高德 JS Key；DNS/登录后的真实地图画布仍需用户侧最终确认
+
 ## 会话：2026-09-05
 
 ### 阶段 10：AI 本地照片上传
@@ -336,6 +348,8 @@
 |--------|------|---------|---------|
 | 2026-09-05 | `qwen3.7-plus` 1×1 图片测试不满足模型尺寸限制 | 1 | 改用 16×16 图片后返回 200，识别为白色 |
 | 2026-09-05 | thinking mode 拒绝 object 形式的强制 `tool_choice` | 1 | 按项目实际用法改测自动选择，正常返回 `tool_calls` |
+| 2026-09-05 | 首次读取 Next.js 环境变量文档使用了旧目录结构 | 1 | 从 `node_modules/next/dist/docs/01-app/02-guides/environment-variables.md` 读取 Next 16 当前文档 |
+| 2026-09-05 | 远程配置长度检查的 shell 引号嵌套被本地 zsh 拒绝 | 1 | 改用 awk 检查原始值长度，不重复复杂 case 引号方案 |
 
 ## 五问重启检查
 | 问题 | 答案 |

@@ -128,6 +128,13 @@ ShareLink(id, tripId, token, hideExpense, expiresAt)
 - `qwen3.7-plus` 网关在 `response_format=json_object` 时要求消息文本显式出现 `json`；这是票据识别首次真实端到端测试才暴露的兼容条件
 - 当前企业网关对 `json_schema` 的 strict 约束不完全可靠，实测将要求的对象包装为数组；`json_object` 配合提示词内完整字段模板能稳定返回可校验对象
 
+## 阶段 19 高德前端 Key 配置发现
+- Next.js 16 会在 `next build` 时将 `NEXT_PUBLIC_*` 的值内联到客户端 bundle，构建完成后再修改服务器 `.env` 不会生效
+- 项目 `.dockerignore` 排除了 `.env`，现有 Dockerfile 和 `deploy/deploy.sh` 没有显式传递 `NEXT_PUBLIC_AMAP_JS_KEY`，因此生产 bundle 一直得到空值
+- 正确链路应为：真实值只保存在服务器 `.env`；部署脚本经 SSH 读取非敏感公开配置，以 Docker build arg 传给 build stage；仓库只保留变量名与空示例
+- 生产 bundle 已确认包含服务器 `.env` 中的 JS Key，高德 JS API 脚本请求返回 200，说明“未配置 Key”提示的构建问题已解决
+- 服务器的 `NEXT_PUBLIC_AMAP_SECURITY_CODE` 仍为 `""`；若新 Key 受高德安全密钥机制约束，地图初始化仍可能报安全校验错误，需要用户补充对应 securityJsCode
+
 ## 资源
 - 服务器：101.37.37.200（阿里云 ECS，Alibaba Cloud Linux 8），目录 /root/docker-compose/yukiTrace
 - 高德开放平台：https://lbs.amap.com/
