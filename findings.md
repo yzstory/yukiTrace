@@ -36,6 +36,14 @@
 - openai-compatible provider：`createOpenAICompatible({ name, baseURL, apiKey })` 后 `.chatModel(id)`；流式走 SSE chunk（tool_calls 分片 arguments），非流式 generateObject 会带 `response_format`
 - 用本地 mock（/tmp/mock-openai.mjs）可离线验证整条 AI 链路，不依赖真实 Key
 
+## 视觉设计系统（2026-09-05 重设计：暖色旅行手帐）
+- **方向**：参考当下旅行类 App（大照片卡、编辑感标题、悬浮胶囊导航），定为「暖色手帐」：纸感米白底 + 极淡噪点、赭红主色、鼠尾草绿做宝宝相关、琥珀做高光/那年今日
+- **字体规则**：Fraunces 可变展示衬线（`next/font/google` 构建时自托管，国内可用；注意可变字体不能同时声明 `weight` 列表与 `axes`）只用于「英雄场景」——封面标题、大数字（`display-number`）、英文眉标（`eyebrow`）；页面标题与所有 UI 文本保持无衬线粗体，避免整页宋体发旧
+- **组件语言**：圆角 20–30、暖色层叠阴影 `card-shadow` / 照片卡 `photo-shadow`、底部渐变遮罩 `scrim`；悬浮胶囊底栏，当前项 `bg-brand-soft`
+- **token 命名**：保留 `--ios-*` 分类色名称以免大规模改组件，但值已调成暖调；新增 `brand / sage / amber` 及其 `-soft`
+- **地图与图表配色**：`DAY_COLORS` 换为同一套暖色 hex；图表仍避免多序列
+- **审查方法**：`SHOT_TRIP=<id> pnpm exec playwright test e2e/shots.spec.ts` 全站截图到 /tmp/shots，逐张看
+
 ## 技术决策
 | 决策 | 理由 |
 |------|------|
