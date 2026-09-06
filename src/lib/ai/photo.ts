@@ -2,6 +2,7 @@ import "server-only";
 import { generateObject } from "ai";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { auditedDb } from "@/lib/activity";
 import { visionModel, aiConfigured } from "@/lib/ai/model";
 import { getObject } from "@/lib/storage";
 import { log } from "@/lib/logger";
@@ -21,12 +22,12 @@ export type PhotoAnalysis = z.infer<typeof photoSchema>;
 /**
  * 对单张照片做视觉分析。失败不抛出，只写状态，避免影响上传主流程。
  */
-export async function analyzePhoto(photoId: string): Promise<PhotoAnalysis | null> {
+export async function analyzePhoto(photoId: string, actorId?: string): Promise<PhotoAnalysis | null> {
   if (!aiConfigured()) return null;
 
   const photo = await db.photo.findUnique({
     where: { id: photoId },
-    include: { trip: { select: { babyName: true, babyBirthDate: true, title: true } }, stop: { select: { name: true, city: true } } },
+    include: { trip: { select: { ownerId: true, babyName: true, babyBirthDate: true, title: true } }, stop: { select: { name: true, city: true } } },
   });
   if (!photo || photo.aiStatus === "done") return null;
 
@@ -59,8 +60,8 @@ export async function analyzePhoto(photoId: string): Promise<PhotoAnalysis | nul
       ],
     });
 
-    await db.photo.update({
-      where: { id: photoId },
+    await auditedDb({ tripId: photo.tripId, userId: actorId ?? photo.uploaderId ?? photo.trip.ownerId, source: "ai" }).photo.update({
+      where: { id: photoId, aiStatus: photo.aiStatus, caption: photo.caption, firstMoment: photo.firstMoment },
       data: {
         aiCaption: object.caption,
         aiTags: object.tags,
@@ -73,7 +74,7 @@ export async function analyzePhoto(photoId: string): Promise<PhotoAnalysis | nul
     return object;
   } catch (e) {
     log.warn("photo.analyze failed", { photoId, err: e });
-    await db.photo.update({ where: { id: photoId }, data: { aiStatus: "failed" } }).catch(() => {});
+    await db.photo.updateMany({ where: { id: photoId, aiStatus: photo.aiStatus, caption: photo.caption, firstMoment: photo.firstMoment }, data: { aiStatus: "failed" } }).catch(() => {});
     return null;
   }
 }

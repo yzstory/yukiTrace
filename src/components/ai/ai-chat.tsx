@@ -11,6 +11,8 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } f
 import { cn } from "@/lib/utils";
 import { prepareChatImage, IMAGE_ACCEPT, isProbablyHeic } from "@/lib/client-image";
 import { VoiceButton } from "./voice-button";
+import { RecordPanel } from "@/components/records/record-panel";
+import { ENTITIES, type Entity } from "@/lib/activity-data";
 import { generateTripSummary, generatePackingList } from "@/app/(app)/trips/[tripId]/ai-actions";
 
 const TOOL_LABELS: Record<string, string> = {
@@ -178,7 +180,7 @@ export function AiChat({ tripId, configured, canEdit, voiceEnabled }: { tripId: 
                 <div className="flex flex-col gap-3 py-2">
                   <AnimatePresence initial={false}>
                     {messages.map((m) => (
-                      <Message key={m.id} m={m} />
+                      <Message key={m.id} m={m} tripId={tripId} />
                     ))}
                   </AnimatePresence>
                   {(streaming || busy) && (
@@ -319,7 +321,7 @@ async function toFileParts(files: File[]): Promise<FileUIPart[]> {
   );
 }
 
-function Message({ m }: { m: UIMessage }) {
+function Message({ m, tripId }: { m: UIMessage; tripId: string }) {
   const isUser = m.role === "user";
   return (
     <motion.div
@@ -350,6 +352,11 @@ function Message({ m }: { m: UIMessage }) {
         if (p.type.startsWith("tool-")) {
           const name = p.type.slice(5);
           const state = (p as { state?: string }).state;
+          if (state === "output-available") {
+            const output = (p as { output?: { records?: Array<{ entity: string; refId: string; activityId?: string }> } }).output;
+            if (Array.isArray(output?.records)) return <div key={i} className="w-full space-y-2">{output.records.filter((record) => ENTITIES.includes(record.entity as Entity)).map((record) => <RecordPanel key={record.refId} tripId={tripId} entity={record.entity as Entity} refId={record.refId} activityId={record.activityId} expanded />)}</div>;
+          }
+          if (state === "output-error") return <p key={i} className="text-footnote text-destructive">{TOOL_LABELS[name] ?? name}失败，请重试或手动记录。</p>;
           return (
             <span key={i} className="inline-flex items-center gap-1 rounded-full bg-fill px-2 py-0.5 text-caption text-muted-foreground">
               <Wrench className="size-3" /> {TOOL_LABELS[name] ?? name}

@@ -84,6 +84,14 @@ export async function clearAll() {
   notify();
 }
 
+export async function retryQueued(store: "ops" | "photos", id: string) {
+  const database = await db();
+  if (!database) return;
+  const record = await database.get(store, id);
+  if (record) await database.put(store, { ...record, attempts: 0, lastError: undefined });
+  notify();
+}
+
 /** 队列变化广播，供角标订阅 */
 const EVENT = "yt:queue-changed";
 function notify() {

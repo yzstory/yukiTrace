@@ -4,10 +4,12 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { loadRecord, editRecord, removeRecord, undoRecord, confirmRecord } from "@/app/(app)/trips/[tripId]/record-actions";
-import { ENTITY_LABELS, FIELD_LABELS, changedFields, recordTitle, type Entity } from "@/lib/activity-data";
+import { ENTITY_LABELS, recordTitle, type Entity } from "@/lib/activity-data";
 import { RECORD_FIELDS } from "@/lib/record-fields";
 import { CURRENCIES, formatMoney } from "@/lib/currency";
 import { fmt } from "@/lib/date";
+
+import { HistoryDiff } from "./history-diff";
 
 type Detail = Awaited<ReturnType<typeof loadRecord>>;
 const inputStyle = "mt-1 min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-base";
@@ -23,7 +25,7 @@ export function RecordPanel({ tripId, entity, refId, activityId, title, expanded
     try { setDetail(await loadRecord(tripId, entity, refId)); setFailure(""); }
     catch { setFailure("记录加载失败，请重试"); }
   }, [tripId, entity, refId]);
-  useEffect(() => { if (open) void reload(); }, [open, reload]);
+  useEffect(() => { if (open) void Promise.resolve().then(reload); }, [open, reload]);
   const run = (operation: () => Promise<{ error?: string; ok?: boolean }>) => start(async () => {
     try {
       const result = await operation();
@@ -53,10 +55,10 @@ export function RecordPanel({ tripId, entity, refId, activityId, title, expanded
         {detail.canEdit && <div className="flex flex-wrap gap-2">
           <button className={buttonStyle} disabled={pending} onClick={() => setEditing(!editing)}>修改</button>
           {detail.history.some((item) => item.source === "ai" && !item.reviewedAt && !item.undoneAt) && <button className={buttonStyle} disabled={pending} onClick={() => run(() => confirmRecord(tripId, entity, refId, detail.version))}>核对无误</button>}
-          {event && !event.undoneAt && (event.actorId === detail.userId || detail.isOwner) && <button className={buttonStyle} disabled={pending} onClick={() => { if (window.confirm("撤销这次 AI 写入？若记录已有后续修改，系统会阻止撤销。")) run(() => undoRecord(tripId, event.id)); }}>撤销 AI 写入</button>}
+          {event && event.source === "ai" && ["create", "update"].includes(event.action) && !event.undoneAt && (event.actorId === detail.userId || detail.isOwner) && <button className={buttonStyle} disabled={pending} onClick={() => { if (window.confirm("撤销这次 AI 写入？若记录已有后续修改，系统会阻止撤销。")) run(() => undoRecord(tripId, event.id)); }}>撤销 AI 写入</button>}
           <button className={`${buttonStyle} text-destructive`} disabled={pending} onClick={() => { if (window.confirm("确认删除这条记录？删除后保留操作历史。")) run(() => removeRecord(tripId, entity, refId, detail.version)); }}>删除</button>
         </div>}
-        {editing && detail.canEdit && <form className="space-y-3" action={(form) => run(() => editRecord(tripId, entity, refId, detail.version, Object.fromEntries(Array.from(form.entries()).map(([key, value]) => [key, String(value)]))))}>
+        {editing && detail.canEdit && <form key={detail.version} className="space-y-3" action={(form) => run(() => editRecord(tripId, entity, refId, detail.version, Object.fromEntries(Array.from(form.entries()).map(([key, value]) => [key, String(value)]))))}>
           <p className="text-footnote text-muted-foreground">时间按 {detail.timezone} 填写。</p>
           {RECORD_FIELDS[entity].map((field) => <label key={field.key} className="block text-footnote">{field.label}
             {field.type === "textarea" ? <textarea name={field.key} defaultValue={detail.values[field.key]} required={field.required} className={inputStyle} rows={3} /> : field.type === "stop" || field.type === "currency" ? <select name={field.key} defaultValue={detail.values[field.key]} className={inputStyle}>
@@ -71,15 +73,10 @@ export function RecordPanel({ tripId, entity, refId, activityId, title, expanded
         {detail.history.map((item) => <div key={item.id} className="border-t border-border py-3">
           <p>{item.actor?.name ?? "已移除成员"} · {({ create: "新增", update: "修改", delete: "删除", undo: "撤销", confirm: "核对" } as Record<string, string>)[item.action] ?? item.action} · {item.source === "ai" ? "AI 辅助" : "手动"}</p>
           <p className="text-muted-foreground">{fmt.dateFull(new Date(item.createdAt), detail.timezone)} {fmt.time(new Date(item.createdAt), detail.timezone)}</p>
-          {item.action !== "confirm" && changedFields(item.before, item.after).map((key) => <p key={key} className="break-words">{FIELD_LABELS[key]}：{display(item.before?.[key])} → {display(item.after?.[key])}</p>)}
+          {["create", "update", "delete", "undo"].includes(item.action) && <HistoryDiff before={item.before} after={item.after} timezone={detail.timezone} />}
         </div>)}
         <p className="text-muted-foreground">显示最近 20 次操作。</p>
       </details>}
     </div>}
   </section>;
-}
-function display(value: unknown) {
-  if (value == null || value === "") return "未填写";
-  if (typeof value === "boolean") return value ? "是" : "否";
-  return (typeof value === "object" ? JSON.stringify(value) : String(value)).slice(0, 500);
 }

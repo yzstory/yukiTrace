@@ -15,7 +15,7 @@ async function noDependents(tx: Prisma.TransactionClient, tripId: string, entity
   }
   if (entity === "photo" && await tx.trip.count({ where: { id: tripId, coverKey: String(record.ossKey) } })) throw new Error("照片正在用作封面，请先更换封面");
 }
-async function checkAccess(tx: Prisma.TransactionClient, context: AuditContext) {
+export async function checkAccess(tx: Prisma.TransactionClient, context: AuditContext) {
   const trip = await tx.trip.findFirst({ where: { id: context.tripId, OR: [{ ownerId: context.userId }, { members: { some: { userId: context.userId, role: { in: ["EDITOR", "OWNER"] } } } }] }, select: { ownerId: true } });
   if (!trip) throw new Error("没有编辑权限");
   return trip;
@@ -67,6 +67,7 @@ export async function undoActivity(context: AuditContext, id: string) {
     }
     await writeActivity(tx, { ...context, source: "manual" }, entity, current, restored, "undo");
     await tx.activity.update({ where: { id }, data: { undoneAt: new Date(), reviewedAt: new Date() } });
+    if (!restored) await tx.activity.updateMany({ where: { tripId: context.tripId, entity, refId: event.refId, source: "ai", reviewedAt: null }, data: { reviewedAt: new Date() } });
     await tx.embedding.deleteMany({ where: { tripId: context.tripId, refId: event.refId } });
     if (entity === "stop") await tx.stopLeg.deleteMany({ where: { OR: [{ fromStopId: event.refId }, { toStopId: event.refId }] } });
   }, { isolationLevel: "Serializable" });

@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { requireTripAccess } from "@/lib/dal";
 import { ENTITIES, snapshot, type Entity, type Snapshot } from "@/lib/activity-data";
 import { delegate } from "@/lib/activity";
-import { changeRecord, undoActivity, versionOf } from "@/lib/record-service";
+import { changeRecord, undoActivity, versionOf, checkAccess } from "@/lib/record-service";
 import { RECORD_FIELDS } from "@/lib/record-fields";
 import { CURRENCIES, fromMinor, toMinor, convertMinor } from "@/lib/currency";
 import { fmt, parseInTz } from "@/lib/date";
@@ -78,6 +78,7 @@ export async function editRecord(tripId: string, kind: string, refId: string, ve
       const rate = await getRate(currency, trip.homeCurrency, data.paidAt as Date);
       Object.assign(data, { amountMinor, rate, amountHomeMinor: convertMinor(amountMinor, currency, trip.homeCurrency, rate), amountCnyMinor: convertMinor(amountMinor, currency, "CNY", await getRate(currency, "CNY", data.paidAt as Date)) });
     }
+    if (entity === "photo" && data.caption && ["pending", "failed"].includes(String(current.record.aiStatus))) data.aiStatus = "skipped";
     await changeRecord({ tripId, userId, source: "organize" }, entity, refId, version, data);
     refreshTrip(tripId);
     return { ok: true };
@@ -104,6 +105,7 @@ export async function confirmRecord(tripId: string, kind: string, refId: string,
   try {
     const entity = entityOf(kind);
     await db.$transaction(async (tx) => {
+      await checkAccess(tx, { tripId, userId });
       const record = await delegate(tx, entity).findUnique({ where: { id: refId, tripId } });
       if (!record || versionOf(record) !== version) throw new Error("记录已改变，请刷新后确认");
       await tx.activity.updateMany({ where: { tripId, entity, refId, source: "ai", reviewedAt: null }, data: { reviewedAt: new Date() } });

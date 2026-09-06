@@ -54,6 +54,7 @@ export function auditedDb(context: AuditContext): typeof base {
             if (result.tripId !== context.tripId) throw new Error("记录不属于当前旅程");
             const after = method === "delete" ? null : result;
             const activity = await writeActivity(tx, context, entity, before, after);
+            if (context.source !== "ai") await tx.activity.updateMany({ where: { tripId: context.tripId, entity, refId: String(result.id), source: "ai", reviewedAt: null }, data: { reviewedAt: new Date() } });
             return Object.assign(result, { activityId: activity.id });
           }, { isolationLevel: "Serializable" });
         },

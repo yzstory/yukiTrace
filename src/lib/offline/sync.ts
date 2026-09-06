@@ -8,7 +8,7 @@ const MAX_ATTEMPTS = 5;
 
 let running = false;
 
-export async function flushQueue(): Promise<SyncResult> {
+export async function flushQueue(tripId?: string): Promise<SyncResult> {
   if (running || typeof navigator === "undefined" || !navigator.onLine) return { synced: 0, failed: 0, errors: [] };
   running = true;
   const result: SyncResult = { synced: 0, failed: 0, errors: [] };
@@ -16,7 +16,7 @@ export async function flushQueue(): Promise<SyncResult> {
   try {
     const ops = await listOps();
     for (const op of ops) {
-      if (op.attempts >= MAX_ATTEMPTS) continue;
+      if ((tripId && op.tripId !== tripId) || op.attempts >= MAX_ATTEMPTS) continue;
       try {
         const res = await fetch("/api/sync", {
           method: "POST",
@@ -41,7 +41,7 @@ export async function flushQueue(): Promise<SyncResult> {
 
     const photos = await listPhotos();
     for (const p of photos) {
-      if (p.attempts >= MAX_ATTEMPTS) continue;
+      if ((tripId && p.tripId !== tripId) || p.attempts >= MAX_ATTEMPTS) continue;
       try {
         const fd = new FormData();
         fd.set("tripId", p.tripId);

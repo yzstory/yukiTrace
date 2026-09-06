@@ -2,6 +2,7 @@
 
 import { generateText } from "ai";
 import { db } from "@/lib/db";
+import { auditedDb } from "@/lib/activity";
 import { requireTripAccess } from "@/lib/dal";
 import { aiConfigured, chatModel } from "@/lib/ai/model";
 import { formatMoney } from "@/lib/currency";
@@ -12,7 +13,8 @@ import { log } from "@/lib/logger";
 
 /** 生成某一天的日记草稿（不直接覆盖已有日记，写入 aiDraft） */
 export async function generateDailyDraft(tripId: string, date: string, tone: "default" | "to_baby" = "default"): Promise<{ draft?: string; error?: string }> {
-  await requireTripAccess(tripId, "EDITOR");
+  const { userId } = await requireTripAccess(tripId, "EDITOR");
+  const db = auditedDb({ tripId, userId, source: "ai" });
   if (!aiConfigured()) return { error: "AI 未配置" };
   const gate_packing = rateLimit(`ai:packing:${tripId}`, LIMITS.aiGenerate.limit, LIMITS.aiGenerate.windowMs);
   if (!gate_packing.ok) return { error: `生成太频繁，请 ${gate_packing.retryAfterS} 秒后再试` };
@@ -61,7 +63,8 @@ export async function generateDailyDraft(tripId: string, date: string, tone: "de
  * 与 generateDailyDraft 的区别是会标注「谁记的」，适合多人同行。
  */
 export async function generateFamilyDigest(tripId: string, date: string): Promise<{ draft?: string; error?: string }> {
-  await requireTripAccess(tripId, "EDITOR");
+  const { userId } = await requireTripAccess(tripId, "EDITOR");
+  const db = auditedDb({ tripId, userId, source: "ai" });
   if (!aiConfigured()) return { error: "AI 未配置" };
   const gate = rateLimit(`ai:digest:${tripId}`, LIMITS.aiGenerate.limit, LIMITS.aiGenerate.windowMs);
   if (!gate.ok) return { error: `生成太频繁，请 ${gate.retryAfterS} 秒后再试` };

@@ -73,16 +73,19 @@ test("记录站点与花费，并在账本中折算", async ({ page }) => {
 
 test("地图与总结可访问", async ({ page }) => {
   await login(page);
+  const tripPath = await page.getByRole("link", { name: TRIP }).getAttribute("href");
   await page.getByRole("link", { name: TRIP }).click();
+  await expect(page).toHaveURL(new RegExp(`${tripPath}$`));
 
-  await page.getByRole("link", { name: "地图" }).first().click();
+  await page.locator(`a[href="${tripPath}/map"]`).click();
+  await expect(page).toHaveURL(new RegExp(`${tripPath}/map$`));
   // 境外站点走 MapLibre；国内走高德，未配 Key 时降级为路线示意图
   // 地图加载期间路线示意图与画布同时存在，取第一个即可
   await expect(
     page.locator("canvas.maplibregl-canvas").or(page.locator(".amap-container")).or(page.getByRole("img", { name: "路线示意图" })).first()
   ).toBeVisible({ timeout: 20_000 });
 
-  await page.goBack();
+  await page.goto(tripPath!);
   await page.getByRole("link", { name: "旅程总结" }).click();
   await expect(page.getByRole("heading", { name: "旅程总结" })).toBeVisible();
   await expect(page.getByText("个地方")).toBeVisible();

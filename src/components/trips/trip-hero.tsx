@@ -55,6 +55,8 @@ export function TripHero({ trip }: { trip: TripHeroData }) {
               <MoreHorizontal className="size-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-44 rounded-xl">
+              <DropdownMenuItem asChild><Link href={`/trips/${trip.id}/organize`}><ListChecks className="size-4" /> 旅程整理</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link href={`/trips/${trip.id}/activity`}><Users className="size-4" /> 家庭操作历史</Link></DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href={`/trips/${trip.id}/members`}>
                   <Users className="size-4" /> 成员与邀请

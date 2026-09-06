@@ -148,6 +148,13 @@ ShareLink(id, tripId, token, hideExpense, expiresAt)
 - 生产 bundle 已确认包含服务器 `.env` 中的 JS Key，高德 JS API 脚本请求返回 200，说明“未配置 Key”提示的构建问题已解决
 - 服务器的 `NEXT_PUBLIC_AMAP_SECURITY_CODE` 仍为 `""`；若新 Key 受高德安全密钥机制约束，地图初始化仍可能报安全校验错误，需要用户补充对应 securityJsCode
 
+## 阶段 20 产品闭环
+- AI 工具已输出实体 ID 与操作 ID，聊天窗口按真实记录加载卡片；修改和撤销均服务端鉴权并检查最新快照，不信任客户端或模型输出的权限。
+- 整理聚合疑似重复（本地日期/名称/币种/金额）、AI 待核对、缺关联地点、照片说明与本设备离线队列。重复只提示，地点关联为可选建议。
+- Activity 历史保留核心记录前后快照，历史页面分页 30 项；历史上线前与未接入的批量操作不伪造操作者，不宣称全站审计。
+- 数据库事务测试只允许本机 PostgreSQL；E2E SQL 夹具显式将 timestamp 解读为 UTC，与 Prisma 一致。原 smoke 地图定位可能命中全局导航，已改成精确旅程路径。
+- 整理删除照片保留原始存储对象与历史，当前没有通用恢复或自动回收功能，README 已说明。
+
 ## 资源
 - 服务器：101.37.37.200（阿里云 ECS，Alibaba Cloud Linux 8），目录 /root/docker-compose/yukiTrace
 - 高德开放平台：https://lbs.amap.com/
