@@ -26,6 +26,7 @@ model User {
   pushSubs    PushSubscription[]
   embeddings  Embedding[]
   mcpTokens   McpToken[]
+  activities  Activity[]
 }
 
 enum MemberRole {
@@ -77,6 +78,7 @@ model Trip {
   invites    TripInvite[]
   embeddings Embedding[]
   dailyNotes DailyNote[]
+  activities Activity[]
 
   @@index([ownerId])
 }
@@ -426,4 +428,24 @@ model ShareLink {
   createdAt   DateTime  @default(now())
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  tripId      String
+  actorId     String?
+  source      String
+  entity      String
+  refId       String
+  action      String
+  before      Json?
+  after       Json?
+  reviewedAt  DateTime?
+  undoneAt    DateTime?
+  createdAt   DateTime @default(now())
+  trip        Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  actor       User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([tripId, createdAt])
+  @@index([tripId, entity, refId])
 }

@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
 import { DAY_COLORS, formatDistance, haversine } from "@/lib/geo";
 import { fmt } from "@/lib/date";
+import { getAmapClientConfig } from "@/lib/amap-client-config";
 
 export const metadata = { title: "足迹" };
 
@@ -36,6 +37,7 @@ export default async function MapPage() {
       </div>
       <div className="overflow-hidden rounded-3xl bg-card card-shadow">
         <FootprintMap
+          amap={getAmapClientConfig()}
           className="h-[52dvh] min-h-80 w-full"
           trips={colored.map((t) => ({ id: t.id, title: t.title, color: t.color, stops: t.stops.map((s) => ({ id: s.id, name: s.name, lat: s.lat, lng: s.lng })) }))}
         />

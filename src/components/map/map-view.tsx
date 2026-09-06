@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { AMapView } from "./amap-view";
+import { AMapView, type AmapClientConfig } from "./amap-view";
 import { MapLibreView } from "./maplibre-view";
 import { isInChina } from "@/lib/geo";
 import type { MapPoint, MapPath } from "./types";
@@ -18,6 +18,7 @@ export function MapView(props: {
   onSelect?: (id: string) => void;
   onReady?: (h: MapViewHandle) => void;
   className?: string;
+  amap?: AmapClientConfig;
 }) {
   const overseas = useMemo(() => {
     if (props.points.length === 0) return false;
@@ -29,4 +30,4 @@ export function MapView(props: {
   return overseas ? <MapLibreView {...props} /> : <AMapView {...props} />;
 }
 
-export type { MapViewHandle };
+export type { MapViewHandle, AmapClientConfig };

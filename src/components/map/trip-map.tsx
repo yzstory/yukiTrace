@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Play, MapPin, ChevronRight } from "lucide-react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
-import { MapView, type MapViewHandle } from "./map-view";
+import { MapView, type MapViewHandle, type AmapClientConfig } from "./map-view";
 import type { MapPoint, MapPath } from "./types";
 import { formatDistance, formatDuration } from "@/lib/geo";
 import { fmt } from "@/lib/date";
@@ -20,7 +20,7 @@ export type TripMapStop = MapPoint & {
   legFromPrev: { distanceM: number; durationS: number | null; mode: string } | null;
 };
 
-export function TripMap({ tripId, stops, days, homeLabel, timezone }: { tripId: string; stops: TripMapStop[]; days: Array<{ index: number; date: Date; color: string }>; homeLabel: string; timezone: string }) {
+export function TripMap({ tripId, stops, days, homeLabel, timezone, amap }: { tripId: string; stops: TripMapStop[]; days: Array<{ index: number; date: Date; color: string }>; homeLabel: string; timezone: string; amap?: AmapClientConfig }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [dayFilter, setDayFilter] = useState<number | null>(null);
   const handle = useRef<MapViewHandle | null>(null);
@@ -52,7 +52,7 @@ export function TripMap({ tripId, stops, days, homeLabel, timezone }: { tripId: 
 
   return (
     <div className="relative -mx-5 -mt-6 h-[calc(100dvh-4.5rem-env(safe-area-inset-bottom))] md:-mx-8 md:-mt-10 md:h-dvh">
-      <MapView points={visible} paths={paths} selectedId={selected} onSelect={onSelect} onReady={onReady} className="h-full w-full" />
+      <MapView points={visible} paths={paths} selectedId={selected} onSelect={onSelect} onReady={onReady} className="h-full w-full" amap={amap} />
 
       {/* 顶部：返回 + 天数筛选 */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col gap-2 p-3 safe-top">

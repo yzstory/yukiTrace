@@ -1,7 +1,7 @@
 import "server-only";
 import { tool } from "ai";
 import { z } from "zod";
-import { db } from "@/lib/db";
+import { auditedDb, activityId } from "@/lib/activity";
 import { searchPoi, amapConfigured } from "@/lib/amap";
 import { CURRENCIES, toMinor, convertMinor, formatMoney } from "@/lib/currency";
 import { getRate } from "@/app/(app)/trips/[tripId]/actions";
@@ -52,6 +52,7 @@ export function tripTools(ctx: {
   attachments?: Attachment[];
 }) {
   const { tripId, userId, homeCurrency, timezone: tz } = ctx;
+  const db = auditedDb({ tripId, userId, source: "ai" });
   const timeCtx = { now: ctx.now, tz, start: ctx.startDate, end: ctx.endDate };
   const attachments = ctx.attachments ?? [];
   const pickAttachments = (indexes?: number[]) => (indexes && indexes.length ? indexes : attachments.map((_, i) => i)).map((i) => attachments[i]).filter(Boolean);
@@ -60,7 +61,7 @@ export function tripTools(ctx: {
   async function saveAttachmentsAsPhotos(indexes: number[] | undefined, opts: { stopId?: string | null; entryId?: string | null; caption?: string | null; firstMoment?: string | null }) {
     const ids: string[] = [];
     for (const a of pickAttachments(indexes)) {
-      const p = await storeTripPhoto({ tripId, buffer: a.buffer, uploaderId: userId, ...opts });
+      const p = await storeTripPhoto({ tripId, buffer: a.buffer, uploaderId: userId, source: "ai", ...opts });
       ids.push(p.id);
     }
     if (ids.length) {
@@ -167,7 +168,7 @@ export function tripTools(ctx: {
         const count = await db.stop.count({ where: { tripId } });
         const s = await db.stop.create({ data: { tripId, ...input, arriveAt: parseAiTime(input.arriveAt, timeCtx), order: count } });
         revalidatePath(`/trips/${tripId}`);
-        return { id: s.id, name: s.name, arriveAt: fmt.dateTime(s.arriveAt, tz) };
+        return { id: s.id, name: s.name, arriveAt: fmt.dateTime(s.arriveAt, tz), records: [{ entity: "stop", refId: s.id, activityId: activityId(s) }] };
       },
     }),
     createEntry: tool({
@@ -196,6 +197,7 @@ export function tripTools(ctx: {
           data: { tripId, type: input.type, title: input.title, startAt, endAt: input.endAt ? parseAiTime(input.endAt, timeCtx) : null, stopId: input.stopId ?? null, note: input.note ?? null, meta: input.meta ?? undefined },
         });
         let expenseText: string | null = null;
+        const records = [{ entity: "entry", refId: entry.id, activityId: activityId(entry) }];
         if (input.expense) {
           const cur = CURRENCIES.some((c) => c.code === input.expense!.currency) ? input.expense.currency : homeCurrency;
           const amountMinor = toMinor(input.expense.amount, cur);
@@ -219,10 +221,11 @@ export function tripTools(ctx: {
             },
           });
           expenseText = `${formatMoney(e.amountMinor, e.currency, { showCode: true })} ≈ ${formatMoney(e.amountHomeMinor, homeCurrency)}`;
+          records.push({ entity: "expense", refId: e.id, activityId: activityId(e) });
         }
         const photoIds = input.photoAttachmentIndexes?.length ? await saveAttachmentsAsPhotos(input.photoAttachmentIndexes, { stopId: input.stopId ?? null, entryId: entry.id }) : [];
         revalidatePath(`/trips/${tripId}`);
-        return { id: entry.id, title: entry.title, type: entry.type, at: fmt.dateTime(entry.startAt, tz), expense: expenseText, photosSaved: photoIds.length };
+        return { id: entry.id, title: entry.title, type: entry.type, at: fmt.dateTime(entry.startAt, tz), expense: expenseText, photosSaved: photoIds.length, records: [...records, ...photoIds.map((refId) => ({ entity: "photo", refId }))] };
       },
     }),
     addExpense: tool({
@@ -265,7 +268,7 @@ export function tripTools(ctx: {
         });
         revalidatePath(`/trips/${tripId}`);
         revalidatePath("/ledger");
-        return { id: e.id, title: e.title, amount: formatMoney(e.amountMinor, e.currency, { showCode: true }), home: formatMoney(e.amountHomeMinor, homeCurrency), receiptSaved: Boolean(receiptKey) };
+        return { id: e.id, title: e.title, amount: formatMoney(e.amountMinor, e.currency, { showCode: true }), home: formatMoney(e.amountHomeMinor, homeCurrency), receiptSaved: Boolean(receiptKey), records: [{ entity: "expense", refId: e.id, activityId: activityId(e) }] };
       },
     }),
     savePhotos: tool({
@@ -279,7 +282,7 @@ export function tripTools(ctx: {
       execute: async ({ indexes, stopId, caption, firstMoment }) => {
         if (attachments.length === 0) return { saved: 0, hint: "这条消息没有附带图片" };
         const ids = await saveAttachmentsAsPhotos(indexes, { stopId: stopId ?? null, caption: caption ?? null, firstMoment: firstMoment ?? null });
-        return { saved: ids.length, ids };
+        return { saved: ids.length, ids, records: ids.map((refId) => ({ entity: "photo", refId })) };
       },
     }),
     logBaby: tool({
@@ -288,7 +291,7 @@ export function tripTools(ctx: {
       execute: async ({ type, at, note }) => {
         const l = await db.babyLog.create({ data: { tripId, type, at: parseAiTime(at, timeCtx), note: note ?? null } });
         revalidatePath(`/trips/${tripId}`);
-        return { id: l.id, type: l.type, at: fmt.dateTime(l.at, tz) };
+        return { id: l.id, type: l.type, at: fmt.dateTime(l.at, tz), records: [{ entity: "babyLog", refId: l.id, activityId: activityId(l) }] };
       },
     }),
     saveDailyNote: tool({
@@ -296,9 +299,9 @@ export function tripTools(ctx: {
       inputSchema: z.object({ date: z.string(), content: z.string() }),
       execute: async ({ date, content }) => {
         const day = new Date(date);
-        await db.dailyNote.upsert({ where: { tripId_date: { tripId, date: day } }, update: { content }, create: { tripId, date: day, content } });
+        const note = await db.dailyNote.upsert({ where: { tripId_date: { tripId, date: day } }, update: { content }, create: { tripId, date: day, content } });
         revalidatePath(`/trips/${tripId}`);
-        return { ok: true, date };
+        return { ok: true, date, records: [{ entity: "dailyNote", refId: note.id, activityId: activityId(note) }] };
       },
     }),
   };

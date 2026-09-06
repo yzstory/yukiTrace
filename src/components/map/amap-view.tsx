@@ -15,6 +15,8 @@ import type { MapViewHandle } from "./map-view-types";
 
 export type AMapViewHandle = MapViewHandle;
 
+export type AmapClientConfig = { key: string; securityCode: string };
+
 export function AMapView({
   points,
   paths,
@@ -22,6 +24,7 @@ export function AMapView({
   onSelect,
   onReady,
   className,
+  amap,
 }: {
   points: MapPoint[];
   paths: MapPath[];
@@ -29,8 +32,11 @@ export function AMapView({
   onSelect?: (id: string) => void;
   onReady?: (h: AMapViewHandle) => void;
   className?: string;
+  /** 由服务端在运行时读取并传入，避免构建期内联导致部署后改配置不生效 */
+  amap?: AmapClientConfig;
 }) {
-  const key = process.env.NEXT_PUBLIC_AMAP_JS_KEY;
+  const key = amap?.key || process.env.NEXT_PUBLIC_AMAP_JS_KEY;
+  const securityCode = amap?.securityCode || process.env.NEXT_PUBLIC_AMAP_SECURITY_CODE;
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<AMap.Map | null>(null);
   const markersRef = useRef<Map<string, AMap.Marker>>(new Map());
@@ -42,8 +48,8 @@ export function AMapView({
   useEffect(() => {
     if (!key || !containerRef.current) return;
     let cancelled = false;
-    if (process.env.NEXT_PUBLIC_AMAP_SECURITY_CODE) {
-      window._AMapSecurityConfig = { securityJsCode: process.env.NEXT_PUBLIC_AMAP_SECURITY_CODE };
+    if (securityCode) {
+      window._AMapSecurityConfig = { securityJsCode: securityCode };
     }
     import("@amap/amap-jsapi-loader")
       .then((mod) => mod.load({ key, version: "2.0", plugins: ["AMap.MoveAnimation"] }))
@@ -68,7 +74,7 @@ export function AMapView({
       mapRef.current?.destroy();
       mapRef.current = null;
     };
-  }, [key]);
+  }, [key, securityCode]);
 
   // 渲染标记与路线
   useEffect(() => {
@@ -169,7 +175,7 @@ export function AMapView({
         <RouteSketch points={points} onSelect={onSelect} selectedId={selectedId} className="h-full w-full" />
         {!key && (
           <p className="absolute inset-x-0 bottom-0 glass px-4 py-2 text-center text-caption text-muted-foreground">
-            未配置高德 Key，当前为路线示意图。配置 NEXT_PUBLIC_AMAP_JS_KEY 后显示真实地图。
+            未配置高德 Key，当前为路线示意图。在服务器 .env 填写 AMAP_JS_KEY 与 AMAP_SECURITY_CODE 后重启即可显示真实地图。
           </p>
         )}
       </div>

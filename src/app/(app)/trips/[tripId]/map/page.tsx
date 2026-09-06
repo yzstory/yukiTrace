@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { imageUrl } from "@/lib/storage";
 import { dayIndex, tripDays, dayDate } from "@/lib/date";
 import { dayColor } from "@/lib/geo";
+import { getAmapClientConfig } from "@/lib/amap-client-config";
 
 export const metadata = { title: "地图" };
 
@@ -47,5 +48,5 @@ export default async function TripMapPage(props: PageProps<"/trips/[tripId]/map"
   const usedDays = Array.from(new Set(stops.map((s) => s.dayIndex))).sort((a, b) => a - b);
   const days = usedDays.map((i) => ({ index: i, date: dayDate(trip.startDate, i), color: dayColor(i) }));
 
-  return <TripMap tripId={tripId} stops={stops} days={days} homeLabel={trip.title} timezone={trip.timezone} />;
+  return <TripMap tripId={tripId} stops={stops} days={days} homeLabel={trip.title} timezone={trip.timezone} amap={getAmapClientConfig()} />;
 }

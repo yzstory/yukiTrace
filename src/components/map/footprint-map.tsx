@@ -2,12 +2,12 @@
 
 import { useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { MapView } from "./map-view";
+import { MapView, type AmapClientConfig } from "./map-view";
 import type { MapPoint, MapPath } from "./types";
 
 type Trip = { id: string; title: string; color: string; stops: Array<{ id: string; name: string; lat: number; lng: number }> };
 
-export function FootprintMap({ trips, className }: { trips: Trip[]; className?: string }) {
+export function FootprintMap({ trips, className, amap }: { trips: Trip[]; className?: string; amap?: AmapClientConfig }) {
   const router = useRouter();
   const [selected, setSelected] = useState<string | null>(null);
   const points: MapPoint[] = useMemo(
@@ -23,5 +23,5 @@ export function FootprintMap({ trips, className }: { trips: Trip[]; className?: 
     },
     [points, router]
   );
-  return <MapView points={points} paths={paths} selectedId={selected} onSelect={onSelect} className={className} />;
+  return <MapView points={points} paths={paths} selectedId={selected} onSelect={onSelect} className={className} amap={amap} />;
 }

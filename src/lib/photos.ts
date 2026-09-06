@@ -2,6 +2,7 @@ import "server-only";
 import sharp from "sharp";
 import exifr from "exifr";
 import { db } from "@/lib/db";
+import { auditedDb } from "@/lib/activity";
 import { makeKey, putObject } from "@/lib/storage";
 import { wgs84ToGcj02 } from "@/lib/geo";
 
@@ -64,7 +65,9 @@ export async function storeTripPhoto(opts: {
   entryId?: string | null;
   caption?: string | null;
   firstMoment?: string | null;
+  source?: "manual" | "ai";
 }) {
+  const db = auditedDb({ tripId: opts.tripId, userId: opts.uploaderId, source: opts.source });
   const img = await processImage(opts.buffer);
   const key = makeKey(opts.tripId, "webp");
   await putObject(key, img.data, "image/webp");

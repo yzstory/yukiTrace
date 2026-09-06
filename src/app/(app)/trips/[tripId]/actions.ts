@@ -7,6 +7,7 @@ import { log } from "@/lib/logger";
 import { reindexTrip } from "@/lib/ai/memory";
 import { embeddingsConfigured } from "@/lib/ai/model";
 import { db } from "@/lib/db";
+import { auditedDb } from "@/lib/activity";
 import { requireTripAccess } from "@/lib/dal";
 import { haversine, suggestMode } from "@/lib/geo";
 import { drivingRoute, walkingRoute, reverseGeocode, amapConfigured, liveWeather } from "@/lib/amap";
@@ -68,7 +69,8 @@ const stopSchema = z.object({
 });
 
 export async function createStop(tripId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
-  await requireTripAccess(tripId, "EDITOR");
+  const { userId } = await requireTripAccess(tripId, "EDITOR");
+  const db = auditedDb({ tripId, userId });
   const parsed = stopSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const d = parsed.data;
@@ -128,7 +130,8 @@ export async function createStop(tripId: string, _prev: ActionState, formData: F
 }
 
 export async function updateStop(tripId: string, stopId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
-  await requireTripAccess(tripId, "EDITOR");
+  const { userId } = await requireTripAccess(tripId, "EDITOR");
+  const db = auditedDb({ tripId, userId });
   const parsed = stopSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const d = parsed.data;
@@ -168,7 +171,8 @@ export async function updateStop(tripId: string, stopId: string, _prev: ActionSt
 }
 
 export async function deleteStop(tripId: string, stopId: string) {
-  await requireTripAccess(tripId, "EDITOR");
+  const { userId } = await requireTripAccess(tripId, "EDITOR");
+  const db = auditedDb({ tripId, userId });
   await db.stop.delete({ where: { id: stopId, tripId } });
   after(async () => {
     try {
@@ -234,6 +238,7 @@ const entrySchema = z.object({
 
 export async function createEntry(tripId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
   const { userId } = await requireTripAccess(tripId, "EDITOR");
+  const db = auditedDb({ tripId, userId });
   const parsed = entrySchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const d = parsed.data;
@@ -285,7 +290,8 @@ export async function createEntry(tripId: string, _prev: ActionState, formData: 
 }
 
 export async function updateEntry(tripId: string, entryId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
-  await requireTripAccess(tripId, "EDITOR");
+  const { userId } = await requireTripAccess(tripId, "EDITOR");
+  const db = auditedDb({ tripId, userId });
   const parsed = entrySchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const d = parsed.data;
@@ -316,7 +322,8 @@ export async function updateEntry(tripId: string, entryId: string, _prev: Action
 }
 
 export async function deleteEntry(tripId: string, entryId: string) {
-  await requireTripAccess(tripId, "EDITOR");
+  const { userId } = await requireTripAccess(tripId, "EDITOR");
+  const db = auditedDb({ tripId, userId });
   await db.entry.delete({ where: { id: entryId, tripId } });
   revalidatePath(`/trips/${tripId}`);
 }
@@ -409,6 +416,7 @@ export async function getRate(from: string, to: string, at: Date): Promise<numbe
 
 export async function createExpense(tripId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
   const { userId } = await requireTripAccess(tripId, "EDITOR");
+  const db = auditedDb({ tripId, userId });
   const parsed = expenseSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const d = parsed.data;
@@ -435,7 +443,8 @@ export async function createExpense(tripId: string, _prev: ActionState, formData
 }
 
 export async function deleteExpense(tripId: string, expenseId: string) {
-  await requireTripAccess(tripId, "EDITOR");
+  const { userId } = await requireTripAccess(tripId, "EDITOR");
+  const db = auditedDb({ tripId, userId });
   await db.expense.delete({ where: { id: expenseId, tripId } });
   revalidatePath(`/trips/${tripId}`);
   revalidatePath("/ledger");
@@ -444,14 +453,16 @@ export async function deleteExpense(tripId: string, expenseId: string) {
 // ───────────────────────── 照片 ─────────────────────────
 
 export async function deletePhoto(tripId: string, photoId: string) {
-  await requireTripAccess(tripId, "EDITOR");
+  const { userId } = await requireTripAccess(tripId, "EDITOR");
+  const db = auditedDb({ tripId, userId });
   const photo = await db.photo.delete({ where: { id: photoId, tripId } });
   await deleteObject(photo.ossKey);
   revalidatePath(`/trips/${tripId}`);
 }
 
 export async function updatePhotoCaption(tripId: string, photoId: string, caption: string) {
-  await requireTripAccess(tripId, "EDITOR");
+  const { userId } = await requireTripAccess(tripId, "EDITOR");
+  const db = auditedDb({ tripId, userId });
   await db.photo.update({ where: { id: photoId, tripId }, data: { caption: caption.trim() || null } });
   revalidatePath(`/trips/${tripId}`);
 }
@@ -461,7 +472,8 @@ export async function updatePhotoCaption(tripId: string, photoId: string, captio
 const babyLogSchema = z.object({ type: z.nativeEnum(BabyLogType), at: z.string().min(1, "请选择时间"), note: optStr });
 
 export async function createBabyLog(tripId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
-  await requireTripAccess(tripId, "EDITOR");
+  const { userId } = await requireTripAccess(tripId, "EDITOR");
+  const db = auditedDb({ tripId, userId });
   const parsed = babyLogSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   await db.babyLog.create({ data: { tripId, type: parsed.data.type, at: parseInTz(parsed.data.at, await tripTz(tripId)), note: parsed.data.note || null } });
@@ -471,7 +483,8 @@ export async function createBabyLog(tripId: string, _prev: ActionState, formData
 }
 
 export async function deleteBabyLog(tripId: string, id: string) {
-  await requireTripAccess(tripId, "EDITOR");
+  const { userId } = await requireTripAccess(tripId, "EDITOR");
+  const db = auditedDb({ tripId, userId });
   await db.babyLog.delete({ where: { id, tripId } });
   revalidatePath(`/trips/${tripId}`);
 }
@@ -479,7 +492,8 @@ export async function deleteBabyLog(tripId: string, id: string) {
 // ───────────────────────── 日记 ─────────────────────────
 
 export async function upsertDailyNote(tripId: string, date: string, content: string) {
-  await requireTripAccess(tripId, "EDITOR");
+  const { userId } = await requireTripAccess(tripId, "EDITOR");
+  const db = auditedDb({ tripId, userId });
   const day = new Date(date);
   await db.dailyNote.upsert({
     where: { tripId_date: { tripId, date: day } },
