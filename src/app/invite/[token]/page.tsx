@@ -58,7 +58,6 @@ export default async function InvitePage(props: PageProps<"/invite/[token]">) {
 }
 
 type InviteWithTrip = {
-  role: string;
   createdBy: { name: string };
   trip: { title: string; startDate: Date; endDate: Date; timezone: string; babyName: string | null };
 };
@@ -75,9 +74,7 @@ function Card({ invite }: { invite: InviteWithTrip }) {
       <p className="mt-1 text-subhead text-muted-foreground">
         {fmt.date(t.startDate, t.timezone)} – {fmt.date(t.endDate, t.timezone)} · {tripDays(t.startDate, t.endDate)} 天
       </p>
-      <span className="mt-4 inline-block rounded-full bg-fill px-3 py-1 text-footnote font-medium text-muted-foreground">
-        {invite.role === "VIEWER" ? "只读权限" : "可编辑权限"}
-      </span>
+      <span className="mt-4 inline-block rounded-full bg-fill px-3 py-1 text-footnote font-medium text-muted-foreground">加入后可以一起记录</span>
     </div>
   );
 }

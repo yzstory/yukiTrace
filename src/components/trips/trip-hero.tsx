@@ -29,8 +29,9 @@ export type TripHeroData = {
   canEdit: boolean;
 };
 
-export function TripHero({ trip }: { trip: TripHeroData }) {
+export function TripHero({ trip, tidy, tidyCount = 0 }: { trip: TripHeroData; tidy?: React.ReactNode; tidyCount?: number }) {
   const [coverOpen, setCoverOpen] = useState(false);
+  const [tidyOpen, setTidyOpen] = useState(false);
   return (
     <section className="mb-6 overflow-hidden rounded-3xl bg-card photo-shadow">
       <div className="relative aspect-[4/3] w-full bg-gradient-to-br from-[oklch(0.62_0.16_40)] via-[oklch(0.7_0.14_60)] to-[oklch(0.82_0.1_80)]">
@@ -55,8 +56,12 @@ export function TripHero({ trip }: { trip: TripHeroData }) {
               <MoreHorizontal className="size-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-44 rounded-xl">
-              <DropdownMenuItem asChild><Link href={`/trips/${trip.id}/organize`}><ListChecks className="size-4" /> 旅程整理</Link></DropdownMenuItem>
-              <DropdownMenuItem asChild><Link href={`/trips/${trip.id}/activity`}><Users className="size-4" /> 家庭操作历史</Link></DropdownMenuItem>
+              {tidy && (
+                <DropdownMenuItem onClick={() => setTidyOpen(true)}>
+                  <ListChecks className="size-4" /> 旅程整理
+                  {tidyCount > 0 && <span className="ml-auto rounded-full bg-brand-soft px-1.5 text-caption font-medium text-brand">{tidyCount}</span>}
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem asChild>
                 <Link href={`/trips/${trip.id}/members`}>
                   <Users className="size-4" /> 成员与邀请
@@ -108,6 +113,18 @@ export function TripHero({ trip }: { trip: TripHeroData }) {
             </span>
           )}
         </div>
+      )}
+
+      {tidy && (
+        <Drawer open={tidyOpen} onOpenChange={setTidyOpen}>
+          <DrawerContent className="h-[88dvh] rounded-t-3xl bg-background">
+            <DrawerHeader className="pb-1">
+              <DrawerTitle className="text-headline">旅程整理</DrawerTitle>
+              <DrawerDescription className="text-caption">先一键整理，再核对剩下的。每条记录都能看到是谁、什么时候改的。</DrawerDescription>
+            </DrawerHeader>
+            {tidy}
+          </DrawerContent>
+        </Drawer>
       )}
 
       <Drawer open={coverOpen} onOpenChange={setCoverOpen}>

@@ -16,6 +16,11 @@ import { ENTITIES, type Entity } from "@/lib/activity-data";
 import { generateTripSummary, generatePackingList } from "@/app/(app)/trips/[tripId]/ai-actions";
 
 const TOOL_LABELS: Record<string, string> = {
+  searchMemories: "翻记录",
+  listTrips: "看旅程",
+  compareSpending: "比花费",
+  findPlacesVisited: "找地点",
+  onThisDay: "查那年今日",
   listStops: "查站点",
   listEntries: "查条目",
   queryExpenses: "查花费",
@@ -32,7 +37,20 @@ const TOOL_LABELS: Record<string, string> = {
 const MAX_ATTACHMENTS = 6;
 type Pending = { id: string; file: File; url: string };
 
-export function AiChat({ tripId, configured, canEdit, voiceEnabled }: { tripId: string; configured: boolean; canEdit: boolean; voiceEnabled?: boolean }) {
+/** 不在旅程里时的开场建议：跨旅程回忆 */
+const GLOBAL_SUGGESTIONS = [
+  "我们住过哪些带婴儿床的酒店？",
+  "去年这个时候我们在哪？",
+  "哪一趟最费钱，主要花在什么上？",
+  "宝宝一共去过几个城市？",
+];
+
+/**
+ * 全站唯一的 AI 对话。tripId 为空时是跨旅程回忆问答，有 tripId 时可以直接记录到该旅程。
+ * 写权限由服务端判定；界面上不再区分只读成员。
+ */
+export function AiChat({ tripId, configured, voiceEnabled }: { tripId: string | null; configured: boolean; voiceEnabled?: boolean }) {
+  const canEdit = tripId !== null;
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const [input, setInput] = useState("");
@@ -98,6 +116,7 @@ export function AiChat({ tripId, configured, canEdit, voiceEnabled }: { tripId: 
   }
 
   function runSummary() {
+    if (!tripId) return;
     setBusy("正在写游记…");
     start(async () => {
       const r = await generateTripSummary(tripId);
@@ -110,6 +129,7 @@ export function AiChat({ tripId, configured, canEdit, voiceEnabled }: { tripId: 
     });
   }
   function runPacking() {
+    if (!tripId) return;
     setBusy("正在生成装备清单…");
     start(async () => {
       const r = await generatePackingList(tripId);
@@ -123,12 +143,14 @@ export function AiChat({ tripId, configured, canEdit, voiceEnabled }: { tripId: 
     });
   }
 
-  const quick = [
-    canEdit && { label: "刚吃了拉面 2800 日元", text: "刚在站点附近吃了拉面，2800 日元，宝宝吃了点面条" },
-    { label: "这趟花了多少", text: "这趟到现在总共花了多少？分类占比呢？" },
-    { label: "宝宝相关花费", text: "宝宝相关的花费有哪些，一共多少？" },
-    canEdit && { label: "宝宝睡了", text: "宝宝刚睡着了" },
-  ].filter(Boolean) as Array<{ label: string; text: string }>;
+  const quick: Array<{ label: string; text: string }> = tripId
+    ? [
+        { label: "刚吃了拉面 2800 日元", text: "刚在站点附近吃了拉面，2800 日元，宝宝吃了点面条" },
+        { label: "这趟花了多少", text: "这趟到现在总共花了多少？分类占比呢？" },
+        { label: "宝宝相关花费", text: "宝宝相关的花费有哪些，一共多少？" },
+        { label: "宝宝睡了", text: "宝宝刚睡着了" },
+      ]
+    : GLOBAL_SUGGESTIONS.map((text) => ({ label: text, text }));
 
   return (
     <>
@@ -136,7 +158,10 @@ export function AiChat({ tripId, configured, canEdit, voiceEnabled }: { tripId: 
         type="button"
         onClick={() => setOpen(true)}
         aria-label="AI 助手"
-        className="pressable float-action fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-[5.5rem] z-30 flex size-12 items-center justify-center rounded-full glass text-primary md:bottom-[2.25rem] md:right-[6.75rem]"
+        className={cn(
+          "pressable float-action fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] z-30 flex size-12 items-center justify-center rounded-full glass text-primary md:bottom-[2.25rem]",
+          tripId ? "right-[5.5rem] md:right-[6.75rem]" : "right-5 md:right-8"
+        )}
       >
         <Sparkles className="size-6" strokeWidth={2.2} />
       </button>
@@ -147,7 +172,7 @@ export function AiChat({ tripId, configured, canEdit, voiceEnabled }: { tripId: 
             <DrawerTitle className="flex items-center justify-center gap-1.5 text-headline">
               <Sparkles className="size-4 text-primary" /> AI 助手
             </DrawerTitle>
-            <DrawerDescription className="text-caption">随口一句话，我帮你记下来；也可以问这趟的账。</DrawerDescription>
+            <DrawerDescription className="text-caption">{tripId ? "随口一句话，我帮你记下来；也可以问这趟的账，或翻以前的旅程。" : "问问以前的旅行：住过哪、花了多少、宝宝去过几个城市。"}</DrawerDescription>
           </DrawerHeader>
 
           {!configured ? (
@@ -165,16 +190,16 @@ export function AiChat({ tripId, configured, canEdit, voiceEnabled }: { tripId: 
                         {q.label}
                       </button>
                     ))}
-                    <div className="mt-2 grid grid-cols-2 gap-2">
-                      <button type="button" onClick={runSummary} className="flex items-center gap-2 rounded-2xl bg-card px-4 py-3 text-callout card-shadow active:bg-fill">
-                        <BookOpenText className="size-4 text-ios-purple" /> 写一篇游记
-                      </button>
-                      {canEdit && (
+                    {tripId && (
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        <button type="button" onClick={runSummary} className="flex items-center gap-2 rounded-2xl bg-card px-4 py-3 text-callout card-shadow active:bg-fill">
+                          <BookOpenText className="size-4 text-ios-purple" /> 写一篇游记
+                        </button>
                         <button type="button" onClick={runPacking} className="flex items-center gap-2 rounded-2xl bg-card px-4 py-3 text-callout card-shadow active:bg-fill">
                           <ListChecks className="size-4 text-ios-green" /> 生成装备清单
                         </button>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 )}
                 <div className="flex flex-col gap-3 py-2">
@@ -281,7 +306,7 @@ export function AiChat({ tripId, configured, canEdit, voiceEnabled }: { tripId: 
                     }
                   }}
                   rows={1}
-                  placeholder={pending.length ? "这些图片是…" : canEdit ? "比如：刚打车去了小樽，3200 日元" : "问问这趟的花费或行程"}
+                  placeholder={pending.length ? "这些图片是…" : tripId ? "比如：刚打车去了小樽，3200 日元" : "问问过去的旅行…"}
                   className="max-h-32 min-h-10 flex-1 resize-none rounded-2xl bg-fill-secondary px-4 py-2.5 text-body outline-none focus:ring-2 focus:ring-ring/50"
                 />
                 {streaming ? (
@@ -321,7 +346,7 @@ async function toFileParts(files: File[]): Promise<FileUIPart[]> {
   );
 }
 
-function Message({ m, tripId }: { m: UIMessage; tripId: string }) {
+function Message({ m, tripId }: { m: UIMessage; tripId: string | null }) {
   const isUser = m.role === "user";
   return (
     <motion.div
@@ -354,7 +379,7 @@ function Message({ m, tripId }: { m: UIMessage; tripId: string }) {
           const state = (p as { state?: string }).state;
           if (state === "output-available") {
             const output = (p as { output?: { records?: Array<{ entity: string; refId: string; activityId?: string }> } }).output;
-            if (Array.isArray(output?.records)) return <div key={i} className="w-full space-y-2">{output.records.filter((record) => ENTITIES.includes(record.entity as Entity)).map((record) => <RecordPanel key={record.refId} tripId={tripId} entity={record.entity as Entity} refId={record.refId} activityId={record.activityId} expanded />)}</div>;
+            if (tripId && Array.isArray(output?.records)) return <div key={i} className="w-full space-y-2">{output.records.filter((record) => ENTITIES.includes(record.entity as Entity)).map((record) => <RecordPanel key={record.refId} tripId={tripId} entity={record.entity as Entity} refId={record.refId} activityId={record.activityId} expanded />)}</div>;
           }
           if (state === "output-error") return <p key={i} className="text-footnote text-destructive">{TOOL_LABELS[name] ?? name}失败，请重试或手动记录。</p>;
           return (

@@ -101,15 +101,19 @@ export default async function MePage() {
       <h2 className="mb-2 mt-6 px-1 text-footnote font-semibold uppercase tracking-wide text-muted-foreground">设置</h2>
       <div className="divide-y divide-border/60 rounded-2xl bg-card card-shadow">
         {process.env.VAPID_PUBLIC_KEY && <PushToggle publicKey={process.env.VAPID_PUBLIC_KEY} />}
-        <Link href="/settings/mcp" className="flex items-center justify-between px-4 py-3 text-callout">
-          MCP 接入 <span className="text-caption text-muted-foreground">在 Claude 里问自己的旅行记录</span>
-          <ChevronRight className="size-4 text-label-tertiary" />
-        </Link>
         <Link href="/trips" className="flex items-center justify-between px-4 py-3 text-callout">
           添加到主屏幕使用 <span className="text-caption text-muted-foreground">Safari 分享 → 添加到主屏幕</span>
           <ChevronRight className="size-4 text-label-tertiary" />
         </Link>
       </div>
+
+      <details className="mt-6 rounded-2xl bg-card card-shadow">
+        <summary className="cursor-pointer list-none px-4 py-3 text-caption text-muted-foreground">开发者选项</summary>
+        <Link href="/settings/mcp" className="flex items-center justify-between border-t border-border/60 px-4 py-3 text-callout">
+          MCP 接入 <span className="text-caption text-muted-foreground">让 Claude 等外部助手读取旅行记录</span>
+          <ChevronRight className="size-4 text-label-tertiary" />
+        </Link>
+      </details>
 
       <form action={logout} className="mt-6">
         <Button type="submit" variant="secondary" className="h-11 w-full rounded-xl text-callout">

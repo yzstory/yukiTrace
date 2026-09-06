@@ -2,6 +2,8 @@ import { getCurrentUser } from "@/lib/dal";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TabBar } from "@/components/layout/tab-bar";
 import { SyncBadge } from "@/components/offline/sync-badge";
+import { AiAssistant } from "@/components/ai/ai-assistant";
+import { aiConfigured, transcribeConfigured } from "@/lib/ai/model";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -13,6 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </main>
       <TabBar />
       <SyncBadge />
+      <AiAssistant configured={aiConfigured()} voiceEnabled={transcribeConfigured()} />
     </div>
   );
 }

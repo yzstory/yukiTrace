@@ -67,8 +67,6 @@ test("截图全站", async ({ page }) => {
   await page.goto(`/trips/${TRIP}/edit`); await settle(page); await shot(page, "27-edit");
   await page.goto("/trips/new"); await settle(page); await shot(page, "28-new-trip");
   await page.goto("/map"); await page.waitForTimeout(1200); await shot(page, "30-footprints");
-  await page.goto("/ledger"); await shot(page, "31-global-ledger");
-  await page.goto("/ask"); await shot(page, "32-ask");
   await page.goto("/me"); await settle(page); await shot(page, "33-me");
   await page.goto("/year/2026"); await page.waitForTimeout(800); await shot(page, "34-year");
   await page.goto("/settings/mcp"); await shot(page, "35-mcp");

@@ -437,7 +437,6 @@ export async function createExpense(tripId: string, _prev: ActionState, formData
   if ("error" in r) return { error: r.error };
   await db.expense.create({ data: r.data });
   revalidatePath(`/trips/${tripId}`);
-  revalidatePath("/ledger");
   scheduleReindex(tripId);
   return { ok: true };
 }
@@ -447,7 +446,6 @@ export async function deleteExpense(tripId: string, expenseId: string) {
   const db = auditedDb({ tripId, userId });
   await db.expense.delete({ where: { id: expenseId, tripId } });
   revalidatePath(`/trips/${tripId}`);
-  revalidatePath("/ledger");
 }
 
 // ───────────────────────── 照片 ─────────────────────────

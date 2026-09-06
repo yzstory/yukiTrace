@@ -18,7 +18,6 @@ function entityOf(value: string): Entity {
 function refreshTrip(tripId: string) {
   revalidatePath(`/trips/${tripId}`, "layout");
   revalidatePath("/trips");
-  revalidatePath("/ledger");
 }
 function message(error: unknown) {
   if (error && typeof error === "object" && "code" in error && error.code === "P2034") return "记录刚刚发生变化，请刷新后重试";

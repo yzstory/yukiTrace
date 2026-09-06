@@ -5,39 +5,23 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireTripAccess, verifySession } from "@/lib/dal";
-import { MemberRole } from "@/generated/prisma/enums";
 
 export type MemberActionState = { error?: string; ok?: boolean } | undefined;
 
-/** 生成邀请链接 */
-export async function createInvite(tripId: string, role: MemberRole, days: number, maxUses: number | null) {
+/** 生成邀请链接：加入的都是家人（可编辑），30 天有效，不限人数。只读访问走分享链接。 */
+export async function createInvite(tripId: string) {
   const { userId } = await requireTripAccess(tripId, "OWNER");
   const token = crypto.randomBytes(12).toString("base64url");
   await db.tripInvite.create({
-    data: {
-      tripId,
-      token,
-      role,
-      createdById: userId,
-      maxUses,
-      expiresAt: days > 0 ? new Date(Date.now() + days * 86400_000) : null,
-    },
+    data: { tripId, token, role: "EDITOR", createdById: userId, maxUses: null, expiresAt: new Date(Date.now() + 30 * 86400_000) },
   });
   revalidatePath(`/trips/${tripId}/members`);
+  return { token };
 }
 
 export async function revokeInvite(tripId: string, id: string) {
   await requireTripAccess(tripId, "OWNER");
   await db.tripInvite.delete({ where: { id, tripId } });
-  revalidatePath(`/trips/${tripId}/members`);
-}
-
-export async function changeMemberRole(tripId: string, memberUserId: string, role: MemberRole) {
-  const { userId } = await requireTripAccess(tripId, "OWNER");
-  if (memberUserId === userId) return; // 不能改自己
-  const trip = await db.trip.findUniqueOrThrow({ where: { id: tripId }, select: { ownerId: true } });
-  if (memberUserId === trip.ownerId) return; // 不能改所有者
-  await db.tripMember.update({ where: { tripId_userId: { tripId, userId: memberUserId } }, data: { role } });
   revalidatePath(`/trips/${tripId}/members`);
 }
 

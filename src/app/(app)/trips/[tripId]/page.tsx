@@ -5,8 +5,9 @@ import { TripHero } from "@/components/trips/trip-hero";
 import { TripTabs } from "@/components/trips/trip-tabs";
 import { Timeline } from "@/components/timeline/timeline";
 import { QuickAdd } from "@/components/quick-add/quick-add";
-import { AiChat } from "@/components/ai/ai-chat";
-import { aiConfigured, transcribeConfigured } from "@/lib/ai/model";
+import { TidySheet } from "@/components/records/tidy-sheet";
+import { tidyReport } from "@/lib/tidy";
+import { aiConfigured } from "@/lib/ai/model";
 import { requireTripAccess } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { imageUrl } from "@/lib/storage";
@@ -45,6 +46,7 @@ export default async function TripPage(props: PageProps<"/trips/[tripId]">) {
     },
   });
   if (!trip) notFound();
+  const tidy = await tidyReport(trip.id);
 
   const toPhoto = (p: (typeof trip.photos)[number]): TPhoto => ({
     id: p.id,
@@ -176,10 +178,11 @@ export default async function TripPage(props: PageProps<"/trips/[tripId]">) {
           totalDistanceM,
           canEdit,
         }}
+        tidy={<TidySheet tripId={trip.id} report={tidy} canEdit={canEdit} />}
+        tidyCount={tidy.count}
       />
       <TripTabs tripId={trip.id} />
       <Timeline days={days} trip={ttrip} />
-      <AiChat tripId={trip.id} configured={aiConfigured()} canEdit={canEdit} voiceEnabled={transcribeConfigured()} />
       {canEdit && (
         <QuickAdd
           tripId={trip.id}

@@ -267,7 +267,6 @@ export function tripTools(ctx: {
           },
         });
         revalidatePath(`/trips/${tripId}`);
-        revalidatePath("/ledger");
         return { id: e.id, title: e.title, amount: formatMoney(e.amountMinor, e.currency, { showCode: true }), home: formatMoney(e.amountHomeMinor, homeCurrency), receiptSaved: Boolean(receiptKey), records: [{ entity: "expense", refId: e.id, activityId: activityId(e) }] };
       },
     }),
@@ -324,5 +323,6 @@ ${ctx.babyName ? `宝宝：${ctx.babyName}${ctx.babyAge ? `，现在 ${ctx.babyA
    - 说是账单/收据/订单/机票/酒店确认 → 直接读图里的金额、时间、商家，调用 addExpense（用 receiptAttachmentIndex 保存凭证）或 createEntry；
    - 说是照片/宝宝/风景/第一次… → 调用 savePhotos 存进旅程，caption 用用户原话；
    - 只是提问（「这是什么」「帮我看看菜单」「翻译一下」）→ 直接回答，不要保存；
-   - 没有文字只有图片 → 一句话说出你看到了什么，问用户想记账还是存照片，不要自作主张。`;
+   - 没有文字只有图片 → 一句话说出你看到了什么，问用户想记账还是存照片，不要自作主张。
+7. 问到「以前 / 去年 / 别的旅程」时，用跨旅程工具（searchMemories、listTrips、compareSpending、findPlacesVisited、onThisDay）查，不要只看当前旅程。`;
 }
