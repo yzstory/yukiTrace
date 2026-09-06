@@ -74,7 +74,8 @@ export function wgs84ToGcj02(p: LatLng): LatLng {
 }
 
 /** 按天分配的固定颜色序列（最多 8 天循环时折叠为灰） */
-export const DAY_COLORS = ["#007AFF", "#FF9500", "#34C759", "#AF52DE", "#FF2D55", "#5AC8FA", "#FFCC00", "#8E8E93"];
+/** 与界面同一套暖色：赭红 / 海蓝 / 鼠尾草 / 李子 / 玫瑰 / 青绿 / 琥珀 / 暖灰 */
+export const DAY_COLORS = ["#D9603A", "#3F7FB5", "#4E9A85", "#8A5CA8", "#D9536F", "#3B8F9A", "#D9A441", "#8E8A84"];
 export function dayColor(index: number) {
   return index - 1 < DAY_COLORS.length ? DAY_COLORS[index - 1] : DAY_COLORS[DAY_COLORS.length - 1];
 }

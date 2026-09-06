@@ -44,7 +44,7 @@ export default async function TripsPage() {
     <>
       <PageHeader
         title="旅程"
-        subtitle="Trace"
+        subtitle="Trace · Journal"
         action={
           <Button asChild size="icon" className="size-10 rounded-full float-shadow">
             <Link href="/trips/new" aria-label="新建旅程">

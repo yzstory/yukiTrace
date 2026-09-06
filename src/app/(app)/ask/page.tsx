@@ -15,7 +15,7 @@ export default async function AskPage() {
 
   return (
     <>
-      <PageHeader title="问问" subtitle="所有旅程" />
+      <PageHeader title="问问" subtitle="Ask anything" />
       <GlobalAsk
         configured={aiConfigured()}
         voiceEnabled={transcribeConfigured()}

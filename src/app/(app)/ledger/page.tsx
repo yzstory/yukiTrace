@@ -31,10 +31,10 @@ export default async function LedgerPage() {
 
   return (
     <>
-      <PageHeader title="账本" subtitle="所有旅程" />
+      <PageHeader title="账本" subtitle="All trips" />
       <section className="rounded-3xl bg-card p-5 card-shadow">
-        <p className="text-footnote font-medium text-muted-foreground">{year} 年旅行花费</p>
-        <p className="mt-1 text-[2.5rem] font-bold leading-none tracking-tight">{formatMoney(thisYear, "CNY")}</p>
+        <p className="eyebrow">{year} · Travel spend</p>
+        <p className="mt-1 display-number text-[2.75rem] leading-none">{formatMoney(thisYear, "CNY")}</p>
         <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border/60 pt-4">
           <Kpi label="累计" value={formatMoney(total, "CNY", { compact: true })} />
           <Kpi label="宝宝相关" value={formatMoney(baby, "CNY", { compact: true })} />

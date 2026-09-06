@@ -24,13 +24,14 @@ export function AuthForm({ mode, next, allowSignup }: Props) {
     >
       <div className="mb-8 flex flex-col items-center text-center">
         <Image src="/icons/icon-192.png" alt="Trace" width={64} height={64} className="mb-4 size-16 rounded-2xl float-shadow" priority />
-        <h1 className="text-title-1">{mode === "login" ? "欢迎回来" : "创建账号"}</h1>
+        <p className="eyebrow mb-1">Trace · Journal</p>
+        <h1 className="font-display text-title-1">{mode === "login" ? "欢迎回来" : "创建账号"}</h1>
         <p className="mt-1 text-subhead text-muted-foreground">
           {mode === "login" ? "继续记录你们的旅程" : "开始记录带宝宝出行的每一站"}
         </p>
       </div>
 
-      <form action={formAction} className="rounded-2xl bg-card p-5 card-shadow">
+      <form action={formAction} className="rounded-3xl bg-card p-5 card-shadow">
         {next && <input type="hidden" name="next" value={next} />}
         <div className="flex flex-col gap-4">
           {mode === "signup" && (

@@ -41,7 +41,7 @@ export function QuickAdd({ tripId, stops, homeCurrency, tripStart, tripEnd, time
         type="button"
         onClick={() => setOpen(true)}
         aria-label="快速记录"
-        className="pressable float-action fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-5 z-30 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground float-shadow md:bottom-8 md:right-8"
+        className="pressable float-action fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] right-5 z-30 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground float-shadow md:bottom-8 md:right-8"
       >
         <Plus className="size-7" strokeWidth={2.4} />
       </button>
@@ -88,10 +88,10 @@ export function QuickAdd({ tripId, stops, homeCurrency, tripStart, tripEnd, time
 
 function Menu({ onPick, aiEnabled }: { onPick: (m: Mode) => void; aiEnabled?: boolean }) {
   const primary: Array<{ mode: Mode; label: string; icon: typeof MapPin; color: string; bg: string }> = [
-    { mode: { kind: "stop" }, label: "地点", icon: MapPin, color: "text-primary", bg: "bg-primary/12" },
+    { mode: { kind: "stop" }, label: "地点", icon: MapPin, color: "text-brand", bg: "bg-brand-soft" },
     { mode: { kind: "expense" }, label: "花费", icon: Wallet, color: "text-ios-green", bg: "bg-ios-green/15" },
     { mode: { kind: "photo" }, label: "照片", icon: Camera, color: "text-ios-pink", bg: "bg-ios-pink/12" },
-    { mode: { kind: "baby" }, label: "宝宝", icon: Baby, color: "text-ios-teal", bg: "bg-ios-teal/15" },
+    { mode: { kind: "baby" }, label: "宝宝", icon: Baby, color: "text-sage", bg: "bg-sage-soft" },
   ];
   return (
     <div className="flex flex-col gap-5 pt-1">

@@ -28,7 +28,7 @@ export default async function MapPage() {
 
   return (
     <>
-      <PageHeader title="足迹" subtitle="所有旅程" />
+      <PageHeader title="足迹" subtitle="Footprints" />
       <div className="mb-4 grid grid-cols-3 gap-3">
         <Kpi value={String(trips.length)} label="段旅程" />
         <Kpi value={String(cities.size)} label="座城市" />
@@ -63,7 +63,7 @@ export default async function MapPage() {
 function Kpi({ value, label }: { value: string; label: string }) {
   return (
     <div className="rounded-2xl bg-card px-3 py-3 text-center card-shadow">
-      <p className="whitespace-nowrap text-[1.25rem] font-semibold leading-tight tracking-tight">{value}</p>
+      <p className="display-number whitespace-nowrap text-[1.5rem] leading-none">{value}</p>
       <p className="text-caption text-muted-foreground">{label}</p>
     </div>
   );

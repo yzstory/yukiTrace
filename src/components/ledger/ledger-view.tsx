@@ -87,8 +87,8 @@ export function LedgerView({
     <div className="flex flex-col gap-5">
       {/* 英雄数字 */}
       <section className="rounded-3xl bg-card p-5 card-shadow">
-        <p className="text-footnote font-medium text-muted-foreground">{cat || babyOnly ? "筛选后合计" : "总花费"}</p>
-        <p className="mt-1 text-[2.5rem] font-bold leading-none tracking-tight">{formatMoney(total, homeCurrency)}</p>
+        <p className="eyebrow">{cat || babyOnly ? "Filtered" : "Total"}</p>
+        <p className="mt-1 display-number text-[2.75rem] leading-none">{formatMoney(total, homeCurrency)}</p>
         {byCurrency.length > 0 && (
           <p className="mt-2 text-caption text-muted-foreground">含 {byCurrency.map(([c, m]) => formatMoney(m, c, { showCode: true })).join(" · ")}</p>
         )}

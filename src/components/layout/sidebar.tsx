@@ -12,7 +12,7 @@ export function Sidebar({ user }: { user: { name: string; email: string } }) {
     <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-border/60 bg-sidebar px-3 py-5 md:flex">
       <Link href="/trips" className="mb-8 flex items-center gap-2.5 px-2">
         <Image src="/icons/icon-192.png" alt="" width={36} height={36} className="size-9 rounded-xl" priority />
-        <span className="text-headline">Trace</span>
+        <span className="font-display text-[1.25rem] font-semibold tracking-tight">Trace</span>
       </Link>
 
       <nav className="flex flex-col gap-1">

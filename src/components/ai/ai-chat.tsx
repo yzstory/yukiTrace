@@ -134,7 +134,7 @@ export function AiChat({ tripId, configured, canEdit, voiceEnabled }: { tripId: 
         type="button"
         onClick={() => setOpen(true)}
         aria-label="AI 助手"
-        className="pressable float-action fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-[5.5rem] z-30 flex size-12 items-center justify-center rounded-full glass text-primary md:bottom-[2.25rem] md:right-[6.75rem]"
+        className="pressable float-action fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-[5.5rem] z-30 flex size-12 items-center justify-center rounded-full glass text-primary md:bottom-[2.25rem] md:right-[6.75rem]"
       >
         <Sparkles className="size-6" strokeWidth={2.2} />
       </button>

@@ -18,7 +18,7 @@ export function Timeline({ days, trip }: { days: TDay[]; trip: TTrip }) {
         <span className="mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <Footprints className="size-8" />
         </span>
-        <h2 className="text-title-2">开始记录第一站</h2>
+        <h2 className="font-display text-title-2">开始记录第一站</h2>
         <p className="mt-1 max-w-xs text-subhead text-muted-foreground">点右下角的 + ，添加地点、航班、餐食或一笔花费。</p>
       </div>
     );
@@ -33,15 +33,15 @@ export function Timeline({ days, trip }: { days: TDay[]; trip: TTrip }) {
         if (empty && !trip.canEdit) return null;
         return (
           <section key={day.index} id={`day-${day.index}`}>
-            <header className="mb-3 flex items-baseline justify-between">
-              <h2 className="text-title-2">
-                Day {day.index}
-                <span className="ml-2 text-subhead font-normal text-muted-foreground">
+            <header className="sticky top-2 z-10 mb-3 flex items-center justify-between">
+              <h2 className="glass inline-flex items-baseline gap-2 rounded-full px-3.5 py-1.5">
+                <span className="eyebrow not-italic text-[12px] font-semibold tracking-widest">Day {day.index}</span>
+                <span className="text-footnote text-muted-foreground">
                   {fmt.date(day.date, trip.timezone)} {fmt.weekday(day.date, trip.timezone)}
                 </span>
               </h2>
               {day.totalHomeMinor > 0 && (
-                <span className="text-footnote tabular-nums text-muted-foreground">{formatMoney(day.totalHomeMinor, trip.homeCurrency)}</span>
+                <span className="glass rounded-full px-3 py-1.5 display-number text-[13px] text-muted-foreground">{formatMoney(day.totalHomeMinor, trip.homeCurrency)}</span>
               )}
             </header>
 

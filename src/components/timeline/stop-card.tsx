@@ -20,9 +20,9 @@ export function StopCard({ stop, trip, stopOptions = [] }: { stop: TStop; trip: 
   const tz = stop.timezone || trip.timezone;
   const crossTz = Boolean(stop.timezone && stop.timezone !== trip.timezone);
   return (
-    <article className="relative rounded-2xl bg-card p-4 card-shadow">
+    <article className="relative rounded-[22px] bg-card p-4 card-shadow">
       <div className="flex items-start gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand">
           <Icon className="size-5" strokeWidth={2.2} />
         </span>
         <div className="min-w-0 flex-1">
@@ -51,7 +51,7 @@ export function StopCard({ stop, trip, stopOptions = [] }: { stop: TStop; trip: 
           {(stop.babyTags.length > 0 || trip.babyBirthDate) && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               {trip.babyBirthDate && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-ios-teal/15 px-2 py-0.5 text-caption font-medium text-ios-teal">
+                <span className="inline-flex items-center gap-1 rounded-full bg-sage-soft px-2 py-0.5 text-caption font-medium text-sage">
                   <Baby className="size-3" /> {trip.babyName ?? "宝宝"} {babyAge(trip.babyBirthDate, stop.arriveAt)}
                 </span>
               )}

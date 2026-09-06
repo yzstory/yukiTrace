@@ -8,7 +8,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-dvh">
       <Sidebar user={user} />
-      <main className="min-w-0 flex-1 pb-24 md:pb-8">
+      <main className="min-w-0 flex-1 pb-32 md:pb-8">
         <div className="mx-auto w-full max-w-3xl px-5 pt-6 md:px-8 md:pt-10">{children}</div>
       </main>
       <TabBar />

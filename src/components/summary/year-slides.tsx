@@ -10,13 +10,13 @@ import { cn } from "@/lib/utils";
 import type { YearReview } from "@/lib/ai/year-review";
 
 const GRADS = [
-  "from-[#0A5BD6] to-[#3B9CFF]",
-  "from-[#FF7A00] to-[#FFB86B]",
-  "from-[#1AA36A] to-[#5CE0A5]",
-  "from-[#6A34D9] to-[#B08CFF]",
-  "from-[#E0296C] to-[#FF7EB3]",
-  "from-[#0EA5B7] to-[#6EE7F5]",
-  "from-[#1F1F24] to-[#4A4A55]",
+  "from-[oklch(0.55_0.16_40)] to-[oklch(0.75_0.14_65)]",
+  "from-[oklch(0.5_0.1_165)] to-[oklch(0.72_0.09_150)]",
+  "from-[oklch(0.5_0.12_260)] to-[oklch(0.7_0.1_215)]",
+  "from-[oklch(0.5_0.14_320)] to-[oklch(0.7_0.14_350)]",
+  "from-[oklch(0.62_0.17_20)] to-[oklch(0.8_0.12_50)]",
+  "from-[oklch(0.55_0.11_200)] to-[oklch(0.78_0.08_180)]",
+  "from-[oklch(0.25_0.02_50)] to-[oklch(0.42_0.03_60)]",
 ];
 
 export function YearSlides({ review }: { review: YearReview }) {
@@ -28,7 +28,7 @@ export function YearSlides({ review }: { review: YearReview }) {
     setSaving(true);
     try {
       const { toPng } = await import("html-to-image");
-      const dataUrl = await toPng(ref.current, { pixelRatio: 2, cacheBust: true, backgroundColor: "#0d0d0d" });
+      const dataUrl = await toPng(ref.current, { pixelRatio: 2, cacheBust: true, backgroundColor: "#1c1917" });
       const a = document.createElement("a");
       a.href = dataUrl;
       a.download = `${review.year}年旅行回顾.png`;
@@ -62,7 +62,7 @@ export function YearSlides({ review }: { review: YearReview }) {
         </button>
       </div>
 
-      <div ref={ref} className="flex flex-col gap-3 bg-[#0d0d0d] p-3 md:rounded-3xl">
+      <div ref={ref} className="flex flex-col gap-3 bg-[oklch(0.17_0.01_55)] p-3 md:rounded-3xl">
         <Slide grad={GRADS[0]}>
           <p className="text-footnote font-semibold uppercase tracking-widest text-white/70">年度回顾</p>
           <p className="mt-2 text-[5rem] font-bold leading-none tracking-tight">{review.year}</p>

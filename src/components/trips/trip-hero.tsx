@@ -32,18 +32,18 @@ export type TripHeroData = {
 export function TripHero({ trip }: { trip: TripHeroData }) {
   const [coverOpen, setCoverOpen] = useState(false);
   return (
-    <section className="mb-6 overflow-hidden rounded-3xl bg-card card-shadow">
-      <div className="relative aspect-[16/9] w-full bg-gradient-to-br from-ios-blue/80 to-ios-indigo/80">
+    <section className="mb-6 overflow-hidden rounded-3xl bg-card photo-shadow">
+      <div className="relative aspect-[4/3] w-full bg-gradient-to-br from-[oklch(0.62_0.16_40)] via-[oklch(0.7_0.14_60)] to-[oklch(0.82_0.1_80)]">
         {trip.coverUrl ? (
           <Image src={trip.coverUrl} alt={trip.title} fill sizes="(max-width: 768px) 100vw, 720px" className="object-cover" priority unoptimized />
         ) : (
           <Footprints className="absolute right-6 top-6 size-20 text-white/25" strokeWidth={1.5} />
         )}
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent p-5 pt-20 text-white">
-          <p className="text-footnote font-medium text-white/80">
+        <div className="absolute inset-x-0 bottom-0 scrim p-5 pt-24 text-white">
+          <p className="font-display text-[15px] italic tracking-wide text-white/85">
             {fmt.dateFull(trip.startDate, trip.timezone)} – {fmt.date(trip.endDate, trip.timezone)} · {tripDays(trip.startDate, trip.endDate)} 天
           </p>
-          <h1 className="mt-0.5 text-large-title text-white">{trip.title}</h1>
+          <h1 className="mt-1 font-display text-[2.25rem] font-semibold leading-[1.1] tracking-tight text-white">{trip.title}</h1>
           {trip.description && <p className="mt-1 text-subhead text-white/85">{trip.description}</p>}
         </div>
         <div className="absolute right-3 top-3 flex gap-2 safe-top">
@@ -87,7 +87,7 @@ export function TripHero({ trip }: { trip: TripHeroData }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 divide-x divide-border/60 px-2 py-3 text-center">
+      <div className="grid grid-cols-3 divide-x divide-border/60 px-2 py-4 text-center">
         <Stat icon={Footprints} value={`${trip.stopCount}`} label="站" />
         <Stat icon={Route} value={trip.totalDistanceM ? formatDistance(trip.totalDistanceM) : "—"} label="里程" />
         <Stat icon={Wallet} value={formatMoney(trip.totalHomeMinor, trip.homeCurrency, { compact: true })} label="花费" />
@@ -96,7 +96,7 @@ export function TripHero({ trip }: { trip: TripHeroData }) {
       {(trip.travelers.length > 0 || trip.babyBirthDate) && (
         <div className="flex flex-wrap items-center gap-2 border-t border-border/60 px-5 py-3 text-footnote text-muted-foreground">
           {trip.babyBirthDate && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-ios-teal/15 px-2.5 py-1 font-medium text-ios-teal">
+            <span className="inline-flex items-center gap-1 rounded-full bg-sage-soft px-2.5 py-1 font-medium text-sage">
               <Baby className="size-3.5" /> {trip.babyName ?? "宝宝"} · 出发时 {babyAge(trip.babyBirthDate, trip.startDate)}
             </span>
           )}
@@ -127,7 +127,7 @@ function Stat({ icon: Icon, value, label }: { icon: typeof Footprints; value: st
   return (
     <div className="flex flex-col items-center gap-0.5 px-2">
       <Icon className="size-4 text-label-tertiary" />
-      <span className="text-headline tabular-nums">{value}</span>
+      <span className="display-number text-[1.375rem] leading-none">{value}</span>
       <span className="text-caption text-muted-foreground">{label}</span>
     </div>
   );
