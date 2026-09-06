@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { prepareChatImage, IMAGE_ACCEPT, isProbablyHeic } from "@/lib/client-image";
 import { VoiceButton } from "./voice-button";
 import { RecordPanel } from "@/components/records/record-panel";
+import { Markdown } from "./markdown";
 import { ENTITIES, type Entity } from "@/lib/activity-data";
 import { generateTripSummary, generatePackingList } from "@/app/(app)/trips/[tripId]/ai-actions";
 
@@ -369,8 +370,8 @@ function Message({ m, tripId }: { m: UIMessage; tripId: string | null }) {
         if (p.type === "text") {
           if (!p.text.trim()) return null;
           return (
-            <div key={i} className={cn("max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-callout", isUser ? "bg-primary text-primary-foreground" : "bg-card card-shadow")}>
-              {p.text}
+            <div key={i} className={cn("max-w-[85%] rounded-2xl px-3.5 py-2 text-callout", isUser ? "whitespace-pre-wrap bg-primary text-primary-foreground" : "bg-card card-shadow")}>
+              {isUser ? p.text : <Markdown text={p.text} />}
             </div>
           );
         }

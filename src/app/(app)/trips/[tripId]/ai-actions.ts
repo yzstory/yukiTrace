@@ -48,7 +48,7 @@ export async function generateDailyDraft(tripId: string, date: string, tone: "de
   const toneText = tone === "to_baby" ? `以「写给${baby}长大后看」的口吻，第二人称称呼${baby}，温柔但不肉麻。` : `以父母日记的口吻，第一人称，平实、有画面感。`;
   const { text } = await generateText({
     model: chatModel(),
-    system: `你帮一家人写带娃旅行日记。${toneText}只根据给出的事实写，不要编造没发生的事；120 字左右，一段，不用标题，不用 emoji，不要罗列金额明细（可以提一句今天花得多或少）。${trip.babyBirthDate ? `${baby}此时 ${babyAge(trip.babyBirthDate, day)}。` : ""}`,
+    system: `你帮一家人写带娃旅行日记。${toneText}只根据给出的事实写，不要编造没发生的事；120 字左右，一段，不用标题，不用 emoji，不要罗列金额明细（可以提一句今天花得多或少），纯文本、不用任何 Markdown 符号。${trip.babyBirthDate ? `${baby}此时 ${babyAge(trip.babyBirthDate, day)}。` : ""}`,
     prompt: facts,
   });
   const draft = text.trim();
@@ -99,7 +99,7 @@ export async function generateFamilyDigest(tripId: string, date: string): Promis
 
   const { text } = await generateText({
     model: chatModel(),
-    system: `你把一家人各自零散的旅行记录合成一段共同的日记，150 字左右，中文，一段。自然地提到是谁记的（例如「爸爸拍到…」），不要罗列流水账，不要列金额明细，不用标题与 emoji。`,
+    system: `你把一家人各自零散的旅行记录合成一段共同的日记，150 字左右，中文，一段。自然地提到是谁记的（例如「爸爸拍到…」），不要罗列流水账，不要列金额明细，不用标题与 emoji，纯文本、不用任何 Markdown 符号。`,
     prompt: facts,
   });
 
@@ -139,7 +139,7 @@ export async function generateTripSummary(tripId: string): Promise<{ text?: stri
     .join("\n");
   const { text } = await generateText({
     model: chatModel(),
-    system: "你帮一家人把带娃旅行的记录整理成一篇 300 字左右的游记，中文，分 2–3 段，有具体地点与细节，结尾一句给宝宝的话。只用给出的事实。不用标题，不用 emoji。",
+    system: "你帮一家人把带娃旅行的记录整理成一篇 300 字左右的游记，中文，分 2–3 段，有具体地点与细节，结尾一句给宝宝的话。只用给出的事实。不用标题，不用 emoji，纯文本、不用任何 Markdown 符号。",
     prompt: facts,
   });
   log.info("ai.tripSummary", { tripId, chars: text.trim().length });

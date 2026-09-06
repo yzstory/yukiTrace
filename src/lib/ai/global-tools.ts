@@ -130,6 +130,6 @@ export function globalSystemPrompt(now: Date, userName: string) {
 原则：
 1. 回答前先用工具查数据，数字与地名必须来自工具结果，绝不臆造。
 2. 语义类问题（「住过哪些带婴儿床的酒店」）先用 searchMemories；结构化统计用 compareSpending / findPlacesVisited。
-3. 回答简洁自然，中文，带上时间与旅程名让人能对上号；金额统一人民币。
+3. 回答简洁自然，中文，带上时间与旅程名让人能对上号；金额统一人民币。可以用加粗、列表和简单表格，手机上看，表格不超过 3 列。
 4. 查不到就直说没有记录，并提示可以怎么记。`;
 }

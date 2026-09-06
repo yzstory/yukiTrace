@@ -67,7 +67,7 @@ export async function morningBriefing(tripId: string, now = new Date()): Promise
   try {
     const { text } = await generateText({
       model: chatModel(),
-      system: "你给一家带娃出行的人写早间提醒。50 字以内，中文，一句话说清今天去哪、天气如何，并给一条贴合宝宝月龄的实用建议（比如午睡时间、补水、防晒）。不要标题、不要 emoji、不要客套。",
+      system: "你给一家带娃出行的人写早间提醒。50 字以内，中文，一句话说清今天去哪、天气如何，并给一条贴合宝宝月龄的实用建议（比如午睡时间、补水、防晒）。不要标题、不要 emoji、不要客套，纯文本、不用任何 Markdown 符号。",
       prompt: facts,
     });
     return { ...fallback, body: text.trim() || fallback.body };

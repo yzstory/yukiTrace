@@ -126,7 +126,7 @@ export async function yearReview(userId: string, year: number): Promise<YearRevi
     try {
       const { text } = await generateText({
         model: chatModel(),
-        system: `你替一对父母给孩子写一封 ${review.year} 年的年终短信，150 字左右，中文，第二人称称呼孩子。基于给出的事实，温柔但不肉麻，结尾一句期待明年。不要标题、不要 emoji、不要罗列数字清单。`,
+        system: `你替一对父母给孩子写一封 ${review.year} 年的年终短信，150 字左右，中文，第二人称称呼孩子。基于给出的事实，温柔但不肉麻，结尾一句期待明年。不要标题、不要 emoji、不要罗列数字清单，纯文本、不用任何 Markdown 符号。`,
         prompt: [
           `孩子：${review.babyName ?? "宝宝"}，年初 ${review.babyStartAge ?? "未知"}，年末 ${review.babyEndAge ?? "未知"}`,
           `这一年出行 ${review.tripCount} 段，共 ${review.dayCount} 天，去了 ${review.cityCount} 座城市：${review.cities.join("、")}`,
