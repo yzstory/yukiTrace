@@ -7,6 +7,8 @@ import { Timeline } from "@/components/timeline/timeline";
 import { QuickAdd } from "@/components/quick-add/quick-add";
 import { TidySheet } from "@/components/records/tidy-sheet";
 import { tidyReport } from "@/lib/tidy";
+import { unstampedCitiesForTrip } from "@/lib/passport";
+import { StampNudge } from "@/components/passport/stamp-nudge";
 import { aiConfigured } from "@/lib/ai/model";
 import { requireTripAccess } from "@/lib/dal";
 import { db } from "@/lib/db";
@@ -22,7 +24,7 @@ export async function generateMetadata(props: PageProps<"/trips/[tripId]">): Pro
 
 export default async function TripPage(props: PageProps<"/trips/[tripId]">) {
   const { tripId } = await props.params;
-  const { role } = await requireTripAccess(tripId);
+  const { role, userId } = await requireTripAccess(tripId);
   const canEdit = role !== "VIEWER";
 
   const trip = await db.trip.findUnique({
@@ -47,6 +49,7 @@ export default async function TripPage(props: PageProps<"/trips/[tripId]">) {
   });
   if (!trip) notFound();
   const tidy = await tidyReport(trip.id);
+  const unstamped = await unstampedCitiesForTrip(userId, trip.id);
 
   const toPhoto = (p: (typeof trip.photos)[number]): TPhoto => ({
     id: p.id,
@@ -182,6 +185,7 @@ export default async function TripPage(props: PageProps<"/trips/[tripId]">) {
         tidyCount={tidy.count}
       />
       <TripTabs tripId={trip.id} />
+      <StampNudge cities={unstamped} />
       <Timeline days={days} trip={ttrip} />
       {canEdit && (
         <QuickAdd

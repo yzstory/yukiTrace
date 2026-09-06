@@ -79,6 +79,7 @@ model Trip {
   embeddings Embedding[]
   dailyNotes DailyNote[]
   activities Activity[]
+  stamps     CityStamp[]
 
   @@index([ownerId])
 }
@@ -448,4 +449,20 @@ model Activity {
 
   @@index([tripId, createdAt])
   @@index([tripId, entity, refId])
+}
+
+/// 旅行护照的章：城市由站点实时推导，这里只落「已盖章」状态与 AI 写的一句话
+model CityStamp {
+  id       String   @id @default(cuid())
+  tripId   String
+  city     String
+  /// 章上的一句话，≤ 24 字
+  line     String?
+  /// ai | template
+  source   String   @default("template")
+  inkedAt  DateTime @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, city])
 }

@@ -167,3 +167,9 @@ ShareLink(id, tripId, token, hideExpense, expiresAt)
 
 ---
 *每执行2次查看/浏览器/搜索操作后更新此文件*
+
+## 旅行护照（2026-09-06）
+- 章由站点城市实时推导，只把「已盖章 + 文案」落库（CityStamp 唯一键 tripId+city），删站点不会留下孤儿章
+- SVG 章：双环 + textPath 弧形文字 + feTurbulence 颗粒滤镜做油墨感；色相由城市名哈希决定，倾斜角 ±8° 内
+- 旅程页「新城市待盖章」提示复用 passportFor，按首访旅程过滤；成本一次查询
+- Prisma 加表后 typecheck 报 cityStamp 不存在：migrate dev 后仍需手动 prisma generate（与 adcode 那次相同）

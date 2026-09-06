@@ -11,6 +11,8 @@ import { db } from "@/lib/db";
 import { imageUrl } from "@/lib/storage";
 import { fmt, babyAge } from "@/lib/date";
 import { reviewableYears } from "@/lib/ai/year-review";
+import { passportFor } from "@/lib/passport";
+import { PassportCard } from "@/components/passport/passport-card";
 import { Sparkle } from "lucide-react";
 
 export const metadata = { title: "我" };
@@ -37,10 +39,12 @@ export default async function MePage() {
   }
   const pairs = Array.from(byCity.entries()).filter(([, l]) => l.length >= 2 && l.some((x) => x.photoKey));
   const years = await reviewableYears(user.id);
+  const passport = await passportFor(user.id);
 
   return (
     <>
       <PageHeader title="我" />
+      <PassportCard babyName={passport.babyName} cities={passport.stats.cities} pending={passport.stats.cities - passport.stats.inked} />
       <div className="rounded-2xl bg-card p-5 card-shadow">
         <div className="flex items-center gap-4">
           <span className="flex size-14 items-center justify-center rounded-full bg-fill text-title-2 font-semibold">{user.name.slice(0, 1)}</span>
