@@ -4,7 +4,7 @@ import { z } from "zod";
 import { auditedDb, activityId } from "@/lib/activity";
 import { searchPoi, amapConfigured } from "@/lib/amap";
 import { CURRENCIES, toMinor, convertMinor, formatMoney } from "@/lib/currency";
-import { getRate } from "@/app/(app)/trips/[tripId]/actions";
+import { getRate } from "@/lib/services/expenses";
 import { EntryType, ExpenseCategory, StopType } from "@/generated/prisma/enums";
 import { fmt, parseInTz } from "@/lib/date";
 import { revalidatePath } from "next/cache";

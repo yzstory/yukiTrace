@@ -3,6 +3,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
+import { tripRole, type Role } from "@/lib/access";
 
 /** 数据访问层：每个需要登录的 Server Component / Action 先调用 */
 export const verifySession = cache(async () => {
@@ -21,17 +22,13 @@ export const getCurrentUser = cache(async () => {
   return user;
 });
 
-/** 校验用户对某旅程是否有访问权，返回角色 */
-export async function requireTripAccess(tripId: string, minRole: "VIEWER" | "EDITOR" | "OWNER" = "VIEWER") {
+const RANK: Record<Role, number> = { VIEWER: 0, EDITOR: 1, OWNER: 2 };
+
+/** 校验用户对某旅程是否有访问权，返回角色；页面语境下不够权限就跳转 */
+export async function requireTripAccess(tripId: string, minRole: Role = "VIEWER") {
   const { userId } = await verifySession();
-  const trip = await db.trip.findUnique({
-    where: { id: tripId },
-    select: { id: true, ownerId: true, members: { where: { userId }, select: { role: true } } },
-  });
-  if (!trip) redirect("/trips");
-  const role = trip.ownerId === userId ? "OWNER" : trip.members[0]?.role;
+  const role = await tripRole(userId, tripId);
   if (!role) redirect("/trips");
-  const rank = { VIEWER: 0, EDITOR: 1, OWNER: 2 } as const;
-  if (rank[role] < rank[minRole]) redirect(`/trips/${tripId}`);
+  if (RANK[role] < RANK[minRole]) redirect(`/trips/${tripId}`);
   return { userId, role };
 }

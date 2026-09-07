@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { storeTripPhoto, storeImageOnly } from "@/lib/photos";
-import { getSession } from "@/lib/session";
+import { requestUserId } from "@/lib/api/auth";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { analyzePhotos, autoPickCover } from "@/lib/ai/photo";
@@ -16,10 +16,10 @@ export const maxDuration = 60;
 const MAX_BYTES = 25 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
-  const session = await getSession();
-  if (!session?.userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const userId = await requestUserId(req);
+  if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const limited = rateLimit(`upload:${session.userId}`, LIMITS.upload.limit, LIMITS.upload.windowMs);
+  const limited = rateLimit(`upload:${userId}`, LIMITS.upload.limit, LIMITS.upload.windowMs);
   if (!limited.ok) return tooManyRequests(limited, "上传太频繁");
 
   const form = await req.formData();
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   if (!tripId || files.length === 0) return NextResponse.json({ error: "bad request" }, { status: 400 });
 
   const trip = await db.trip.findFirst({
-    where: { id: tripId, OR: [{ ownerId: session.userId }, { members: { some: { userId: session.userId, role: { in: ["OWNER", "EDITOR"] } } } }] },
+    where: { id: tripId, OR: [{ ownerId: userId }, { members: { some: { userId: userId, role: { in: ["OWNER", "EDITOR"] } } } }] },
     select: { id: true },
   });
   if (!trip) return NextResponse.json({ error: "forbidden" }, { status: 403 });
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
         results.push({ key: await storeImageOnly(tripId, input), purpose });
         continue;
       }
-      const photo = await storeTripPhoto({ tripId, buffer: input, uploaderId: session.userId, stopId, entryId });
+      const photo = await storeTripPhoto({ tripId, buffer: input, uploaderId: userId, stopId, entryId });
       results.push({ id: photo.id, key: photo.ossKey, stopId: photo.stopId, takenAt: photo.takenAt });
     } catch {
       failures.push(`${file.name} 无法解码${/heic|heif/i.test(file.type + file.name) ? "（HEIC 需在手机端转换后重试）" : ""}`);
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
 
   revalidatePath(`/trips/${tripId}`);
   revalidatePath("/trips");
-  log.info("upload.done", { userId: session.userId, tripId, ok: results.length, failed: failures.length });
+  log.info("upload.done", { userId: userId, tripId, ok: results.length, failed: failures.length });
 
   // 响应先返回，照片理解放到后台跑
   const newIds = results.map((r) => r.id).filter((id): id is string => Boolean(id));

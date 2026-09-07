@@ -246,6 +246,20 @@
 - [x] 发布生产（2026-09-07 09:57，含 city_stamps 迁移；首次后台部署被中断，重跑成功）
 - **状态：** complete
 
+### 阶段 21：JSON API 层（为小程序 / App 铺路）
+- **目标：** 所有写操作从 Server Actions 抽到 `src/lib/services/*`，Actions 变薄壳；新增 `/api/v1/*` JSON 接口复用同一套服务；非浏览器客户端用访问令牌鉴权
+- **鉴权：** `Authorization: Bearer tra_…`（API 令牌，登录接口签发，设置页可撤销）或会话 cookie；MCP 令牌（trc_）仍只读、只用于 MCP
+- **数据：** McpToken 加 `scope`（mcp | api）
+- **错误：** 服务层抛 `ApiError(status, message)`；Action 捕获转 `{error}`；路由转 JSON + 状态码
+- **范围：** 认证、我、令牌、旅程 CRUD、站点/条目/花费/照片/宝宝/日记、记录（查/改/删/撤销/确认）、成员/邀请、分享链接、清单、整理、AI 生成、护照、汇率；旧的 /api/* 也接受 Bearer
+- **验证：** typecheck / lint / vitest；新增 `e2e/api.spec.ts`（注册 → 令牌 → 建旅程 → 记录 → 读详情 → 改记录 → 删旅程 → 注销）；原 e2e 全部回归；`docs/api.md`
+- [x] 服务层 + 错误/鉴权基础
+- [x] Actions 改薄壳，旧 API 路由接受 Bearer
+- [x] /api/v1 路由（41 个）
+- [x] 测试与文档（api.spec 通过；e2e 回归 9/9，修正了成员页过时用例；docs/api.md）
+- [ ] 发布生产（需迁移 token_scope）
+- **状态：** in_progress
+
 ## 关键问题
 0. **DNS：为 `trace.aiyuki.cc` 添加 A 记录指向 101.37.37.200**；无需对公网放行 3100，流量统一走 nginx 的 80
 1. **HTTPS：** 当前仍为 HTTP，登录凭据、Secure Cookie、PWA 安装和浏览器定位都受影响

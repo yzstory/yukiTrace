@@ -2,17 +2,13 @@ import { headers } from "next/headers";
 import { BackButton } from "@/components/layout/back-button";
 import { McpPanel, type TokenRow } from "@/components/settings/mcp-panel";
 import { verifySession } from "@/lib/dal";
-import { db } from "@/lib/db";
+import { listTokens } from "@/lib/services/tokens";
 
 export const metadata = { title: "MCP 接入" };
 
 export default async function McpSettingsPage() {
   const { userId } = await verifySession();
-  const tokens: TokenRow[] = await db.mcpToken.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-    select: { id: true, name: true, prefix: true, createdAt: true, lastUsedAt: true },
-  });
+  const tokens: TokenRow[] = await listTokens({ userId });
 
   const h = await headers();
   const host = h.get("host") ?? "localhost:3000";

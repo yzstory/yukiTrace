@@ -371,6 +371,13 @@
 | 2026-09-05 | 首次读取 Next.js 环境变量文档使用了旧目录结构 | 1 | 从 `node_modules/next/dist/docs/01-app/02-guides/environment-variables.md` 读取 Next 16 当前文档 |
 | 2026-09-05 | 远程配置长度检查的 shell 引号嵌套被本地 zsh 拒绝 | 1 | 改用 awk 检查原始值长度，不重复复杂 case 引号方案 |
 
+### 2026-09-07 阶段 21：JSON API 层
+- 新增 `src/lib/access.ts`（tripRole / assertTripAccess）、`src/lib/api/{errors,auth,handler}.ts`、`src/lib/services/*`（16 个服务模块）
+- 11 个 Server Action 文件改为薄壳；trip 页改用 `tripDetail` 服务，与 `/api/v1/trips/[tripId]` 同一份数据
+- McpToken 加 `scope`（迁移 20260907052130_token_scope），设置页显示「API 读写 / MCP 只读」
+- 41 个 `/api/v1` 路由；旧 `/api/*` 接受 Bearer；`/api/sync` 直接走服务层
+- `e2e/api.spec.ts` 通过（10s）；typecheck / lint / vitest 55 通过；`docs/api.md`、README 更新
+
 ## 五问重启检查
 | 问题 | 答案 |
 |------|------|

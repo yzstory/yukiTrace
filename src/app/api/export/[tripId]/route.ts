@@ -1,16 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { requestUserId } from "@/lib/api/auth";
 import { fromMinor } from "@/lib/currency";
 import { EXPENSE_CATEGORIES } from "@/lib/entry-types";
 import { fmt } from "@/lib/date";
 
 export async function GET(req: NextRequest, ctx: RouteContext<"/api/export/[tripId]">) {
-  const session = await getSession();
-  if (!session?.userId) return new NextResponse("unauthorized", { status: 401 });
+  const userId = await requestUserId(req);
+  if (!userId) return new NextResponse("unauthorized", { status: 401 });
   const { tripId } = await ctx.params;
   const trip = await db.trip.findFirst({
-    where: { id: tripId, OR: [{ ownerId: session.userId }, { members: { some: { userId: session.userId } } }] },
+    where: { id: tripId, OR: [{ ownerId: userId }, { members: { some: { userId: userId } } }] },
     include: { expenses: { orderBy: { paidAt: "asc" }, include: { stop: { select: { name: true } }, paidBy: { select: { name: true } } } } },
   });
   if (!trip) return new NextResponse("not found", { status: 404 });

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { generateObject } from "ai";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { requestUserId } from "@/lib/api/auth";
 import { aiConfigured, chatModel } from "@/lib/ai/model";
 import { EntryType, StopType } from "@/generated/prisma/enums";
 import { CURRENCIES } from "@/lib/currency";
@@ -40,11 +40,11 @@ export type ImportResult = z.infer<typeof schema>;
 
 /** 粘贴航班确认邮件 / 酒店预订单 / 行程单，解析成可确认的条目草稿（不直接落库） */
 export async function POST(req: NextRequest) {
-  const session = await getSession();
-  if (!session?.userId) return NextResponse.json({ error: "请先登录" }, { status: 401 });
+  const userId = await requestUserId(req);
+  if (!userId) return NextResponse.json({ error: "请先登录" }, { status: 401 });
   if (!aiConfigured()) return NextResponse.json({ error: "AI 未配置" }, { status: 503 });
 
-  const limited = rateLimit(`ai:import:${session.userId}`, LIMITS.aiGenerate.limit, LIMITS.aiGenerate.windowMs);
+  const limited = rateLimit(`ai:import:${userId}`, LIMITS.aiGenerate.limit, LIMITS.aiGenerate.windowMs);
   if (!limited.ok) return tooManyRequests(limited, "解析次数用得有点快");
 
   const body = (await req.json().catch(() => null)) as { text?: string; tripId?: string } | null;
@@ -53,12 +53,12 @@ export async function POST(req: NextRequest) {
   if (text.length > MAX_CHARS) return NextResponse.json({ error: `内容太长（超过 ${MAX_CHARS} 字）` }, { status: 413 });
 
   const trip = await db.trip.findFirst({
-    where: { id: body.tripId, OR: [{ ownerId: session.userId }, { members: { some: { userId: session.userId, role: { in: ["OWNER", "EDITOR"] } } } }] },
+    where: { id: body.tripId, OR: [{ ownerId: userId }, { members: { some: { userId: userId, role: { in: ["OWNER", "EDITOR"] } } } }] },
     select: { id: true, title: true, timezone: true, homeCurrency: true, startDate: true, endDate: true },
   });
   if (!trip) return NextResponse.json({ error: "无权限" }, { status: 403 });
 
-  const done = log.timer("ai.import", { userId: session.userId, tripId: trip.id, chars: text.length });
+  const done = log.timer("ai.import", { userId: userId, tripId: trip.id, chars: text.length });
   try {
     const { object } = await generateObject({
       model: chatModel(),
@@ -81,7 +81,7 @@ ${text}`,
     done({ entries: object.entries.length, stops: object.stops.length });
     return NextResponse.json(object);
   } catch (e) {
-    log.error("ai.import failed", { userId: session.userId, err: e });
+    log.error("ai.import failed", { userId: userId, err: e });
     return NextResponse.json({ error: "解析失败，请检查内容或稍后重试" }, { status: 502 });
   }
 }

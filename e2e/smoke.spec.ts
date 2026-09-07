@@ -99,10 +99,8 @@ test("成员页可访问并能生成邀请链接", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "成员", exact: true, level: 1 })).toBeVisible();
   await expect(page.getByText("所有者")).toBeVisible();
 
-  await page.getByRole("button", { name: "新建邀请链接" }).click();
-  const dialog = page.getByRole("dialog");
-  await expect(dialog).toBeVisible();
-  await dialog.getByRole("button", { name: "生成" }).click();
+  // 简化后的成员页：一个按钮直接生成家人邀请链接（可编辑，30 天有效）
+  await page.getByRole("button", { name: "生成邀请链接并复制" }).click();
   await expect(page.getByText(/\/invite\//)).toBeVisible();
 });
 

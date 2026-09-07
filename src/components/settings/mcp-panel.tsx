@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { fmt } from "@/lib/date";
 import { issueMcpToken, revokeMcpToken } from "@/app/(app)/settings/mcp/actions";
 
-export type TokenRow = { id: string; name: string; prefix: string; createdAt: Date; lastUsedAt: Date | null };
+export type TokenRow = { id: string; name: string; prefix: string; scope: string; createdAt: Date; lastUsedAt: Date | null };
 
 export function McpPanel({ tokens, baseUrl }: { tokens: TokenRow[]; baseUrl: string }) {
   const [pending, start] = useTransition();
@@ -68,12 +68,16 @@ export function McpPanel({ tokens, baseUrl }: { tokens: TokenRow[]; baseUrl: str
 
       <section className="rounded-2xl bg-card card-shadow">
         <h2 className="px-4 pt-3 text-footnote font-semibold uppercase tracking-wide text-muted-foreground">令牌 {tokens.length}</h2>
+        <p className="px-4 pt-1 text-caption text-muted-foreground">小程序 / App 登录签发的 API 令牌也列在这里，删除即下线该设备。</p>
         <ul className="divide-y divide-border/60">
           {tokens.map((t) => (
             <li key={t.id} className="flex items-center gap-3 px-4 py-3">
               <KeyRound className="size-4 shrink-0 text-muted-foreground" />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-callout">{t.name}</span>
+                <span className="flex items-center gap-2 truncate text-callout">
+                  {t.name}
+                  <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${t.scope === "api" ? "bg-amber/15 text-amber" : "bg-fill text-muted-foreground"}`}>{t.scope === "api" ? "API 读写" : "MCP 只读"}</span>
+                </span>
                 <span className="block truncate text-caption text-muted-foreground">
                   {t.prefix}… · {t.lastUsedAt ? `最近使用 ${fmt.date(t.lastUsedAt)}` : "尚未使用"}
                 </span>

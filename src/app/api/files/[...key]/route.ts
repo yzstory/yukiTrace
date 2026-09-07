@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import sharp from "sharp";
 import { getObject } from "@/lib/storage";
-import { getSession } from "@/lib/session";
+import { requestUserId } from "@/lib/api/auth";
 import { db } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -13,12 +13,12 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/files/[...ke
   const tripId = objectKey.match(/^trips\/([^/]+)\//)?.[1];
   if (!tripId) return new NextResponse("bad key", { status: 400 });
 
-  const session = await getSession();
-  if (session?.userId) {
+  const userId = await requestUserId(req);
+  if (userId) {
     const trip = await db.trip.findFirst({
       where: {
         id: tripId,
-        OR: [{ ownerId: session.userId }, { members: { some: { userId: session.userId } } }],
+        OR: [{ ownerId: userId }, { members: { some: { userId: userId } } }],
       },
       select: { id: true },
     });

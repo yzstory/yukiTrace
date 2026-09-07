@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getSession } from "@/lib/session";
+import { requestUserId } from "@/lib/api/auth";
 import { searchPoi, amapConfigured } from "@/lib/amap";
 
 export async function GET(req: NextRequest) {
-  const session = await getSession();
-  if (!session?.userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const userId = await requestUserId(req);
+  if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
   const city = req.nextUrl.searchParams.get("city") ?? undefined;
   if (!q) return NextResponse.json({ results: [], configured: amapConfigured() });

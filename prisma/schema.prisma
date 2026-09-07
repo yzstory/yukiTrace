@@ -403,15 +403,17 @@ model PushSubscription {
   @@index([userId])
 }
 
-/// 外部助手（Claude 等）通过 MCP 访问旅行记录的令牌
+/// 访问令牌：mcp = 外部助手（Claude 等）通过 MCP 只读访问；api = 小程序 / App 通过 /api/v1 读写
 model McpToken {
   id         String    @id @default(cuid())
   userId     String
   name       String
   /// 只存哈希，明文仅在创建时展示一次
   tokenHash  String    @unique
-  /// 展示用前缀，例如 trc_a1b2…
+  /// 展示用前缀，例如 trc_a1b2…（MCP）/ tra_a1b2…（API）
   prefix     String
+  /// mcp | api
+  scope      String    @default("mcp")
   lastUsedAt DateTime?
   createdAt  DateTime  @default(now())
 

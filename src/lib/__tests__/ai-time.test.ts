@@ -4,7 +4,7 @@ vi.mock("server-only", () => ({}));
 // tools.ts 顶部会 import db/amap 等服务端模块，这里只测纯函数，打桩掉重依赖
 vi.mock("@/lib/db", () => ({ db: {} }));
 vi.mock("@/lib/amap", () => ({ searchPoi: vi.fn(), amapConfigured: () => false }));
-vi.mock("@/app/(app)/trips/[tripId]/actions", () => ({ getRate: vi.fn() }));
+vi.mock("@/lib/services/expenses", () => ({ getRate: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 const { parseAiTime } = await import("@/lib/ai/tools");

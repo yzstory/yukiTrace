@@ -43,11 +43,14 @@ flowchart LR
   U[手机 / 桌面浏览器\nPWA] --> N[Nginx\ntrace.aiyuki.cc]
   N --> A[Next.js 16\nApp Router]
 
+  X[小程序 / App / 脚本\nBearer 令牌] --> N
+
   subgraph APP[应用容器]
     A --> S[Server Components\nServer Actions]
-    A --> R[Route Handlers\n上传 / AI / 导出]
-    S --> P[Prisma 7\nDriver Adapter]
-    R --> P
+    A --> R[Route Handlers\n/api/v1 · 上传 / AI / 导出]
+    S --> L[服务层\nsrc/lib/services]
+    R --> L
+    L --> P[Prisma 7\nDriver Adapter]
   end
 
   P --> D[(PostgreSQL 16)]
@@ -57,7 +60,7 @@ flowchart LR
 
   classDef core fill:#e8f2ff,stroke:#1677ff,color:#10233f;
   classDef data fill:#e9fbf6,stroke:#14a88b,color:#123c33;
-  class A,S,R,P core;
+  class A,S,R,L,P core;
   class D,M,O,AI data;
 ```
 
@@ -122,8 +125,10 @@ deploy/deploy.sh --with-migrate
 ## 项目结构
 
 ```text
-src/app/                 页面、Server Actions 与 Route Handlers
+src/app/                 页面、Server Actions（薄壳）与 Route Handlers
+src/app/api/v1/          JSON API：令牌鉴权，供小程序 / App / 脚本使用（见 docs/api.md）
 src/components/          时间线、地图、账本、AI、分享及基础 UI
+src/lib/services/        业务服务层：Server Actions 与 /api/v1 共用同一套校验、鉴权与写入
 src/lib/                 认证、数据库、地图、货币、存储与 AI 工具
 prisma/                  Schema 与迁移
 public/                  PWA、离线页、品牌与图标资源

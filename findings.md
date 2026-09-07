@@ -173,3 +173,10 @@ ShareLink(id, tripId, token, hideExpense, expiresAt)
 - SVG 章：双环 + textPath 弧形文字 + feTurbulence 颗粒滤镜做油墨感；色相由城市名哈希决定，倾斜角 ±8° 内
 - 旅程页「新城市待盖章」提示复用 passportFor，按首访旅程过滤；成本一次查询
 - Prisma 加表后 typecheck 报 cityStamp 不存在：migrate dev 后仍需手动 prisma generate（与 adcode 那次相同）
+
+## JSON API 层（2026-09-07）
+- 服务层函数签名统一为 `(actor: { userId }, tripId, input)`，输入用 zod 预处理把表单字符串与 JSON 数字/布尔/数组收成同一形态；必填字段用 `reqStr` 让「缺字段」和「空串」给同一句中文
+- 错误用 `ApiError(status, message)`：Action 端 `asActionResult` 收成 `{ error }`，路由端翻成状态码；zod 的英文 invalid_type / invalid_value 在 `firstIssue` 统一改中文
+- `revalidatePath` 与 `after` 在 Route Handler 里同样可用，所以放在服务层一处即可，网页与 API 写入都会让页面缓存失效
+- MCP 令牌承诺过「只读」，因此 API 令牌单独一种 scope（前缀 tra_），互不通用；旧的 `/api/*` 路由全部改用 `requestUserId(req)`，Bearer 与 cookie 都行
+- 删除类 Action 必须保持 `Promise<void>`，组件把它们直接当 `<form action>` 用，返回对象会报类型错

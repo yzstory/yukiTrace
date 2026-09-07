@@ -1,21 +1,16 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
-import { createMcpToken } from "@/lib/mcp-tokens";
+import { asActionResult } from "@/lib/api/errors";
+import { issueToken, revokeToken } from "@/lib/services/tokens";
 
+/** 设置页只签发只读的 MCP 令牌；读写的 API 令牌由 /api/v1/auth/login 签发 */
 export async function issueMcpToken(name: string): Promise<{ token?: string; error?: string }> {
-  const { userId } = await verifySession();
-  const count = await db.mcpToken.count({ where: { userId } });
-  if (count >= 10) return { error: "令牌数量已达上限，请先删除一些" };
-  const token = await createMcpToken(userId, name);
-  revalidatePath("/settings/mcp");
-  return { token };
+  const actor = await verifySession();
+  return asActionResult(() => issueToken(actor, name, "mcp"));
 }
 
 export async function revokeMcpToken(id: string) {
-  const { userId } = await verifySession();
-  await db.mcpToken.deleteMany({ where: { id, userId } });
-  revalidatePath("/settings/mcp");
+  const actor = await verifySession();
+  await revokeToken(actor, id);
 }
