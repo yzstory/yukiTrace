@@ -359,7 +359,9 @@
 | 注册/登录 Server Action 端到端 | Playwright WebKit | 成功注册并登录 | 通过 | ✅ |
 
 ## 会话 2026-09-06 晚：旅行护照
-- 开始阶段 19；先加表与迁移，再做推导库、页面与入口
+- 阶段 19 实现完成并提交 7a2ddcb：CityStamp 表、passport-core 纯函数、/passport 页、SVG 章、入口卡与旅程提示
+- 验证：typecheck / lint / 55 单测 / passport e2e 通过；截图发现底部弧线文字反向、里程换行、同日双城都算第一座城市，均已修
+- 首次 `deploy.sh --with-migrate` 后台进程被中断未完成；2026-09-07 重跑成功，线上迁移到 city_stamps，/login 200，日志无错误
 
 ## 错误日志
 | 时间戳 | 错误 | 尝试次数 | 解决方案 |
