@@ -50,19 +50,36 @@ export type TripSummary = {
   stopCount: number; photoCount: number; totalHomeMinor: number; cities: string[]; role: "OWNER" | "EDITOR" | "VIEWER";
 };
 
-/** 用户可见的旅程列表（拥有的 + 受邀的），按开始日期倒序 */
-export async function listTrips(actor: Actor): Promise<TripSummary[]> {
-  const trips = await db.trip.findMany({
+const listSchema = z.object({
+  /** 不传表示不分页，返回全部（网页与老客户端的行为） */
+  limit: z.preprocess((v) => (v == null || v === "" ? undefined : v), z.coerce.number().int().min(1, "limit 需要在 1-100 之间").max(100, "limit 需要在 1-100 之间").optional()),
+  cursor: optStr,
+});
+
+/** 用户可见的旅程列表（拥有的 + 受邀的），按开始日期倒序；`limit` 时用 `nextCursor` 翻页 */
+export async function listTrips(actor: Actor, input: Input = {}): Promise<{ trips: TripSummary[]; nextCursor: string | null }> {
+  const { limit, cursor } = parse(listSchema, input);
+  if (cursor && !(await db.trip.findFirst({ where: { AND: [visibleTrips(actor.userId), { id: cursor }] }, select: { id: true } }))) throw badRequest("cursor 无效");
+  const rows = await db.trip.findMany({
     where: visibleTrips(actor.userId),
-    orderBy: { startDate: "desc" },
+    // id 兜底排序，保证同一天开始的旅程在翻页时顺序稳定
+    orderBy: [{ startDate: "desc" }, { id: "desc" }],
+    ...(limit ? { take: limit + 1 } : {}),
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     include: {
       _count: { select: { stops: true, photos: true } },
-      expenses: { select: { amountHomeMinor: true } },
       stops: { select: { city: true }, distinct: ["city"], where: { city: { not: null } }, take: 4 },
       members: { where: { userId: actor.userId }, select: { role: true } },
     },
   });
-  return trips.map((t) => ({
+  const trips = limit ? rows.slice(0, limit) : rows;
+  const nextCursor = limit && rows.length > limit ? trips[trips.length - 1].id : null;
+  // 总花费用聚合算，不把每笔账都读进内存
+  const sums = trips.length
+    ? await db.expense.groupBy({ by: ["tripId"], where: { tripId: { in: trips.map((t) => t.id) } }, _sum: { amountHomeMinor: true } })
+    : [];
+  const totals = new Map(sums.map((s) => [s.tripId, s._sum.amountHomeMinor ?? 0]));
+  return { nextCursor, trips: trips.map((t) => ({
     id: t.id,
     title: t.title,
     description: t.description,
@@ -76,10 +93,10 @@ export async function listTrips(actor: Actor): Promise<TripSummary[]> {
     travelers: t.travelers,
     stopCount: t._count.stops,
     photoCount: t._count.photos,
-    totalHomeMinor: t.expenses.reduce((s, e) => s + e.amountHomeMinor, 0),
+    totalHomeMinor: totals.get(t.id) ?? 0,
     cities: t.stops.map((s) => s.city!).filter(Boolean),
     role: t.ownerId === actor.userId ? "OWNER" : (t.members[0]?.role ?? "VIEWER"),
-  }));
+  })) };
 }
 
 export type TripDetail = {
@@ -99,24 +116,30 @@ export type TripDetail = {
   totalDistanceM: number;
 };
 
-/** 旅程全量详情：站点树（条目 / 花费 / 照片挂在站点下）+ 游离记录 + 宝宝状态 + 日记 */
-export async function tripDetail(actor: Actor, tripId: string): Promise<TripDetail> {
+/**
+ * 旅程全量详情：站点树（条目 / 花费 / 照片挂在站点下）+ 游离记录 + 宝宝状态 + 日记。
+ * `photos: false` 只跳过照片（地图页 / 账本页用不到），照片多的旅程能少传很多。
+ */
+export async function tripDetail(actor: Actor, tripId: string, opts: { photos?: boolean } = {}): Promise<TripDetail> {
   const role = await assertTripAccess(actor.userId, tripId);
+  const withPhotos = opts.photos !== false;
+  // 不要照片时用一个必然不匹配的条件跳过，include 结构与返回类型都保持不变
+  const NONE = { id: "" };
   const trip = await db.trip.findUnique({
     where: { id: tripId },
     include: {
       stops: {
         orderBy: [{ arriveAt: "asc" }, { order: "asc" }],
         include: {
-          entries: { orderBy: { startAt: "asc" }, include: { expenses: true, photos: { orderBy: { takenAt: "asc" } } } },
+          entries: { orderBy: { startAt: "asc" }, include: { expenses: true, photos: { where: withPhotos ? undefined : NONE, orderBy: { takenAt: "asc" } } } },
           expenses: { where: { entryId: null }, orderBy: { paidAt: "asc" } },
-          photos: { where: { entryId: null }, orderBy: { takenAt: "asc" } },
+          photos: { where: withPhotos ? { entryId: null } : NONE, orderBy: { takenAt: "asc" } },
           legsTo: true,
         },
       },
-      entries: { where: { stopId: null }, orderBy: { startAt: "asc" }, include: { expenses: true, photos: true } },
+      entries: { where: { stopId: null }, orderBy: { startAt: "asc" }, include: { expenses: true, photos: { where: withPhotos ? undefined : NONE } } },
       expenses: { where: { stopId: null, entryId: null }, orderBy: { paidAt: "asc" } },
-      photos: { where: { stopId: null, entryId: null }, orderBy: { takenAt: "asc" } },
+      photos: { where: withPhotos ? { stopId: null, entryId: null } : NONE, orderBy: { takenAt: "asc" } },
       dailyNotes: { orderBy: { date: "asc" } },
       members: { select: { userId: true } },
       babyLogs: { orderBy: { at: "asc" } },

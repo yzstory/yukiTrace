@@ -1,0 +1,3 @@
+.cover { position: relative; height: 280rpx; border-radius: var(--radius); background: var(--fill); overflow: hidden; margin-bottom: 8rpx; display: flex; align-items: center; justify-content: center; }
+.cover-img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.cover-hint { position: relative; padding: 12rpx 24rpx; border-radius: 999rpx; background: rgba(0,0,0,0.45); color: #fff; font-size: 26rpx; }

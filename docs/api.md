@@ -22,7 +22,7 @@ MCP 令牌（`trc_…`）只能用于 `/api/mcp`，且只读，**不能**调用 
 | 403 | 没有权限（如非所有者删旅程） |
 | 404 | 旅程不存在或不可见 |
 | 409 | 记录已被别人改过，需刷新 version |
-| 429 | 触发频率限制 |
+| 429 | 触发频率限制（`/api/v1` 的写接口每个用户 120 次 / 分钟，响应带 `Retry-After`） |
 | 503 | AI 未配置或暂时不可用 |
 
 ## 快速开始
@@ -44,6 +44,8 @@ curl -s $BASE/api/v1/trips -H "authorization: Bearer $TOKEN" | jq '.trips[0]'
 | POST | `/auth/login` | `{ email, password, device? }` → `{ token, user }` |
 | POST | `/auth/signup` | `{ email, password, name, device? }` → `{ token, user }`（`ALLOW_SIGNUP=false` 时 403） |
 | POST | `/auth/logout` | 撤销当前令牌（cookie 登录则清会话） |
+| POST | `/auth/wechat` | 微信一键登录 `{ code, device? }`：已绑定 → `{ bound: true, token, user }`；未绑定 → `{ bound: false }`。首次绑定在 `/auth/login` 里附带 `wxCode`（登录成功后绑定，返回 `wechatBound`）。需要服务器配置 `WECHAT_APPID / WECHAT_SECRET`，否则 503 |
+| GET / DELETE | `/auth/wechat` | 绑定状态 `{ configured, bound }` / 解绑 |
 | GET | `/me` | 当前用户 |
 | GET | `/tokens` | 我的令牌（含 scope、最近使用） |
 | POST | `/tokens` | `{ name, scope: "api" \| "mcp" }` → `{ token }`，每人最多 10 个 |
@@ -53,9 +55,9 @@ curl -s $BASE/api/v1/trips -H "authorization: Bearer $TOKEN" | jq '.trips[0]'
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
-| GET | `/trips` | `{ trips: [...] }`，含站点数、照片数、总花费、城市、我的角色 |
+| GET | `/trips` | `{ trips: [...], nextCursor }`，含站点数、照片数、总花费、城市、我的角色。可选 `?limit=1-100&cursor=`：给了 `limit` 才分页，`nextCursor` 为 null 表示到底了 |
 | POST | `/trips` | 见下方「旅程字段」→ `{ id }` |
-| GET | `/trips/{tripId}` | 全量详情：`trip`、`stops`（每站含 `entries` / `expenses` / `photos` / `legFromPrev`）、`looseEntries`、`looseExpenses`、`loosePhotos`、`babyLogs`、`dailyNotes`、`totalHomeMinor`、`totalDistanceM` |
+| GET | `/trips/{tripId}` | 全量详情：`trip`、`stops`（每站含 `entries` / `expenses` / `photos` / `legFromPrev`）、`looseEntries`、`looseExpenses`、`loosePhotos`、`babyLogs`、`dailyNotes`、`totalHomeMinor`、`totalDistanceM`。`?photos=none` 时所有 `photos` 数组返回空，适合地图 / 账本视图 |
 | PUT | `/trips/{tripId}` | 整体替换，字段同 POST |
 | DELETE | `/trips/{tripId}` | 仅所有者 |
 | PUT | `/trips/{tripId}/cover` | `{ coverKey }`，`null` 清除；封面先经 `/api/upload`（`purpose=cover`）上传 |
@@ -75,7 +77,8 @@ curl -s $BASE/api/v1/trips -H "authorization: Bearer $TOKEN" | jq '.trips[0]'
 | PUT | `/trips/{tripId}/entries/{entryId}` | 同上 |
 | DELETE | `/trips/{tripId}/entries/{entryId}` | |
 | POST | `/trips/{tripId}/expenses` | `title`、`amount`、`paidAt`，可选 `currency`、`category`（`TRANSPORT/ACCOMMODATION/FOOD/ACTIVITY/SHOPPING/BABY/OTHER`）、`isBaby`、`stopId`、`entryId`、`note`、`rate` → `{ id, amountHomeMinor, currency, rate }` |
-| DELETE | `/trips/{tripId}/expenses/{expenseId}` | 修改走下方「记录」接口 |
+| PUT | `/trips/{tripId}/expenses/{expenseId}` | 整体替换，字段同 POST；币种、汇率与折算金额按新值重算，付款人保持原样 |
+| DELETE | `/trips/{tripId}/expenses/{expenseId}` | |
 | PATCH | `/trips/{tripId}/photos/{photoId}` | `{ caption }`；上传照片走 `/api/upload`（multipart：`tripId`、`files[]`、可选 `stopId` / `entryId`） |
 | DELETE | `/trips/{tripId}/photos/{photoId}` | |
 | POST | `/trips/{tripId}/photos/{photoId}/analyze` | 重试 AI 识别 |
@@ -86,6 +89,8 @@ curl -s $BASE/api/v1/trips -H "authorization: Bearer $TOKEN" | jq '.trips[0]'
 ### 记录的查改删（带版本号）
 
 任何记录都可以用统一接口查看、修改、删除，并附带操作历史。`kind` 取 `stop / entry / expense / photo / babyLog / dailyNote / checklistItem`。
+
+上面各资源的 `PUT` 是「我知道现在是什么样，整体覆盖」；这里的 `PATCH` 多一层版本号，家人或 AI 同时在改时会返回 409 而不是把对方的修改覆盖掉。
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
@@ -120,6 +125,11 @@ curl -s $BASE/api/v1/trips -H "authorization: Bearer $TOKEN" | jq '.trips[0]'
 | POST | `/trips/{tripId}/ai/summary` | → `{ text }` |
 | POST | `/trips/{tripId}/ai/packing-list` | → `{ count }` |
 | GET | `/passport` | 护照：统计与每枚章（含是否盖章、文案、底图） |
+| GET | `/footprint` | 足迹：所有旅程的站点坐标（按旅程着色）与统计（旅程 / 城市 / 站点 / 直线里程） |
+| GET | `/trips/{tripId}/summary` | 旅程总结：天数、地点、里程、花费、分类之最、宝宝「第一次」、最丰富的一天、精选照片（与网页总结页同一份数据） |
+| GET | `/years` | 可做年度回顾的年份 `{ years }` |
+| GET | `/years/{year}` | 年度回顾：统计 + 精选照片 + AI 写给宝宝的信（未配置 AI 时 `letter` 为 null）；该年无旅程 404 |
+| GET | `/growth` | 成长对照 `{ pairs: [{ city, visits: [{ tripId, title, date, photoUrl, ageText }] }] }` |
 | POST | `/passport/stamps` | `{ city }` 盖一枚 / `{ all: true }` 全部盖章 |
 | GET | `/rates?from=JPY&to=CNY&at=2026-09-07` | 汇率 |
 
@@ -133,5 +143,5 @@ curl -s $BASE/api/v1/trips -H "authorization: Bearer $TOKEN" | jq '.trips[0]'
 | `POST /api/ai/import` | 粘贴确认单解析成草稿 |
 | `GET /api/amap/search` | 地点搜索 |
 | `GET /api/export/{tripId}` | 账单 CSV |
-| `GET /api/files/{key}` | 图片（成员可读） |
+| `GET /api/files/{key}` | 图片（成员可读）。小程序 `<image>` 无法自定义 header，可改用 `?token=tra_…` 查询参数（仅此路由接受） |
 | `POST /api/sync` | 离线队列回放 |

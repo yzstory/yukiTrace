@@ -48,3 +48,6 @@ next-env.d.ts
 # playwright
 /test-results/
 /playwright-report/
+
+# WeChat developer-tool machine-local preferences
+/miniprogram/project.private.config.json

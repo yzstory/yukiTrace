@@ -1,0 +1,8 @@
+.passport { background: linear-gradient(135deg, #1f3a5f, #2e6b8a); color: #fff; border-radius: var(--radius); padding: 32rpx; box-shadow: 0 10rpx 30rpx rgba(31,58,95,0.3); }
+.stamp { font-size: 80rpx; }
+.years { white-space: nowrap; }
+.years .pill { margin-right: 12rpx; }
+.visits { white-space: nowrap; }
+.visit { display: inline-flex; flex-direction: column; width: 220rpx; margin-right: 16rpx; vertical-align: top; white-space: normal; }
+.visit-img { width: 220rpx; height: 275rpx; border-radius: 20rpx; background: var(--fill); margin-bottom: 8rpx; }
+.visit-empty { display: flex; align-items: center; justify-content: center; font-size: 48rpx; }

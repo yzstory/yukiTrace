@@ -16,7 +16,8 @@
     "postinstall": "prisma generate",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "brand": "node scripts/brand-assets.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.44",

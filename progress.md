@@ -1,5 +1,14 @@
 # 进度日志
 
+## 2026-09-08 阶段 26：选定手写字标、全部提交发布
+- 最终回归：60 项单元/数据库测试、7 项 API/移动端流程、2 项浅深色品牌测试通过；本地生产构建成功。小程序 31 个 JS、全部 JSON 与 22 页文件组合静态校验通过。
+- 已备份生产 database.dump（99 KB）和 app.env 至 backups/release-20260908-handwritten；旧镜像标签 before-handwritten-20260908。HTTPS APP_URL 保持不变。
+- 用户明确选择第四款紫色 Trace 手写字标，并确认包含工作区所有小程序/API/品牌改动提交发布。
+- 原始生成图保存到 assets/brand；品牌脚本仅裁切透明留白、缩放和格式导出，不重新设计字形；旧地图针 SVG 移入 brand-concepts。
+- 登录/侧栏换完整字标，深色模式白色显示；PWA、favicon 更新；SW 升级 v4-handwritten。
+- 类型检查、lint、55 项默认测试通过；本地 12 个迁移已应用，生产当前 10 个，发布需补 token_scope 和 wechat_open_id。
+- 品牌补丁同路径删除再添加被拒绝，拆分后成功；日志补丁锚点失配未生效，改为单文件补丁。
+
 ## 2026-09-06 产品能力迭代
 - 功能提交 `f069434` 已推送 origin/main，阶段 20 完成。规划技能用于维护实现、测试与发布检查记录；本轮未更改 AI/OSS/高德密钥。
 - 最终验证：typecheck、lint、55 项单元/数据库测试和 6 项移动端端到端测试全部通过；linux/amd64 新镜像已部署（b823a2abb85b）。
@@ -389,3 +398,51 @@
 
 ---
 *每个阶段完成后或遇到错误时更新此文件*
+
+## 会话 2026-09-07 下午：微信小程序适配（阶段 22）
+- 读完 /api/v1 路由、服务层、docs/api.md、schema；结论：数据接口基本齐备，仅需 files token 查询参数与 footprint 两处后端改动
+- 计划写入 task_plan.md 阶段 22；开始写 `miniprogram/`
+- 后端：`authenticate(req, { allowQueryToken })` 让 `/api/files` 接受 `?token=tra_…`；新增 `src/lib/services/footprint.ts` + `/api/v1/footprint`；typecheck / lint 通过
+- 小程序已写：app.json/app.js/app.wxss、config.js、utils/{request,api,format,upload,stream}.js、pages/{login,trips,trip,trip-form,stop-form,entry-form,expense-form,baby-log,note,record,trip-map,trip-ledger}（全部 `node --check` 通过）
+- 待写：trip-photos、footprint、me、passport、checklist、members、ai、assets 图标、README
+- 全部 19 页写完：trip-photos、footprint、me、passport、checklist、members、ai；assets 用 sharp 生成 Tab 图标与地图 pin
+- 验证：所有 JS `node --check`、JSON 解析、WXML 标签配平脚本（修掉 trip-photos 一处 `{{}}` 少括号）、app.json 页面/图标存在性；后端 typecheck / lint / vitest 55 通过
+- 本地 dev server 实测：`/api/v1/footprint` 返回统计与着色站点；`/api/files?token=` 200、无令牌 401、错令牌 401；测试用户与上传文件已清理，dev server 已停
+- 文档：`miniprogram/README.md`（导入、HTTPS/合法域名、页面-接口对照、未实现清单）、docs/api.md 与 README 补 footprint 与 token 说明
+- 未提交；未真机联调（需微信开发者工具）
+
+## 会话 2026-09-07 下午（续）：阶段 23 小程序补齐
+- 后端：`src/lib/services/review.ts`（tripSummary / years / yearReviewFor / growth），路由 `/trips/{id}/summary`、`/years`、`/years/{year}`、`/growth`；总结页与 me 页改用服务层
+- 微信登录：schema 加 `User.wechatOpenId @unique`，手写迁移 `20260907080000_wechat_open_id`（`migrate dev` 拒绝非交互，改 `migrate deploy` 应用）；`src/lib/wechat.ts` code2session；`POST/GET/DELETE /auth/wechat`；`/auth/login` 接受 `wxCode` 绑定；`.env.example` 加 WECHAT_APPID/SECRET
+- eslint 忽略 `miniprogram/**`（否则 55 个 CommonJS require 报错）
+- 小程序：theme.json + darkmode；utils/offline.js（入队/回放 /api/sync/网络恢复监听）、utils/voice.js（RecorderManager mp3 → transcribe）；pages/year、pages/summary（Canvas 2D 1080×1350 保存相册）；me 页加年度回顾入口、成长对照、微信绑定状态；四个表单离线入队；trip 页待同步横幅与「旅程总结长图」入口；app.js 启动 wx.login 一键登录
+- 验证：typecheck / lint / vitest 55 通过；dev server 实测 summary / years / years/1999→400 / growth / wechat 未配置→503 / login 带 wxCode 仍成功 / sync 回放 200；小程序 21 页静态校验全部通过；测试数据已清理，dev server 已停
+- 未提交
+
+### 2026-09-07 完成度自查
+- 逐项核对网页 21 页 vs 小程序：覆盖 19 项；未搬的 album（浏览器打印存 PDF）与 MCP 令牌管理属合理取舍，已写入 README
+- 查出并修复 4 个真实问题：
+  1. `api.inviteInfo` / `acceptInvite` 定义但无页面调用 → 新增 `pages/invite`（卡片进入 + 剪贴板识别链接），members 页邀请加 `open-type="share"` 转发按钮
+  2. `removeRecord` 把 version 放 DELETE body（微信不保证发送）→ 改 `?version=`；实测无 version 400、带 version 200
+  3. 离线入队时 request 与表单各弹一个冲突 toast → 四个 create 接口改 silent，由表单区分「已存到本机」与真实错误
+  4. `record.wxml` 引用未定义的 `tzToday` → 去掉
+- 静态校验加了「wxml 绑定的事件处理器在 js 中存在」这一项，22 页全过
+- 接口实测：邀请预览（免登录）/ 接受 / 被邀请方看到 EDITOR 角色 / 无效 token 404；测试数据已清理
+
+## 会话 2026-09-08：API 侧补课（阶段 24）
+- 花费补 `PUT /trips/{id}/expenses/{expenseId}`：`updateExpense` 走 `buildExpense` 重算币种/汇率/`amountHomeMinor`/`amountCnyMinor`，`paidById` 用原值覆盖回去（改账不换付款人）；并发场景仍推荐带版本号的 `/records/expense/{id}`，文档里写清两者取舍
+- `listTrips` 改为 `(actor, { limit, cursor })` 返回 `{ trips, nextCursor }`：不传 limit 行为不变（网页 /trips 页不走这个服务，只有 API 用）；`orderBy` 补 `id` 兜底保证翻页稳定；坏 cursor 先查一次再报 400，避免 Prisma 抛内部错
+- 总花费由「把每笔 expense 的 amountHomeMinor 读出来 reduce」改成 `expense.groupBy` 聚合
+- `tripDetail(actor, tripId, { photos })`：`photos=false` 时把三处照片 include 的 where 换成必然不匹配的 `{ id: "" }`，include 结构与返回类型都不变，省掉照片行
+- `api()` 外壳加写接口限流（非 GET/HEAD，`api:write:{userId}`，120 次/分）与 P2025 → 404；`/api/sync`、`/api/upload`、登录注册都不走这个外壳，各自的限流不受影响
+- 验证：typecheck / lint / vitest 55 通过；`e2e/api.spec.ts` 扩到覆盖 PUT 花费（JPY→CNY 重算）、改不存在的花费 404、真插一行 Photo 验 `photos=none`、`limit=1` 两页翻完 + 坏 cursor 400 + limit=0 400；curl 实测写接口 120 次后 429（`retry-after: 59`），读接口 30 次全 200；测试账号已清理，dev server 已停
+- 未做：微信订阅消息通道（要先在公众平台申请模板 ID，并和小程序 `requestSubscribeMessage` 一起做，单独加后端没法验证）
+
+## 会话 2026-09-08（续）：Logo 重做（阶段 25）
+- 旧 logo 的问题不只是「不好看」：深蓝渐变与 app 的暖橙品牌色（`--brand` oklch(0.64 0.17 40) = #DE602F）互不相干，登录页和侧边栏里像贴了别家的图标
+- 新图形＝地图针 + 针头镂空的小脚丫。画脚丫试了两条路：Catmull-Rom 样条勾轮廓会过冲，出来是「花盆」和「连指手套」；最后用几何构造——蛋形脚掌（上宽下窄的四段贝塞尔）+ 五个脚趾沿脚掌上缘外扩 6px 的圆弧排开，一次就干净了。足弓的凹口会在接缝处留折角，索性去掉，纯蛋形反而更可爱也更耐缩小
+- `scripts/brand-assets.mjs`（`pnpm brand`）：SVG 是唯一源，sharp 出全部 PNG；ICO 没有依赖，直接按 Vista 起的格式把 16/32/48 的 PNG 拼进容器
+- 顺手发现 `src/app/favicon.ico` 一直是 Next 的默认图标（25KB 四图层），浏览器标签页从来没显示过自家 logo
+- 产出：`public/brand/trace-logo.{svg,png}`、`trace-mark.svg`（透明底、脚丫真镂空，浅色深色底都能放）、`public/icons/*`、`src/app/icon.png`、`favicon.ico`
+- 验证：满幅 / iOS 圆角 / Android 圆形（maskable 收到中心 72%）/ 64·32·16px 逐个看过；起 dev server 用 WebKit 按 iPhone 尺寸截了登录页——`.next/cache/images` 会缓存旧图，清掉才看得到新图标（生产环境重新构建不受影响）；sw 缓存版本 v2→v3，装过 PWA 的用户才会拿到新图标
+- README 品牌段落重写；`package.json` 加 `brand` 脚本

@@ -1,0 +1,26 @@
+.chat { display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
+.list { flex: 1; padding: 24rpx 32rpx; box-sizing: border-box; }
+.intro { padding: 48rpx 8rpx; }
+.hints { display: flex; flex-direction: column; gap: 12rpx; }
+.hint { background: var(--card); border-radius: 20rpx; padding: 20rpx 24rpx; font-size: 30rpx; box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.04); }
+.msg { display: flex; flex-direction: column; gap: 8rpx; margin-bottom: 20rpx; align-items: flex-start; }
+.msg.user { align-items: flex-end; }
+.bubble { max-width: 85%; padding: 18rpx 24rpx; border-radius: 28rpx; background: var(--card); font-size: 32rpx; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.user .bubble { background: var(--blue); color: #fff; border-bottom-right-radius: 8rpx; }
+.assistant .bubble { border-bottom-left-radius: 8rpx; }
+.images { display: flex; gap: 8rpx; }
+.msg-img { width: 160rpx; height: 160rpx; border-radius: 16rpx; }
+.tools { display: flex; flex-wrap: wrap; gap: 8rpx; }
+.tool { font-size: 24rpx; padding: 6rpx 16rpx; border-radius: 999rpx; background: rgba(175,82,222,0.12); color: var(--purple); }
+.tool.done { background: rgba(52,199,89,0.12); color: #1f8f47; }
+.tool.error { background: rgba(255,59,48,0.12); color: var(--red); }
+.composer { padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom)); background: var(--card); border-top: 1rpx solid var(--separator); }
+.pending { white-space: nowrap; margin-bottom: 12rpx; }
+.pend { position: relative; display: inline-block; margin-right: 12rpx; }
+.pend-img { width: 120rpx; height: 120rpx; border-radius: 16rpx; }
+.pend-x { position: absolute; top: -8rpx; right: -8rpx; width: 40rpx; height: 40rpx; border-radius: 50%; background: var(--label); color: #fff; font-size: 28rpx; display: flex; align-items: center; justify-content: center; }
+.input { height: 80rpx; background: var(--fill); border-radius: 40rpx; padding: 0 28rpx; font-size: 32rpx; }
+.icon-btn { width: 80rpx; height: 80rpx; border-radius: 50%; background: var(--fill); display: flex; align-items: center; justify-content: center; font-size: 36rpx; flex-shrink: 0; }
+.send { background: var(--blue); color: #fff; font-weight: 700; }
+.hold { height: 80rpx; border-radius: 40rpx; background: var(--fill); display: flex; align-items: center; justify-content: center; font-size: 30rpx; font-weight: 600; user-select: none; }
+.hold-on { background: var(--blue); color: #fff; }

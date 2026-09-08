@@ -1,0 +1,21 @@
+<view class="page">
+  <view class="card">
+    <textarea class="editor" placeholder="今天去了哪、吃了什么、宝宝的表现…" placeholder-class="placeholder" value="{{content}}" bindinput="onInput" maxlength="10000" auto-height show-confirm-bar="{{false}}" />
+  </view>
+
+  <view class="section-title">AI 草稿</view>
+  <view class="card" wx:if="{{aiDraft}}">
+    <text class="callout" user-select>{{aiDraft}}</text>
+    <view class="row mt-16">
+      <button class="btn btn-sm btn-primary" hover-class="btn-hover" bindtap="adopt">采用到正文</button>
+      <button class="btn btn-sm" hover-class="btn-hover" data-tone="default" bindtap="draft">重写</button>
+    </view>
+  </view>
+  <view class="row" wx:if="{{aiConfigured}}">
+    <button class="btn btn-sm" hover-class="btn-hover" data-tone="default" bindtap="draft" disabled="{{generating}}">✨ 根据今天的记录写一段</button>
+    <button class="btn btn-sm" hover-class="btn-hover" data-tone="to_baby" bindtap="draft" disabled="{{generating}}">💌 写给宝宝</button>
+  </view>
+  <view class="caption faint" wx:else>服务器未配置 AI</view>
+
+  <button class="btn btn-primary btn-block mt-24" hover-class="btn-hover" loading="{{busy}}" bindtap="save">保存</button>
+</view>

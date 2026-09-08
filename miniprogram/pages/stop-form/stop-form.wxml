@@ -1,0 +1,53 @@
+<view class="page">
+  <view class="section-title">位置</view>
+  <view class="form-group">
+    <view class="field">
+      <text class="field-label">搜索地点</text>
+      <input class="field-input" placeholder="输入名称，如：札幌站、白色恋人公园" placeholder-class="placeholder" value="{{q}}" bindinput="onSearch" confirm-type="search" />
+    </view>
+    <view class="cell" wx:for="{{results}}" wx:key="id" data-index="{{index}}" bindtap="pick" hover-class="btn-hover">
+      <view class="grow"><view class="callout ellipsis">{{item.name}}</view><view class="caption muted ellipsis">{{item.city}} {{item.address}}</view></view>
+    </view>
+    <view class="cell caption muted" wx:if="{{searching}}">搜索中…</view>
+    <view class="cell caption muted" wx:if="{{!configured && q}}">服务器未配置高德 Key，请用定位或地图选点</view>
+    <view class="cell" wx:if="{{place}}">
+      <view class="grow"><view class="callout">📍 {{place.name}}</view><view class="caption muted">{{place.address || (place.lat + ', ' + place.lng)}}</view></view>
+      <view class="btn btn-sm" bindtap="clearPlace">清除</view>
+    </view>
+    <view class="cell">
+      <view class="btn btn-sm" hover-class="btn-hover" bindtap="locate">📡 当前位置</view>
+      <view class="btn btn-sm" hover-class="btn-hover" bindtap="chooseOnMap">🗺️ 地图选点</view>
+    </view>
+  </view>
+
+  <view class="section-title">信息</view>
+  <view class="form-group">
+    <view class="field"><text class="field-label">地点名称</text><input class="field-input" placeholder="怎么称呼这个地方" placeholder-class="placeholder" value="{{form.name}}" data-key="name" bindinput="onInput" maxlength="80" /></view>
+    <view class="field">
+      <text class="field-label">类型</text>
+      <scroll-view scroll-x class="types"><view class="pill pill-fill {{form.type === item.key ? 'pill-on' : ''}}" wx:for="{{types}}" wx:key="key" data-key="{{item.key}}" bindtap="setType">{{item.emoji}} {{item.label}}</view></scroll-view>
+    </view>
+    <view class="field field-inline">
+      <text class="field-label">到达</text>
+      <view class="row">
+        <picker mode="date" value="{{form.arriveDate}}" data-key="arriveDate" bindchange="onPick"><text class="field-value">{{form.arriveDate}}</text></picker>
+        <picker mode="time" value="{{form.arriveTime}}" data-key="arriveTime" bindchange="onPick"><text class="field-value">{{form.arriveTime}}</text></picker>
+      </view>
+    </view>
+    <view class="field field-inline">
+      <text class="field-label">离开</text>
+      <view class="row">
+        <picker mode="date" value="{{form.leaveDate || form.arriveDate}}" start="{{form.arriveDate}}" data-key="leaveDate" bindchange="onPick"><text class="field-value {{form.leaveDate ? '' : 'placeholder'}}">{{form.leaveDate || '可选'}}</text></picker>
+        <picker wx:if="{{form.leaveDate}}" mode="time" value="{{form.leaveTime || '18:00'}}" data-key="leaveTime" bindchange="onPick"><text class="field-value">{{form.leaveTime || '选时间'}}</text></picker>
+        <text wx:if="{{form.leaveDate}}" class="caption primary" bindtap="clearLeave">清除</text>
+      </view>
+    </view>
+    <view class="field">
+      <text class="field-label">婴儿友好</text>
+      <view class="wrap"><view class="pill pill-fill {{form.babyTags.indexOf(item.key) >= 0 ? 'pill-on' : ''}}" wx:for="{{tagList}}" wx:key="key" data-key="{{item.key}}" bindtap="toggleTag">{{item.label}}</view></view>
+    </view>
+    <view class="field"><text class="field-label">备注</text><textarea class="field-textarea" placeholder="停车、排队、推车能不能进…" placeholder-class="placeholder" value="{{form.note}}" data-key="note" bindinput="onInput" auto-height /></view>
+  </view>
+
+  <button class="btn btn-primary btn-block mt-24" hover-class="btn-hover" loading="{{busy}}" bindtap="submit">添加地点</button>
+</view>

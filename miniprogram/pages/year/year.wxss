@@ -1,0 +1,13 @@
+.years { white-space: nowrap; margin-bottom: 16rpx; }
+.years .pill { margin-right: 12rpx; }
+.slide { border-radius: var(--radius); padding: 40rpx 32rpx; color: #fff; margin-top: 16rpx; }
+.s1 { background: linear-gradient(135deg, #b8542f, #e0a05a); }
+.s2 { background: linear-gradient(135deg, #2f6b5a, #6fb08f); }
+.s3 { background: linear-gradient(135deg, #6b3d8f, #c76a9a); }
+.right { text-align: right; }
+.firsts { display: flex; flex-direction: column; gap: 8rpx; }
+.first { background: rgba(255,255,255,0.15); border-radius: 16rpx; padding: 12rpx 20rpx; font-size: 28rpx; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8rpx; }
+.ph { width: 100%; aspect-ratio: 1; border-radius: 16rpx; background: var(--fill); }
+.letter { white-space: pre-wrap; line-height: 1.7; }
+.small { width: 96rpx; height: 96rpx; }

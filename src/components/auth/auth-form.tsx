@@ -23,7 +23,7 @@ export function AuthForm({ mode, next, allowSignup }: Props) {
       transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
     >
       <div className="mb-8 flex flex-col items-center text-center">
-        <Image src="/icons/icon-192.png" alt="Trace" width={64} height={64} className="mb-4 size-16 rounded-2xl float-shadow" priority />
+        <Image src="/brand/trace-handwritten-v1.png" alt="Trace" width={1098} height={472} className="mb-4 h-auto w-60 dark:brightness-0 dark:invert" priority />
         <p className="eyebrow mb-1">Trace · Journal</p>
         <h1 className="font-display text-title-1">{mode === "login" ? "欢迎回来" : "创建账号"}</h1>
         <p className="mt-1 text-subhead text-muted-foreground">

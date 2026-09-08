@@ -1,0 +1,54 @@
+<view class="page">
+  <view class="loading" wx:if="{{loading}}">正在读取…</view>
+  <block wx:else>
+    <view class="hero card">
+      <view class="caption muted">{{filter === 'ALL' ? '总花费' : '筛选后'}}</view>
+      <view class="display-number mt-8">{{total}}</view>
+      <view class="caption muted mt-8" wx:if="{{foreign.length}}">含 {{foreign.join(' · ')}}</view>
+      <view class="kpis mt-16">
+        <view class="kpi" wx:for="{{kpis}}" wx:key="label"><view class="headline mono">{{item.value}}</view><view class="caption muted">{{item.label}}</view></view>
+      </view>
+    </view>
+
+    <scroll-view scroll-x class="filters"><view class="pill {{filter === item.key ? 'pill-on' : ''}}" wx:for="{{filters}}" wx:key="key" data-key="{{item.key}}" bindtap="setFilter">{{item.label}}</view></scroll-view>
+
+    <view class="empty" wx:if="{{!all.length}}"><view class="empty-emoji">💴</view>还没有花费记录</view>
+
+    <block wx:else>
+      <view class="section-title">按分类</view>
+      <view class="card">
+        <view class="cat" wx:for="{{cats}}" wx:key="key">
+          <view class="row-between"><text class="callout">{{item.emoji}} {{item.label}}</text><text class="callout mono">{{item.value}} <text class="caption muted">{{item.share}}%</text></text></view>
+          <view class="bar"><view class="bar-fill" style="width: {{item.pct}}%; background: {{item.color}}"></view></view>
+        </view>
+      </view>
+
+      <view class="section-title">按天</view>
+      <view class="card">
+        <scroll-view scroll-x class="chart">
+          <view class="col" wx:for="{{days}}" wx:key="index">
+            <view class="col-val caption">{{item.value}}</view>
+            <view class="col-bar"><view class="col-fill" style="height: {{item.h}}%"></view></view>
+            <view class="caption muted">D{{item.index}}</view>
+          </view>
+        </scroll-view>
+      </view>
+
+      <view class="section-title">明细</view>
+      <view class="group" wx:for="{{list}}" wx:key="day" wx:for-item="g">
+        <view class="row-between group-head"><text class="footnote bold">Day {{g.day}}</text><text class="footnote muted mono">{{g.sum}}</text></view>
+        <view class="form-group">
+          <view class="cell" wx:for="{{g.items}}" wx:key="id" data-id="{{item.id}}" bindtap="open" hover-class="btn-hover">
+            <view class="emoji" style="background: {{item.cat.color}}20">{{item.cat.emoji}}</view>
+            <view class="grow"><view class="callout ellipsis">{{item.title}}</view><view class="caption muted ellipsis">{{item.time}}<text wx:if="{{item.stopName}}"> · {{item.stopName}}</text><text wx:if="{{item.isBaby}}"> · 宝宝</text></view></view>
+            <view class="right"><view class="callout mono">{{item.amount}}</view><view class="caption muted mono" wx:if="{{item.home}}">≈ {{item.home}}</view></view>
+          </view>
+        </view>
+      </view>
+
+      <button class="btn btn-block mt-24" hover-class="btn-hover" bindtap="exportCsv">复制 CSV 导出链接</button>
+    </block>
+    <view style="height: 200rpx"></view>
+    <view class="fab" wx:if="{{canEdit}}" hover-class="btn-hover" bindtap="add">+</view>
+  </block>
+</view>

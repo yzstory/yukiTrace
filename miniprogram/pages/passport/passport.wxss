@@ -1,0 +1,12 @@
+.cover { background: linear-gradient(135deg, #1f3a5f, #2e6b8a); color: #fff; border-radius: var(--radius); padding: 36rpx 32rpx; box-shadow: 0 10rpx 30rpx rgba(31,58,95,0.3); }
+.stats { display: flex; gap: 8rpx; }
+.stat { flex: 1; text-align: center; background: rgba(255,255,255,0.12); border-radius: 16rpx; padding: 12rpx 4rpx; }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16rpx; }
+.stamp { position: relative; background: var(--card); border-radius: 24rpx; padding: 20rpx; min-height: 300rpx; overflow: hidden; box-shadow: 0 2rpx 16rpx rgba(0,0,0,0.04); display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6rpx; }
+.stamp-photo { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.18; filter: grayscale(1); }
+.seal { position: relative; width: 200rpx; height: 200rpx; border: 5rpx double; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0.35; text-align: center; }
+.inked .seal { opacity: 0.95; }
+.seal-city { font-size: 32rpx; font-weight: 800; letter-spacing: 2rpx; }
+.seal-date { font-size: 20rpx; margin-top: 4rpx; font-variant-numeric: tabular-nums; }
+.seal-age { font-size: 20rpx; }
+.stamp-line { text-align: center; position: relative; }

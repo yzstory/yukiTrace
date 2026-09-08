@@ -88,6 +88,25 @@ export async function createExpense(actor: Actor, tripId: string, input: Input) 
   return { id: expense.id, amountHomeMinor: data.amountHomeMinor, currency: data.currency, rate: data.rate };
 }
 
+/** 整体替换一笔花费：币种、汇率与两种折算金额都按新值重算 */
+export async function updateExpense(actor: Actor, tripId: string, expenseId: string, input: Input) {
+  await assertTripAccess(actor.userId, tripId, "EDITOR");
+  const existing = await db.expense.findFirst({ where: { id: expenseId, tripId }, select: { paidById: true } });
+  if (!existing) throw notFound("花费不存在");
+  const d = parse(expenseSchema, input);
+  const built = await buildExpense({
+    tripId, userId: actor.userId, amount: d.amount, currency: d.currency || undefined, category: d.category, isBaby: d.isBaby,
+    title: d.title, note: d.note || null, paidAt: parseInTz(d.paidAt, await entryTz(tripId, d.stopId || null)),
+    stopId: d.stopId || null, entryId: d.entryId || null, rate: d.rate ? parseFloat(d.rate) : undefined,
+  });
+  // 付款人保持原样：改一笔账不等于换人付钱
+  const data = { ...built, paidById: existing.paidById };
+  await auditedDb({ tripId, userId: actor.userId }).expense.update({ where: { id: expenseId, tripId }, data });
+  refreshTrip(tripId);
+  scheduleReindex(tripId);
+  return { id: expenseId, amountHomeMinor: data.amountHomeMinor, currency: data.currency, rate: data.rate };
+}
+
 export async function deleteExpense(actor: Actor, tripId: string, expenseId: string) {
   await assertTripAccess(actor.userId, tripId, "EDITOR");
   await auditedDb({ tripId, userId: actor.userId }).expense.delete({ where: { id: expenseId, tripId } });

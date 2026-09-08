@@ -1,5 +1,10 @@
 # 发现与决策
 
+## 2026-09-08 手写 Logo 发布
+- 采用用户选定的紫色手写方案原图；裁去透明留白后尺寸 1098×472，保留原像素和 alpha，不用字体重新描绘。
+- Next Image 当前默认不接受未配置的本地图像查询参数，改用 trace-handwritten-v1.png 版本化文件名刷新缓存；未放宽全局图片来源策略。
+- 全部待提交内容包含小程序源码，但微信公众平台上架仍需单独上传审核；生产更新对应后端，微信 AppID/Secret 未提供时保持不可用的明确错误。
+
 ## 2026-09-06 产品能力实施
 - AI 写入、表单及照片需共享事务历史；历史仅从上线后开始，不能推断旧记录操作者。
 - 撤销必须检查当前记录与写入后快照一致，且创建的站点/条目没有新增关联；拒绝覆盖后续修改。
@@ -180,3 +185,16 @@ ShareLink(id, tripId, token, hideExpense, expiresAt)
 - `revalidatePath` 与 `after` 在 Route Handler 里同样可用，所以放在服务层一处即可，网页与 API 写入都会让页面缓存失效
 - MCP 令牌承诺过「只读」，因此 API 令牌单独一种 scope（前缀 tra_），互不通用；旧的 `/api/*` 路由全部改用 `requestUserId(req)`，Bearer 与 cookie 都行
 - 删除类 Action 必须保持 `Promise<void>`，组件把它们直接当 `<form action>` 用，返回对象会报类型错
+
+## 2026-09-07 小程序适配调研
+- 现有 `/api/v1` 共 41 个路由，鉴权 `Authorization: Bearer tra_…`（`src/lib/api/auth.ts`），响应 Date 序列化为 ISO 字符串；错误 `{ error }` + 状态码（见 docs/api.md）
+- 旅程详情 `GET /trips/{id}` 已包含站点树（entries/expenses/photos/legFromPrev）、游离记录、babyLogs、dailyNotes、totalHomeMinor、totalDistanceM，够时间线/账本/照片/地图四个视图用，不需要新接口
+- 图片 URL 由 `imageUrl()` 生成，私有 OSS/本地时为相对路径 `/api/files/{key}?w=…`；小程序 `<image>` 不能带 header → 需要 `?token=` 查询参数鉴权（`requestUserId` 只看 header）
+- 全局足迹页 `(app)/map/page.tsx` 直接查 DB，没有对应 API → 新增 `GET /api/v1/footprint`
+- 高德坐标 GCJ-02 与微信 `<map>`/`wx.getLocation({type:'gcj02'})` 一致，坐标无需转换
+- AI 对话 `/api/ai/chat` 走 Vercel AI SDK UI Message Stream（SSE，`data: {type:'text-delta',delta}`… `data: [DONE]`），请求体 `{ messages: UIMessage[], tripId }`，UIMessage = `{ id, role, parts:[{type:'text',text}] }`；小程序用 `wx.request({ enableChunked: true })` + `onChunkReceived` 解析
+- 上传 `/api/upload` multipart 字段 `files`、`tripId`、`purpose`（photo/cover/receipt）；`wx.uploadFile` 一次一个文件，name 用 `files`
+- 时间：写接口一律当地时间 `YYYY-MM-DDTHH:mm`，服务端按站点/旅程时区解析；读接口 ISO UTC → 小程序端用 Intl 按 trip.timezone 显示，无 Intl 时退回设备本地时间
+- 记录统一编辑：`GET/PATCH/DELETE /trips/{id}/records/{kind}/{refId}`，字段定义在 `src/lib/record-fields.ts`（expense: title/amount/currency/paidAt/stopId/note …）
+- 登录限流按 IP+邮箱；`ALLOW_SIGNUP=false` 时注册 403
+- 微信小程序合法域名要求 HTTPS，生产目前是 HTTP

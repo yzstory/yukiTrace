@@ -1,0 +1,18 @@
+{
+  "description": "Trace · 带娃旅行记 微信小程序",
+  "appid": "touristappid",
+  "compileType": "miniprogram",
+  "libVersion": "3.8.0",
+  "setting": {
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "urlCheck": true,
+    "coverView": true,
+    "ignoreUploadUnusedFiles": true,
+    "useCompilerPlugins": false
+  },
+  "packOptions": { "ignore": [{ "type": "file", "value": "README.md" }], "include": [] },
+  "editorSetting": { "tabIndent": "insertSpaces", "tabSize": 2 }
+}

@@ -1,0 +1,42 @@
+<view class="page">
+  <scroll-view scroll-x class="years" wx:if="{{years.length > 1}}"><view class="pill {{item === year ? 'pill-on' : ''}}" wx:for="{{years}}" wx:key="*this" data-year="{{item}}" bindtap="pick">{{item}}</view></scroll-view>
+  <view class="loading" wx:if="{{loading}}">正在整理这一年…</view>
+  <view class="empty" wx:elif="{{error}}">{{error}}</view>
+  <block wx:elif="{{review}}">
+    <view class="slide s1">
+      <view class="caption" style="opacity:.8">{{year}} 年</view>
+      <view class="title-1 mt-8">走过 {{review.cityCount}} 座城市</view>
+      <view class="footnote mt-8" style="opacity:.9">{{review.tripCount}} 段旅程 · {{review.dayCount}} 天在路上 · {{review.distanceText}}</view>
+      <view class="footnote mt-8 ellipsis" style="opacity:.85" wx:if="{{review.cityText}}">{{review.cityText}}</view>
+    </view>
+    <view class="slide s2">
+      <view class="row-between">
+        <view><view class="caption" style="opacity:.8">花费</view><view class="title-2 mt-8">{{review.totalText}}</view></view>
+        <view wx:if="{{review.topCategory}}" class="right"><view class="caption" style="opacity:.8">花得最多</view><view class="headline mt-8">{{review.topCategory.label}} {{review.topCategory.pct}}%</view></view>
+      </view>
+      <view class="footnote mt-16" style="opacity:.9">✈️ {{review.flightCount}} 次飞行<text wx:if="{{review.flightHours}}"> · 约 {{review.flightHours}} 小时</text> · 📷 {{review.photoCount}} 张照片<text wx:if="{{review.busiestMonth}}"> · {{review.busiestMonth.month}} 月出门最多</text></view>
+    </view>
+    <view class="slide s3" wx:if="{{review.babyName}}">
+      <view class="caption" style="opacity:.8">{{review.babyName}}</view>
+      <view class="title-2 mt-8">从 {{review.babyStartAge}} 到 {{review.babyEndAge}}</view>
+      <view class="footnote mt-8" style="opacity:.9" wx:if="{{review.babyTotalText}}">为{{review.babyName}}花了 {{review.babyTotalText}}</view>
+      <view class="firsts mt-16" wx:if="{{review.firsts.length}}"><view class="first" wx:for="{{review.firsts}}" wx:key="*this">🌟 {{item}}</view></view>
+    </view>
+    <view class="card mt-16" wx:if="{{review.photos.length}}">
+      <view class="headline mb-8">这一年的照片</view>
+      <view class="grid"><image wx:for="{{review.photos}}" wx:key="*this" class="ph" src="{{item}}" mode="aspectFill" lazy-load data-url="{{item}}" bindtap="preview" /></view>
+    </view>
+    <view class="card mt-16" wx:if="{{review.letter}}">
+      <view class="headline mb-8">💌 写给{{review.babyName || '你'}}的信</view>
+      <text class="callout letter" user-select>{{review.letter}}</text>
+      <view class="caption primary mt-8" bindtap="copyLetter">复制</view>
+    </view>
+    <view class="section-title">旅程</view>
+    <view class="form-group">
+      <view class="cell cell-arrow" wx:for="{{review.trips}}" wx:key="id" data-id="{{item.id}}" bindtap="openTrip" hover-class="btn-hover">
+        <image wx:if="{{item.cover}}" class="thumb small" src="{{item.cover}}" mode="aspectFill" /><view wx:else class="thumb small"></view>
+        <view class="grow"><view class="callout bold ellipsis">{{item.title}}</view><view class="caption muted">{{item.dates}}</view></view>
+      </view>
+    </view>
+  </block>
+</view>

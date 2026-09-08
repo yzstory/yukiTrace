@@ -1,0 +1,8 @@
+.poster-preview { border-radius: var(--radius); overflow: hidden; background: linear-gradient(135deg, #1f3a5f, #2e6b8a); color: #fff; box-shadow: 0 10rpx 30rpx rgba(31,58,95,0.3); }
+.pv-cover { width: 100%; height: 360rpx; display: block; }
+.pv-body { padding: 32rpx; }
+.pv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12rpx; }
+.pv-cell { background: rgba(255,255,255,0.12); border-radius: 20rpx; padding: 20rpx 24rpx; }
+.pv-photos { white-space: nowrap; }
+.pv-ph { width: 200rpx; height: 200rpx; border-radius: 20rpx; margin-right: 12rpx; }
+.poster-canvas { position: fixed; left: -9999px; top: 0; width: 540px; height: 675px; }

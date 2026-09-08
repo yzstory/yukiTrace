@@ -1,0 +1,74 @@
+{
+  "pages": [
+    "pages/trips/trips",
+    "pages/footprint/footprint",
+    "pages/me/me",
+    "pages/login/login",
+    "pages/trip/trip",
+    "pages/trip-map/trip-map",
+    "pages/trip-ledger/trip-ledger",
+    "pages/trip-photos/trip-photos",
+    "pages/trip-form/trip-form",
+    "pages/stop-form/stop-form",
+    "pages/entry-form/entry-form",
+    "pages/expense-form/expense-form",
+    "pages/baby-log/baby-log",
+    "pages/note/note",
+    "pages/record/record",
+    "pages/checklist/checklist",
+    "pages/members/members",
+    "pages/passport/passport",
+    "pages/ai/ai",
+    "pages/year/year",
+    "pages/summary/summary",
+    "pages/invite/invite"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "@navBgColor",
+    "navigationBarTextStyle": "@navTxtStyle",
+    "navigationBarTitleText": "Trace",
+    "backgroundColor": "@bgColor",
+    "backgroundTextStyle": "@bgTxtStyle",
+    "backgroundColorTop": "@bgColor",
+    "backgroundColorBottom": "@bgColor"
+  },
+  "tabBar": {
+    "color": "@tabFontColor",
+    "selectedColor": "@tabSelectedColor",
+    "backgroundColor": "@tabBgColor",
+    "borderStyle": "@tabBorderStyle",
+    "list": [
+      {
+        "pagePath": "pages/trips/trips",
+        "text": "旅程",
+        "iconPath": "assets/tab/trips.png",
+        "selectedIconPath": "assets/tab/trips-active.png"
+      },
+      {
+        "pagePath": "pages/footprint/footprint",
+        "text": "足迹",
+        "iconPath": "assets/tab/map.png",
+        "selectedIconPath": "assets/tab/map-active.png"
+      },
+      {
+        "pagePath": "pages/me/me",
+        "text": "我",
+        "iconPath": "assets/tab/me.png",
+        "selectedIconPath": "assets/tab/me-active.png"
+      }
+    ]
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于把当前位置记为旅程地点"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation"
+  ],
+  "lazyCodeLoading": "requiredComponents",
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "darkmode": true,
+  "themeLocation": "theme.json"
+}

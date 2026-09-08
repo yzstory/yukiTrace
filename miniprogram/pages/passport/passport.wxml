@@ -1,0 +1,36 @@
+<view class="page">
+  <view class="loading" wx:if="{{loading}}">正在翻开护照…</view>
+  <block wx:elif="{{book}}">
+    <view class="cover">
+      <view class="caption" style="opacity:.8">PASSPORT · 旅行护照</view>
+      <view class="title-1 mt-8">{{book.babyName || '我们'}}的足迹</view>
+      <view class="stats mt-16">
+        <view class="stat"><view class="headline mono">{{book.cities}}</view><view class="caption">座城市</view></view>
+        <view class="stat"><view class="headline mono">{{book.trips}}</view><view class="caption">段旅程</view></view>
+        <view class="stat"><view class="headline mono">{{book.distance}}</view><view class="caption">里程</view></view>
+        <view class="stat"><view class="headline mono">{{book.earthPercent}}%</view><view class="caption">绕地球</view></view>
+      </view>
+    </view>
+
+    <view class="row-between mt-16" wx:if="{{book.pending}}">
+      <text class="footnote muted">还有 {{book.pending}} 枚章没盖</text>
+      <button class="btn btn-sm btn-primary" hover-class="btn-hover" bindtap="inkAll" loading="{{busy === 'all'}}">全部盖章</button>
+    </view>
+
+    <view class="empty mt-16" wx:if="{{!stamps.length}}"><view class="empty-emoji">🛂</view>去旅程里记下第一座城市，这里就会出现第一枚章</view>
+
+    <view class="grid mt-16">
+      <view class="stamp {{item.inked ? 'inked' : ''}}" wx:for="{{stamps}}" wx:key="city" data-city="{{item.city}}" data-inked="{{item.inked}}" data-tripid="{{item.tripId}}" bindtap="ink" hover-class="btn-hover">
+        <image wx:if="{{item.photo}}" class="stamp-photo" src="{{item.photo}}" mode="aspectFill" lazy-load />
+        <view class="seal" style="transform: rotate({{item.rotate}}deg); border-color: hsl({{item.hue}}, 60%, 45%); color: hsl({{item.hue}}, 60%, 40%)">
+          <view class="seal-city">{{item.city}}</view>
+          <view class="seal-date">{{item.dateText}}</view>
+          <view class="seal-age" wx:if="{{item.babyAgeText}}">{{item.babyAgeText}}</view>
+        </view>
+        <view class="stamp-line caption" wx:if="{{item.inked && item.line}}">「{{item.line}}」</view>
+        <view class="stamp-line caption faint" wx:elif="{{!item.inked}}">{{busy === item.city ? '盖章中…' : '点一下盖章'}}</view>
+        <view class="caption faint ellipsis" style="margin-top:4rpx">{{item.tripTitle}}<text wx:if="{{item.tripCount > 1}}"> · 去过 {{item.tripCount}} 次</text></view>
+      </view>
+    </view>
+  </block>
+</view>

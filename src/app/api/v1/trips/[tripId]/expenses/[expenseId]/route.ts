@@ -1,5 +1,8 @@
 import { api } from "@/lib/api/handler";
-import { deleteExpense } from "@/lib/services/expenses";
+import { deleteExpense, updateExpense } from "@/lib/services/expenses";
 
-/** 修改花费走 /records/expense/{id}（带版本号，防止家人或 AI 的并发改动被覆盖） */
-export const DELETE = api<{ tripId: string; expenseId: string }>(async (ctx) => deleteExpense(ctx, ctx.params.tripId, ctx.params.expenseId));
+type P = { tripId: string; expenseId: string };
+
+/** 整体替换。家人或 AI 可能同时在改的场景用 /records/expense/{id}，那条路径带版本号做冲突检测 */
+export const PUT = api<P>(async (ctx) => updateExpense(ctx, ctx.params.tripId, ctx.params.expenseId, await ctx.body()));
+export const DELETE = api<P>(async (ctx) => deleteExpense(ctx, ctx.params.tripId, ctx.params.expenseId));

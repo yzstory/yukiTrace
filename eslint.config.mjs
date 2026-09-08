@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // 小程序是独立的 CommonJS 项目，不走 Next 的 lint 规则
+    "miniprogram/**",
   ]),
 ]);
 

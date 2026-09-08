@@ -13,7 +13,8 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/files/[...ke
   const tripId = objectKey.match(/^trips\/([^/]+)\//)?.[1];
   if (!tripId) return new NextResponse("bad key", { status: 400 });
 
-  const userId = await requestUserId(req);
+  // 成员登录态（cookie / Bearer / 小程序 ?token=）
+  const userId = await requestUserId(req, { allowQueryToken: true });
   if (userId) {
     const trip = await db.trip.findFirst({
       where: {

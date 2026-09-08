@@ -4,16 +4,61 @@
 用 Next.js 做一个苹果风格的「带娃旅行日记 + 账本」网页应用，能记录行程（航班/租车/住宿/餐饮/游玩）、花费（多币种）、照片与备注，在高德地图上展示路线与站间距离，并内嵌 AI 助手（OpenAI 兼容接口）降低记录成本；第一版部署到阿里云 ECS（Docker Compose），后续可开放注册并演进为 App。
 
 ## 当前阶段
-阶段 20 已完成并部署：AI 结果可纠错、旅程整理、家庭协作历史。
+阶段 26 进行中：用户选定第四款紫色手写 Trace Logo，并明确要求当前全部改动一起提交发布。小程序独立平台发布仍需微信开发者工具。
 
-### 阶段 20：三项产品能力
-- [x] 操作历史模型、事务写入、记录来源与冲突保护
-- [x] AI 写入卡片、编辑及撤销
-- [x] 整理中心：离线待同步、重复账单、缺地点、AI 待确认
-- [x] 家庭协作历史与字段变化展示
-- [x] 回归测试、生产备份迁移、部署与线上权限验证
-- [x] 提交并 push origin
-- **状态：** complete
+### 阶段 26：手写 Logo 与整包发布
+- [x] 保存选定原图、生成页面字标与各尺寸图标，更新缓存版本
+- [x] 验证全部当前代码、API 与移动端流程
+- [ ] 生产数据库及旧镜像备份、部署迁移、HTTPS 验证
+- [ ] 全部提交并推送 origin
+- **状态：** in_progress
+
+### 阶段 25：Logo 重做
+- [x] 25.1 诊断：旧 logo 是 AI 生成的深蓝渐变双脚印 + 路径 + 红针，与 app 的暖橙品牌色（`--brand` #DE602F）完全不搭，细节在 48px 下糊成一团
+- [x] 25.2 新图形：地图针 + 针头里挖空的小脚丫；脚掌用上宽下窄的蛋形、五个脚趾沿上缘的圆弧排开（试过样条勾轮廓，过冲会画成「花盆」，改几何构造）
+- [x] 25.3 `scripts/brand-assets.mjs`（`pnpm brand`）：SVG 源 + sharp 渲染全部尺寸 + 手写 ICO 容器；不再依赖图像生成服务
+- [x] 25.4 产出：`trace-logo.svg/png`、`trace-mark.svg`（透明镂空，深浅底通用）、icon-192/512/180、maskable-512、`src/app/icon.png`、`favicon.ico`（原来还是 Next 默认图标）
+- [x] 25.5 验证：满幅 / iOS 圆角 / Android 圆形裁切 / 64·32·16px 均可辨认；登录页真机尺寸截图确认；sw 缓存版本 v2→v3；README 品牌段落重写
+- **状态：** complete（未提交）
+
+### 阶段 24：API 侧补课（花费编辑 / 分页 / 限流）
+- [x] 24.1 `PUT /trips/{id}/expenses/{expenseId}`：`updateExpense` 服务，重算币种/汇率/主币与人民币折算，付款人保持原样；与 entries/stops 的 PUT 对齐
+- [x] 24.2 `GET /trips?limit=&cursor=`：可选游标分页（不传 limit 仍返回全部），排序补 id 兜底；总花费改 `groupBy` 聚合，不再把每笔账读进内存
+- [x] 24.3 `GET /trips/{id}?photos=none`：跳过照片装载，地图 / 账本视图少传数据
+- [x] 24.4 `/api/v1` 写接口按用户限流 120 次/分（`LIMITS.apiWrite`），429 带 `Retry-After`；读接口不受影响
+- [x] 24.5 Prisma P2025 统一翻成 404「记录不存在或已被删除」（原来是 500）
+- [x] 24.6 验证：typecheck / lint / vitest 55 / `e2e/api.spec.ts`（新增 PUT 花费、404、photos=none 真照片、分页翻页与坏 cursor）；curl 实测 120→429 与读接口 30×200
+- **状态：** complete（未提交）
+
+### 阶段 23：小程序补齐
+- [x] 23.1 后端：`src/lib/services/review.ts`（旅程总结 / 年度回顾 / 可回顾年份 / 成长对照）+ 路由 `GET /trips/{id}/summary`、`/years`、`/years/{year}`、`/growth`；总结页与 me 页改用服务
+- [x] 23.2 后端：微信登录 — User 加 `wechatOpenId`（迁移）、`src/lib/wechat.ts` code2session、`POST /auth/wechat`（code 登录）、`/auth/login` 接受 `wxCode` 绑定、`DELETE /auth/wechat` 解绑；env `WECHAT_APPID/SECRET`
+- [x] 23.3 小程序：年度回顾页、旅程总结页（Canvas 2D 画 4:5 长图并保存相册）、我页成长对照
+- [x] 23.4 小程序：AI 页长按语音（RecorderManager → /api/ai/transcribe）
+- [x] 23.5 小程序：离线队列 `utils/offline.js`（写操作网络失败入队，网络恢复回放 /api/sync；旅程页显示待同步数）
+- [x] 23.6 小程序：深色模式（app.json darkmode + theme.json + WXSS 变量）
+- [x] 23.7 小程序：微信一键登录（启动时 wx.login → /auth/wechat；邮箱登录时带 code 绑定；我页可解绑）
+- [x] 23.8 验证：typecheck / lint / vitest / 本地迁移；curl 新接口；小程序静态校验；更新 docs/api.md、miniprogram/README.md、.env.example
+- **状态：** complete（代码完成、静态校验与接口验证通过；微信登录需用户配置 WECHAT_APPID/SECRET 后真机验证）
+- [x] 23.9 完成度自查与修正：邀请接受页（原本 inviteInfo/acceptInvite 无页面调用）、record 删除改 `?version=`（微信 DELETE 带 body 不可靠）、离线入队双 toast、record.wxml `tzToday` 笔误
+- [ ] 23.10 提交（用户未要求）；生产部署需 `deploy.sh --with-migrate`（新增 wechatOpenId 迁移）
+
+### 阶段 22：微信小程序
+技术决策：原生小程序（WXML/WXSS/JS，无构建步骤，微信开发者工具直接导入）；不用 Taro/uni-app。数据全部走现有 `/api/v1` + `/api/upload` + `/api/files` + `/api/ai/chat`，令牌 `tra_…` 存 wx storage。
+
+- [x] 22.1 后端最小兼容改动：`/api/files` 支持 `?token=tra_…`（`<image>` 无法带 header）；新增 `GET /api/v1/footprint`（足迹页所有旅程站点坐标）
+- [x] 22.2 小程序骨架：`app.json` 3 个 Tab（旅程/足迹/我）、`config.js`、`utils/request.js`（Bearer、401 跳登录、错误 toast）、`utils/api.js`、`utils/format.js`（金额/时区日期/标签常量）、`utils/stream.js`（AI SSE 解析）
+- [x] 22.3 登录/注册页 → 旅程列表页 → 旅程时间线页（按天分组：日记/站点/条目/花费/照片/宝宝状态）
+- [x] 22.4 记录表单：旅程新建/编辑、地点（POI 搜索 + 定位）、条目（9 类 + 顺手记账）、花费、宝宝状态、日记（AI 草稿）
+- [x] 22.5 记录详情页：`/records/{kind}/{refId}` 查看、带 version 修改、删除、操作历史、AI 核对
+- [x] 22.6 旅程地图（`<map>` GCJ-02 直接用）、账本（分类/按天/明细）、照片（网格/预览/上传/删除/设封面）（网格/预览/上传/删除/设封面）
+- [x] 22.7 足迹 Tab、我 Tab（护照入口、服务器地址、退出）、护照页（盖章/全部盖章）、清单页、成员页
+- [x] 22.8 AI 对话页（enableChunked 流式，工具调用 chip，拍照识票据）
+- [x] 22.9 验证：`node --check` 全部 JS、JSON 校验、后端 typecheck/lint/vitest、curl 验证 files token 与 footprint；写 `miniprogram/README.md`（导入、域名 HTTPS、合法域名配置）
+- [x] 22.10 更新 docs/api.md、README；提交
+- **状态：** complete（代码完成、静态校验与接口验证通过；待用户在开发者工具真机联调）
+
+已知限制（写给用户）：小程序 request 合法域名必须 HTTPS，当前生产 `http://trace.aiyuki.cc` 需先上 HTTPS；开发阶段可在开发者工具勾选「不校验合法域名」。
 
 ## 各阶段
 

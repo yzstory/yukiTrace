@@ -1,0 +1,3 @@
+.types { white-space: nowrap; margin-bottom: 8rpx; }
+.types .pill { margin-right: 12rpx; }
+.amount { width: 220rpx; text-align: right; font-size: 40rpx; font-weight: 600; }

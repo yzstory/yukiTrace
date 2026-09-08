@@ -97,6 +97,7 @@ pnpm build
 | 数据库 | `DATABASE_URL` | PostgreSQL 连接串 |
 | 站点 | `APP_URL`、`APP_PORT` | 对外地址与 Compose 映射端口 |
 | 认证 | `AUTH_SECRET`、`ALLOW_SIGNUP` | 会话签名密钥与公开注册开关 |
+| 微信小程序 | `WECHAT_APPID`、`WECHAT_SECRET` | 小程序一键登录（可选，未配置时小程序退回邮箱密码登录） |
 | 高德地图 | `AMAP_JS_KEY`、`AMAP_SECURITY_CODE`、`AMAP_WEB_SERVICE_KEY` | 浏览器地图（运行时由服务端注入，改 .env 重启即生效）与服务端路径/天气/POI 查询 |
 | 对象存储 | `OSS_REGION`、`OSS_BUCKET`、`OSS_ACCESS_KEY_ID`、`OSS_ACCESS_KEY_SECRET` | 图片存储；凭据留空时使用本地 Volume。私有 Bucket 的 `OSS_PUBLIC_BASE_URL` 应留空，由应用鉴权代理读取 |
 | AI | `AI_BASE_URL`、`AI_API_KEY`、`AI_MODEL`、`AI_VISION_MODEL` | OpenAI 兼容文本与视觉模型 |
@@ -127,6 +128,7 @@ deploy/deploy.sh --with-migrate
 ```text
 src/app/                 页面、Server Actions（薄壳）与 Route Handlers
 src/app/api/v1/          JSON API：令牌鉴权，供小程序 / App / 脚本使用（见 docs/api.md）
+miniprogram/             微信小程序（原生，复用 /api/v1；见 miniprogram/README.md）
 src/components/          时间线、地图、账本、AI、分享及基础 UI
 src/lib/services/        业务服务层：Server Actions 与 /api/v1 共用同一套校验、鉴权与写入
 src/lib/                 认证、数据库、地图、货币、存储与 AI 工具
@@ -143,7 +145,9 @@ deploy/                  服务器部署脚本
 - 仅动画 `transform` 与 `opacity`，避免 `transition-all` 和布局属性动画。
 - 悬停效果只为精细指针启用，并尊重 `prefers-reduced-motion`、`prefers-reduced-transparency` 与 `prefers-contrast`。
 
-Logo 由 OpenAI 图像生成工具为 Trace 定制：成人与孩子的脚印由一条路径连接到目的地，代表一家人共同走过并被记录下来的旅程。
+Logo 采用选定的第四款方案：紫色手写 **Trace**，字母末端化作航迹与飞机。登录页和桌面侧栏使用完整横向字标，深色模式显示白色版本；PWA 图标使用奶白底与安全留白。
+
+原图由内置 imagegen 生成，经项目所有者选定，保存在 `assets/brand/trace-handwritten-source.png`。`pnpm brand` 仅裁去透明留白并导出 `public/brand/trace-logo.png`、各尺寸 PNG、maskable 图标与 favicon.ico，不重新绘制字形。原始提示方向为「Trace 手写连笔字标，紫色，末笔延伸为飞机航迹」。旧版 SVG 方案归档在 `brand-concepts/`，不再作为线上资源。
 
 ## License
 

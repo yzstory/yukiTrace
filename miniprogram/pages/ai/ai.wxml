@@ -1,0 +1,28 @@
+<view class="chat" style="padding-bottom: {{keyboard}}px">
+  <scroll-view scroll-y class="list" scroll-into-view="{{scrollTo}}" scroll-with-animation enhanced show-scrollbar="{{false}}">
+    <view class="intro" wx:if="{{!messages.length}}">
+      <view class="title-3">✦ {{tripId ? '随口记，我来整理' : '问问过去的旅行'}}</view>
+      <view class="subhead muted mt-8">{{tripId ? '说一句话就能记地点、花费、宝宝状态；拍张小票也可以。' : '住过哪、花了多少、那年今日，都在记忆里。'}}</view>
+      <view class="hints mt-16"><view class="hint" wx:for="{{hints}}" wx:key="*this" data-text="{{item}}" bindtap="useHint" hover-class="btn-hover">{{item}}</view></view>
+    </view>
+    <view class="msg {{item.role}}" wx:for="{{messages}}" wx:key="id" id="m-{{item.id}}">
+      <view class="images" wx:if="{{item.images && item.images.length}}"><image wx:for="{{item.images}}" wx:key="*this" wx:for-item="img" class="msg-img" src="{{img}}" mode="aspectFill" /></view>
+      <view class="tools" wx:if="{{item.tools && item.tools.length}}"><view class="tool {{t.state}}" wx:for="{{item.tools}}" wx:key="id" wx:for-item="t">{{t.state === 'done' ? '✓' : t.state === 'error' ? '✕' : '…'}} {{t.label}}<text wx:if="{{t.result}}" class="faint"> · {{t.result}}</text></view></view>
+      <view class="bubble" wx:if="{{item.text || item.role === 'assistant'}}" bindlongpress="copy" data-text="{{item.text}}"><text user-select>{{item.text || (item.error ? '' : '…')}}</text></view>
+      <view class="caption danger" wx:if="{{item.error}}">{{item.error}}</view>
+    </view>
+    <view id="bottom" style="height: 24rpx"></view>
+  </scroll-view>
+
+  <view class="composer">
+    <scroll-view scroll-x class="pending" wx:if="{{pending.length}}"><view class="pend" wx:for="{{pending}}" wx:key="*this"><image class="pend-img" src="{{item}}" mode="aspectFill" /><view class="pend-x" data-index="{{index}}" bindtap="removePending">×</view></view></scroll-view>
+    <view class="row">
+      <view class="icon-btn" hover-class="btn-hover" bindtap="addPhoto" wx:if="{{tripId}}">📷</view>
+      <view class="icon-btn" hover-class="btn-hover" bindtap="toggleVoiceMode">{{voiceMode ? '⌨️' : '🎤'}}</view>
+      <view wx:if="{{voiceMode}}" class="hold grow {{voice === 'recording' ? 'hold-on' : ''}}" bindtouchstart="voiceStart" bindtouchend="voiceEnd" bindtouchcancel="voiceCancel">{{voice === 'recording' ? '松开发送' : voice === 'transcribing' ? '识别中…' : '按住 说话'}}</view>
+      <input wx:else class="input grow" placeholder="{{tripId ? '说点什么，或拍张小票' : '想知道什么'}}" placeholder-class="placeholder" value="{{input}}" bindinput="onInput" confirm-type="send" bindconfirm="send" bindfocus="onFocus" bindblur="onBlur" adjust-position="{{false}}" disabled="{{streaming}}" />
+      <view class="icon-btn send" hover-class="btn-hover" bindtap="onSendTap">{{streaming ? '■' : '↑'}}</view>
+    </view>
+    <view class="caption faint center" bindtap="clear" wx:if="{{messages.length}}">清空对话</view>
+  </view>
+</view>

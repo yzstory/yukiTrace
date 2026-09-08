@@ -1,0 +1,18 @@
+<view class="page page-tab">
+  <view class="large-title" style="margin: 8rpx 8rpx 24rpx">足迹</view>
+  <view class="kpis" wx:if="{{stats}}">
+    <view class="kpi card"><view class="display-number small">{{stats.trips}}</view><view class="caption muted">段旅程</view></view>
+    <view class="kpi card"><view class="display-number small">{{stats.cities}}</view><view class="caption muted">座城市</view></view>
+    <view class="kpi card"><view class="display-number small">{{stats.distance}}</view><view class="caption muted">直线里程</view></view>
+  </view>
+  <view class="map-wrap card card-tight mt-16">
+    <map id="map" class="map" latitude="{{lat}}" longitude="{{lng}}" scale="4" markers="{{markers}}" polyline="{{polyline}}" bindmarkertap="onMarker" enable-rotate="{{false}}" />
+  </view>
+  <view class="empty mt-16" wx:if="{{loaded && !trips.length}}"><view class="empty-emoji">👣</view>还没有足迹，去旅程里记下第一站</view>
+  <view class="form-group mt-16" wx:if="{{trips.length}}">
+    <view class="cell cell-arrow" wx:for="{{trips}}" wx:key="id" data-id="{{item.id}}" bindtap="open" hover-class="btn-hover">
+      <view class="dot" style="background: {{item.color}}"></view>
+      <view class="grow"><view class="callout bold ellipsis">{{item.title}}</view><view class="caption muted">{{item.month}} · {{item.count}} 站</view></view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,26 @@
+<view class="page">
+  <view class="cover" bindtap="changeCover" hover-class="btn-hover" wx:if="{{id}}">
+    <image wx:if="{{cover}}" class="cover-img" src="{{cover}}" mode="aspectFill" />
+    <view class="cover-hint">{{cover ? '更换封面' : '📷 设置封面'}}</view>
+  </view>
+
+  <view class="section-title">基本信息</view>
+  <view class="form-group">
+    <view class="field"><text class="field-label">旅程名称</text><input class="field-input" placeholder="比如：北海道的第一场雪" placeholder-class="placeholder" value="{{form.title}}" data-key="title" bindinput="onInput" maxlength="60" /></view>
+    <picker mode="date" value="{{form.startDate}}" data-key="startDate" bindchange="onDate"><view class="field field-inline"><text class="field-label">开始日期</text><text class="field-value">{{form.startDate}}</text></view></picker>
+    <picker mode="date" value="{{form.endDate}}" start="{{form.startDate}}" data-key="endDate" bindchange="onDate"><view class="field field-inline"><text class="field-label">结束日期</text><text class="field-value">{{form.endDate}}</text></view></picker>
+    <picker range="{{curLabels}}" value="{{curIndex}}" bindchange="onCurrency"><view class="field field-inline"><text class="field-label">主币种</text><text class="field-value">{{curLabels[curIndex]}}</text></view></picker>
+    <picker range="{{tzLabels}}" value="{{tzIndex}}" bindchange="onTimezone"><view class="field field-inline"><text class="field-label">时区</text><text class="field-value ellipsis" style="max-width: 60%">{{tzLabels[tzIndex]}}</text></view></picker>
+  </view>
+
+  <view class="section-title">宝宝与同行人</view>
+  <view class="form-group">
+    <view class="field"><text class="field-label">宝宝昵称</text><input class="field-input" placeholder="小汤圆" placeholder-class="placeholder" value="{{form.babyName}}" data-key="babyName" bindinput="onInput" maxlength="30" /></view>
+    <picker mode="date" value="{{form.babyBirthDate || '2024-01-01'}}" data-key="babyBirthDate" bindchange="onDate"><view class="field field-inline"><text class="field-label">宝宝生日</text><text class="field-value {{form.babyBirthDate ? '' : 'placeholder'}}">{{form.babyBirthDate || '用于显示月龄'}}</text></view></picker>
+    <view class="field"><text class="field-label">同行人</text><input class="field-input" placeholder="妈妈、爸爸、外婆" placeholder-class="placeholder" value="{{form.travelers}}" data-key="travelers" bindinput="onInput" /></view>
+    <view class="field"><text class="field-label">简介</text><textarea class="field-textarea" placeholder="这趟旅行想记住什么" placeholder-class="placeholder" value="{{form.description}}" data-key="description" bindinput="onInput" maxlength="500" auto-height /></view>
+  </view>
+
+  <button class="btn btn-primary btn-block mt-24" hover-class="btn-hover" loading="{{busy}}" bindtap="submit">{{id ? '保存' : '创建旅程'}}</button>
+  <button class="btn btn-danger btn-block mt-16" wx:if="{{id && isOwner}}" hover-class="btn-hover" bindtap="remove">删除旅程</button>
+</view>

@@ -6,6 +6,7 @@ import { badRequest, forbidden, tooMany, unauthorized } from "@/lib/api/errors";
 import { rateLimit, LIMITS } from "@/lib/rate-limit";
 import { log } from "@/lib/logger";
 import { parse } from "./shared";
+import { codeToOpenId, wechatConfigured } from "@/lib/wechat";
 import { optStr, reqStr, type Input } from "./input";
 
 const loginSchema = z.object({
@@ -50,4 +51,31 @@ export async function currentUser(userId: string) {
   const user = await db.user.findUnique({ where: { id: userId }, select: PUBLIC_USER });
   if (!user) throw unauthorized("账号不存在");
   return user;
+}
+
+/** 微信一键登录：code → openid → 已绑定的账号；未绑定返回 null（客户端转邮箱登录并带 code 绑定） */
+export async function loginWithWechat(code: string) {
+  const openId = await codeToOpenId(code);
+  const user = await db.user.findUnique({ where: { wechatOpenId: openId }, select: PUBLIC_USER });
+  if (user) log.info("login.wechat", { userId: user.id });
+  return user;
+}
+
+/** 把当前账号与微信 openid 绑定；同一 openid 只能绑一个账号，换绑时解除旧账号 */
+export async function bindWechat(userId: string, code: string) {
+  const openId = await codeToOpenId(code);
+  await db.$transaction([
+    db.user.updateMany({ where: { wechatOpenId: openId, NOT: { id: userId } }, data: { wechatOpenId: null } }),
+    db.user.update({ where: { id: userId }, data: { wechatOpenId: openId } }),
+  ]);
+  log.info("wechat.bound", { userId });
+}
+
+export async function unbindWechat(userId: string) {
+  await db.user.update({ where: { id: userId }, data: { wechatOpenId: null } });
+}
+
+export async function wechatStatus(userId: string) {
+  const user = await db.user.findUnique({ where: { id: userId }, select: { wechatOpenId: true } });
+  return { configured: wechatConfigured(), bound: Boolean(user?.wechatOpenId) };
 }

@@ -1,0 +1,2 @@
+.amount-card { padding: 40rpx 32rpx; }
+.amount { font-size: 80rpx; font-weight: 700; width: 360rpx; height: 100rpx; line-height: 100rpx; font-variant-numeric: tabular-nums; }

@@ -1,0 +1,28 @@
+<view class="login" style="padding-top: {{statusBarHeight + 80}}px">
+  <view class="brand">
+    <image class="brand-logo" src="/assets/trace-logo.png" mode="aspectFit" aria-label="Trace" />
+    <view class="subhead muted">带娃旅行记 · 路线、花费、照片，收进同一条时间线</view>
+  </view>
+
+  <view class="form-group mt-24">
+    <view class="field" wx:if="{{mode === 'signup'}}">
+      <text class="field-label">昵称</text>
+      <input class="field-input" placeholder="比如：妈妈" placeholder-class="placeholder" value="{{name}}" data-key="name" bindinput="onInput" maxlength="30" />
+    </view>
+    <view class="field">
+      <text class="field-label">邮箱</text>
+      <input class="field-input" type="text" placeholder="you@example.com" placeholder-class="placeholder" value="{{email}}" data-key="email" bindinput="onInput" confirm-type="next" />
+    </view>
+    <view class="field">
+      <text class="field-label">密码</text>
+      <input class="field-input" password placeholder="至少 6 位" placeholder-class="placeholder" value="{{password}}" data-key="password" bindinput="onInput" confirm-type="done" bindconfirm="submit" />
+    </view>
+  </view>
+  <view class="error-text" wx:if="{{error}}">{{error}}</view>
+
+  <button class="btn btn-primary btn-block mt-16" hover-class="btn-hover" loading="{{busy}}" bindtap="submit">{{mode === 'login' ? '登录' : '注册并登录'}}</button>
+  <button class="btn btn-ghost btn-block mt-8" hover-class="btn-hover" bindtap="switchMode">{{mode === 'login' ? '还没有账号？注册' : '已有账号？登录'}}</button>
+
+  <view class="caption faint center mt-16" wx:if="{{mode === 'login'}}">登录后会绑定当前微信，下次打开自动登录</view>
+  <view class="server caption faint" bindtap="changeServer">服务器：{{server}} · 点此修改</view>
+</view>

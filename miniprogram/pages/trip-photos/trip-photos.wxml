@@ -1,0 +1,19 @@
+<view class="page">
+  <view class="loading" wx:if="{{loading}}">正在读取…</view>
+  <view class="empty" wx:elif="{{!count}}"><view class="empty-emoji">🖼️</view>还没有照片<view class="caption faint mt-8">上传后会按拍摄时间自动归到当天和附近的地点</view></view>
+  <block wx:else>
+    <view class="caption primary" wx:if="{{uploading}}">{{uploading}}</view>
+    <view class="group" wx:for="{{groups}}" wx:key="day" wx:for-item="g">
+      <view class="headline group-head">{{g.label}} <text class="caption muted">{{g.items.length}} 张</text></view>
+      <view class="grid">
+        <view class="cellp" wx:for="{{g.items}}" wx:key="id" wx:for-item="p">
+          <image class="img" src="{{p.thumb}}" mode="aspectFill" lazy-load data-url="{{p.full}}" bindtap="preview" data-id="{{p.id}}" bindlongpress="manage" />
+          <view class="cap caption ellipsis" wx:if="{{p.caption || p.stopName}}">{{p.caption || p.stopName}}</view>
+        </view>
+      </view>
+    </view>
+    <view class="caption faint center mt-16" wx:if="{{canEdit}}">长按照片可编辑说明、设为封面或删除</view>
+  </block>
+  <view style="height: 200rpx"></view>
+  <view class="fab" wx:if="{{canEdit}}" hover-class="btn-hover" bindtap="upload">📷</view>
+</view>

@@ -1,0 +1,16 @@
+<view class="page">
+  <view class="grid-3">
+    <view class="tile {{type === item.key ? 'tile-on' : ''}}" wx:for="{{types}}" wx:key="key" hover-class="btn-hover" data-key="{{item.key}}" bindtap="setType"><text class="tile-emoji">{{item.emoji}}</text>{{item.label}}</view>
+  </view>
+  <view class="form-group mt-16">
+    <view class="field field-inline">
+      <text class="field-label">时间</text>
+      <view class="row">
+        <picker mode="date" value="{{date}}" data-key="date" bindchange="onPick"><text class="field-value">{{date}}</text></picker>
+        <picker mode="time" value="{{time}}" data-key="time" bindchange="onPick"><text class="field-value">{{time}}</text></picker>
+      </view>
+    </view>
+    <view class="field"><text class="field-label">备注</text><input class="field-input" placeholder="{{type === 'FEED' ? '喝了 150ml' : type === 'SLEEP' ? '在推车上睡着了' : '可选'}}" placeholder-class="placeholder" value="{{note}}" bindinput="onNote" /></view>
+  </view>
+  <button class="btn btn-primary btn-block mt-24" hover-class="btn-hover" loading="{{busy}}" bindtap="submit">记录</button>
+</view>

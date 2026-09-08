@@ -1,0 +1,40 @@
+<view class="page">
+  <view class="loading" wx:if="{{loading}}">正在读取…</view>
+  <block wx:else>
+    <view class="section-title">家人（{{members.length}}）</view>
+    <view class="form-group">
+      <view class="cell" wx:for="{{members}}" wx:key="userId">
+        <view class="avatar small">{{item.initial}}</view>
+        <view class="grow"><view class="callout">{{item.name}}<text class="caption muted" wx:if="{{item.userId === me}}">（我）</text></view><view class="caption muted">{{item.roleText}} · {{item.joined}} 加入</view></view>
+        <view class="btn btn-sm" wx:if="{{role === 'OWNER' && !item.isOwner}}" data-userid="{{item.userId}}" data-name="{{item.name}}" bindtap="removeMember">移除</view>
+      </view>
+    </view>
+
+    <block wx:if="{{role === 'OWNER'}}">
+      <view class="section-title">邀请家人一起记录</view>
+      <view class="form-group">
+        <view class="cell" wx:for="{{invites}}" wx:key="id">
+          <view class="grow"><view class="callout ellipsis">{{item.url}}</view><view class="caption muted">已用 {{item.uses}} 次 · {{item.expires}}</view></view>
+          <button class="btn btn-sm btn-primary" open-type="share" data-token="{{item.token}}" hover-class="btn-hover">转发</button>
+          <view class="btn btn-sm" data-url="{{item.url}}" bindtap="copy">复制</view>
+          <view class="btn btn-sm" data-id="{{item.id}}" bindtap="revokeInvite">撤销</view>
+        </view>
+        <view class="cell"><button class="btn btn-sm btn-primary" hover-class="btn-hover" bindtap="invite">生成邀请链接</button><text class="caption muted">30 天有效；「转发」发小程序卡片，家人点开直接加入</text></view>
+      </view>
+    </block>
+
+    <block wx:if="{{role !== 'VIEWER'}}">
+      <view class="section-title">只读分享</view>
+      <view class="form-group">
+        <view class="cell" wx:for="{{links}}" wx:key="id">
+          <view class="grow"><view class="callout ellipsis">{{item.url}}</view><view class="caption muted">{{item.hideExpense ? '隐藏花费' : '显示花费'}} · {{item.created}}</view></view>
+          <view class="btn btn-sm" data-url="{{item.url}}" bindtap="copy">复制</view>
+          <view class="btn btn-sm" data-id="{{item.id}}" bindtap="revokeLink">撤销</view>
+        </view>
+        <view class="cell"><button class="btn btn-sm" hover-class="btn-hover" bindtap="share">生成分享链接</button><text class="caption muted">免登录网页查看</text></view>
+      </view>
+    </block>
+
+    <button class="btn btn-danger btn-block mt-24" wx:if="{{role !== 'OWNER'}}" hover-class="btn-hover" bindtap="leave">退出这段旅程</button>
+  </block>
+</view>

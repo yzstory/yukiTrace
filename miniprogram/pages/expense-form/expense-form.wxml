@@ -1,0 +1,29 @@
+<view class="page">
+  <view class="amount-card card">
+    <view class="row" style="justify-content: center">
+      <picker range="{{curLabels}}" value="{{curIndex}}" bindchange="onCurrency"><view class="pill pill-fill">{{form.currency}} ▾</view></picker>
+      <input class="amount" type="digit" placeholder="0" placeholder-class="placeholder" value="{{form.amount}}" data-key="amount" bindinput="onInput" focus />
+    </view>
+    <view class="caption muted center mt-8" wx:if="{{rateText}}">{{rateText}}</view>
+  </view>
+
+  <view class="form-group mt-16">
+    <view class="field"><text class="field-label">名称</text><input class="field-input" placeholder="地铁、便利店、门票…" placeholder-class="placeholder" value="{{form.title}}" data-key="title" bindinput="onInput" maxlength="120" /></view>
+    <view class="field">
+      <text class="field-label">分类</text>
+      <view class="wrap"><view class="pill pill-fill {{form.category === item.key ? 'pill-on' : ''}}" wx:for="{{cats}}" wx:key="key" data-key="{{item.key}}" bindtap="setCat">{{item.emoji}} {{item.label}}</view></view>
+    </view>
+    <view class="field field-inline"><text class="field-label">宝宝相关</text><switch checked="{{form.isBaby}}" bindchange="toggleBaby" color="#0A84FF" /></view>
+    <picker range="{{stops}}" range-key="name" value="{{stopIndex}}" bindchange="onStop"><view class="field field-inline"><text class="field-label">关联地点</text><text class="field-value ellipsis" style="max-width: 60%">{{stops[stopIndex].name}}</text></view></picker>
+    <view class="field field-inline">
+      <text class="field-label">付款时间</text>
+      <view class="row">
+        <picker mode="date" value="{{form.paidDate}}" data-key="paidDate" bindchange="onPick"><text class="field-value">{{form.paidDate}}</text></picker>
+        <picker mode="time" value="{{form.paidTime}}" data-key="paidTime" bindchange="onPick"><text class="field-value">{{form.paidTime}}</text></picker>
+      </view>
+    </view>
+    <view class="field"><text class="field-label">备注</text><textarea class="field-textarea" placeholder="可选" placeholder-class="placeholder" value="{{form.note}}" data-key="note" bindinput="onInput" auto-height /></view>
+  </view>
+
+  <button class="btn btn-primary btn-block mt-24" hover-class="btn-hover" loading="{{busy}}" bindtap="submit">记一笔</button>
+</view>

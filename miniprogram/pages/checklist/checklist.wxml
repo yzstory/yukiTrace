@@ -1,0 +1,41 @@
+<view class="page">
+  <view class="loading" wx:if="{{loading}}">正在读取…</view>
+  <block wx:else>
+    <view class="card" wx:if="{{total}}">
+      <view class="row-between"><text class="headline">已准备 {{done}} / {{total}}</text><text class="caption primary" bindtap="reset">重置</text></view>
+      <view class="bar mt-8"><view class="bar-fill" style="width: {{total ? done / total * 100 : 0}}%"></view></view>
+    </view>
+
+    <view class="empty" wx:if="{{!total}}">
+      <view class="empty-emoji">🧸</view>还没有清单
+      <view class="row mt-16" style="justify-content:center">
+        <button class="btn btn-sm btn-primary" hover-class="btn-hover" bindtap="template">用带娃默认清单</button>
+        <button class="btn btn-sm" hover-class="btn-hover" bindtap="ai">✨ AI 生成</button>
+      </view>
+    </view>
+
+    <block wx:for="{{groups}}" wx:key="name" wx:for-item="g">
+      <view class="section-title">{{g.name}} <text style="text-transform:none">{{g.done}}/{{g.items.length}}</text></view>
+      <view class="form-group">
+        <view class="cell" wx:for="{{g.items}}" wx:key="id" data-id="{{item.id}}" data-checked="{{item.checked}}" bindtap="toggle" data-text="{{item.text}}" bindlongpress="remove" hover-class="btn-hover">
+          <view class="box {{item.checked ? 'box-on' : ''}}">{{item.checked ? '✓' : ''}}</view>
+          <text class="callout grow {{item.checked ? 'faint strike' : ''}}">{{item.text}}</text>
+        </view>
+      </view>
+    </block>
+
+    <view class="section-title" wx:if="{{total}}">添加</view>
+    <view class="form-group" wx:if="{{total}}">
+      <view class="cell">
+        <picker range="{{groupNames}}" bindchange="onGroup"><view class="pill pill-fill">{{group}} ▾</view></picker>
+        <input class="field-input grow" placeholder="要带的东西" placeholder-class="placeholder" value="{{text}}" bindinput="onText" confirm-type="done" bindconfirm="add" />
+        <view class="btn btn-sm btn-primary" hover-class="btn-hover" bindtap="add">加入</view>
+      </view>
+    </view>
+    <view class="row mt-16" wx:if="{{total}}">
+      <button class="btn btn-sm" hover-class="btn-hover" bindtap="template">追加默认清单</button>
+      <button class="btn btn-sm" hover-class="btn-hover" bindtap="ai">✨ AI 补充</button>
+    </view>
+    <view class="caption faint center mt-16">长按条目可删除</view>
+  </block>
+</view>

@@ -15,6 +15,8 @@ model User {
   passwordHash String
   name         String
   avatarKey    String?
+  /// 微信小程序 openid，绑定后可一键登录
+  wechatOpenId String?  @unique
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

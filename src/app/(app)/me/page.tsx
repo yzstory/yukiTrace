@@ -7,11 +7,10 @@ import { PushToggle } from "@/components/pwa/push-toggle";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/dal";
 import { logout } from "@/app/(auth)/actions";
-import { db } from "@/lib/db";
-import { imageUrl } from "@/lib/storage";
-import { fmt, babyAge } from "@/lib/date";
+import { fmt } from "@/lib/date";
 import { reviewableYears } from "@/lib/ai/year-review";
 import { passportFor } from "@/lib/passport";
+import { growth } from "@/lib/services/review";
 import { PassportCard } from "@/components/passport/passport-card";
 import { Sparkle } from "lucide-react";
 
@@ -20,24 +19,8 @@ export const metadata = { title: "我" };
 export default async function MePage() {
   const user = await getCurrentUser();
 
-  // 成长对照：同一城市在不同旅程出现，且各自有照片
-  const trips = await db.trip.findMany({
-    where: { OR: [{ ownerId: user.id }, { members: { some: { userId: user.id } } }] },
-    orderBy: { startDate: "asc" },
-    include: { stops: { where: { city: { not: null } }, select: { city: true, photos: { take: 1, orderBy: { takenAt: "asc" }, select: { ossKey: true } } } } },
-  });
-  const byCity = new Map<string, Array<{ tripId: string; title: string; date: Date; photoKey: string | null; ageText: string | null }>>();
-  for (const t of trips) {
-    const seen = new Set<string>();
-    for (const s of t.stops) {
-      if (!s.city || seen.has(s.city)) continue;
-      seen.add(s.city);
-      const list = byCity.get(s.city) ?? [];
-      list.push({ tripId: t.id, title: t.title, date: t.startDate, photoKey: s.photos[0]?.ossKey ?? null, ageText: t.babyBirthDate ? babyAge(t.babyBirthDate, t.startDate) : null });
-      byCity.set(s.city, list);
-    }
-  }
-  const pairs = Array.from(byCity.entries()).filter(([, l]) => l.length >= 2 && l.some((x) => x.photoKey));
+  // 成长对照：与 /api/v1/growth 同一份数据
+  const { pairs } = await growth({ userId: user.id });
   const years = await reviewableYears(user.id);
   const passport = await passportFor(user.id);
 
@@ -78,14 +61,14 @@ export default async function MePage() {
         <p className="rounded-2xl bg-card px-4 py-6 text-center text-subhead text-muted-foreground card-shadow">再去一次去过的城市，这里就会把两次的照片放在一起。</p>
       ) : (
         <div className="flex flex-col gap-3">
-          {pairs.map(([city, list]) => (
+          {pairs.map(({ city, visits: list }) => (
             <section key={city} className="rounded-2xl bg-card p-4 card-shadow">
               <h3 className="mb-3 text-headline">{city}</h3>
               <div className="no-scrollbar flex gap-3 overflow-x-auto">
                 {list.map((x) => (
                   <Link key={x.tripId} href={`/trips/${x.tripId}/photos`} className="w-36 shrink-0">
                     <span className="relative block aspect-[4/5] overflow-hidden rounded-xl bg-fill">
-                      {x.photoKey && <Image src={imageUrl(x.photoKey, { w: 400 })} alt="" fill sizes="144px" className="object-cover" unoptimized />}
+                      {x.photoUrl && <Image src={x.photoUrl} alt="" fill sizes="144px" className="object-cover" unoptimized />}
                     </span>
                     <span className="mt-1.5 block truncate text-footnote font-medium">{fmt.monthYear(x.date)}</span>
                     <span className="block truncate text-caption text-muted-foreground">{x.ageText ?? x.title}</span>

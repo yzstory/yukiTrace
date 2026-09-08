@@ -1,0 +1,136 @@
+<view class="page">
+  <view class="loading" wx:if="{{loading && !trip}}">正在读取…</view>
+
+  <block wx:if="{{trip}}">
+    <!-- 头部 -->
+    <view class="hero" style="{{trip.cover ? '' : 'background: linear-gradient(135deg, #cfe3ff, #f7d7e8)'}}">
+      <image wx:if="{{trip.cover}}" class="hero-img" src="{{trip.cover}}" mode="aspectFill" />
+      <view class="hero-shade"></view>
+      <view class="hero-body">
+        <view class="title-1 ellipsis">{{trip.title}}</view>
+        <view class="footnote">{{trip.range}} · {{trip.days}} 天<text wx:if="{{trip.age}}"> · 👶 {{trip.age}}</text></view>
+        <view class="hero-stats">
+          <text>{{trip.stopCount}} 站</text>
+          <text wx:if="{{trip.distanceText}}">{{trip.distanceText}}</text>
+          <text wx:if="{{trip.total}}">{{trip.total}}</text>
+          <text wx:if="{{trip.memberCount > 1}}">{{trip.memberCount}} 位家人</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 子导航 -->
+    <scroll-view scroll-x class="subnav" enhanced show-scrollbar="{{false}}">
+      <view class="pill" hover-class="btn-hover" data-page="trip-map" bindtap="go">🗺️ 地图</view>
+      <view class="pill" hover-class="btn-hover" data-page="trip-ledger" bindtap="go">💴 账本</view>
+      <view class="pill" hover-class="btn-hover" data-page="trip-photos" bindtap="go">🖼️ 照片</view>
+      <view class="pill" hover-class="btn-hover" data-page="checklist" bindtap="go">✅ 清单</view>
+      <view class="pill" hover-class="btn-hover" bindtap="more">··· 更多</view>
+    </scroll-view>
+
+    <view class="uploading caption primary" wx:if="{{uploading}}">{{uploading}}</view>
+    <view class="pending card" wx:if="{{pending}}">
+      <view class="grow" bindtap="pendingDetail"><text class="callout">📶 {{pending}} 条记录待同步</text><view class="caption muted">没网时记的，联网后自动上传；点此查看</view></view>
+      <button class="btn btn-sm btn-primary" hover-class="btn-hover" loading="{{syncing}}" bindtap="sync">立即同步</button>
+    </view>
+
+    <!-- 时间线 -->
+    <view class="day" wx:for="{{days}}" wx:key="index" wx:for-item="day">
+      <view class="day-head">
+        <view class="day-num" wx:if="{{day.index}}">Day {{day.index}}</view>
+        <view class="headline">{{day.label}}</view>
+        <view class="caption muted" wx:if="{{day.weekday}}">{{day.weekday}}</view>
+        <view class="grow"></view>
+        <view class="caption muted mono" wx:if="{{day.subtotalText}}">{{day.subtotalText}}</view>
+      </view>
+
+      <!-- 日记 -->
+      <view class="note card" wx:if="{{day.key}}" hover-class="btn-hover" data-date="{{day.key}}" bindtap="openNote">
+        <text wx:if="{{day.note}}" class="callout">{{day.note}}</text>
+        <text wx:elif="{{day.aiDraft}}" class="callout muted">✨ AI 写了一段草稿，点开看看</text>
+        <text wx:else class="callout faint">📝 写点今天的事…</text>
+      </view>
+
+      <!-- 站点 -->
+      <block wx:for="{{day.stops}}" wx:key="id" wx:for-item="stop">
+        <view class="leg caption muted" wx:if="{{stop.leg}}">{{stop.leg}}</view>
+        <view class="card stop" hover-class="btn-hover" data-kind="stop" data-ref="{{stop.id}}" bindtap="openRecord">
+          <view class="row">
+            <view class="stop-icon">{{stop.cfg.emoji}}</view>
+            <view class="grow">
+              <view class="headline ellipsis">{{stop.name}}</view>
+              <view class="caption muted ellipsis">{{stop.arrive}}<text wx:if="{{stop.leave}}"> – {{stop.leave}}</text><text wx:if="{{stop.city}}"> · {{stop.city}}</text><text wx:if="{{stop.weatherText}}"> · {{stop.weatherText}}</text></view>
+            </view>
+          </view>
+          <view class="caption muted mt-8" wx:if="{{stop.address}}">{{stop.address}}</view>
+          <view class="wrap mt-8" wx:if="{{stop.tags.length}}"><view class="chip" wx:for="{{stop.tags}}" wx:key="*this">👶 {{item}}</view></view>
+          <view class="callout mt-8" wx:if="{{stop.note}}">{{stop.note}}</view>
+        </view>
+        <!-- 站点下的条目 -->
+        <view class="indent">
+          <view class="entry" wx:for="{{stop.entries}}" wx:key="id" wx:for-item="en" hover-class="btn-hover" data-kind="entry" data-ref="{{en.id}}" bindtap="openRecord">
+            <view class="entry-emoji" style="background: {{en.cfg.color}}20">{{en.cfg.emoji}}</view>
+            <view class="grow">
+              <view class="callout bold ellipsis">{{en.title}}</view>
+              <view class="caption muted ellipsis">{{en.time}}<text wx:if="{{en.endTime}}"> – {{en.endTime}}</text> · {{en.cfg.label}}<text wx:if="{{en.metaText}}"> · {{en.metaText}}</text></view>
+              <view class="caption muted" wx:if="{{en.note}}">{{en.note}}</view>
+              <view class="wrap mt-8" wx:if="{{en.expenses.length}}"><view class="chip" wx:for="{{en.expenses}}" wx:key="id" wx:for-item="ex">{{ex.cat.emoji}} {{ex.amount}}<text wx:if="{{ex.home}}"> ≈ {{ex.home}}</text></view></view>
+              <scroll-view scroll-x class="photo-strip" wx:if="{{en.photos.length}}"><image wx:for="{{en.photos}}" wx:key="id" wx:for-item="p" class="thumb" src="{{p.thumb}}" mode="aspectFill" lazy-load data-url="{{p.full}}" data-group="{{day.index}}" catchtap="previewPhoto" /></scroll-view>
+            </view>
+          </view>
+          <view class="entry" wx:for="{{stop.expenses}}" wx:key="id" wx:for-item="ex" hover-class="btn-hover" data-kind="expense" data-ref="{{ex.id}}" bindtap="openRecord">
+            <view class="entry-emoji" style="background: {{ex.cat.color}}20">{{ex.cat.emoji}}</view>
+            <view class="grow"><view class="callout ellipsis">{{ex.title}}</view><view class="caption muted">{{ex.time}} · {{ex.cat.label}}<text wx:if="{{ex.isBaby}}"> · 宝宝</text></view></view>
+            <view class="mono callout">{{ex.amount}}</view>
+          </view>
+          <scroll-view scroll-x class="photo-strip" wx:if="{{stop.photos.length}}"><image wx:for="{{stop.photos}}" wx:key="id" wx:for-item="p" class="thumb" src="{{p.thumb}}" mode="aspectFill" lazy-load data-url="{{p.full}}" data-group="{{day.index}}" bindtap="previewPhoto" data-kind="photo" data-ref="{{p.id}}" bindlongpress="openRecord" /></scroll-view>
+        </view>
+      </block>
+
+      <!-- 游离条目 / 花费 / 照片 -->
+      <view class="entry card-like" wx:for="{{day.entries}}" wx:key="id" wx:for-item="en" hover-class="btn-hover" data-kind="entry" data-ref="{{en.id}}" bindtap="openRecord">
+        <view class="entry-emoji" style="background: {{en.cfg.color}}20">{{en.cfg.emoji}}</view>
+        <view class="grow">
+          <view class="callout bold ellipsis">{{en.title}}</view>
+          <view class="caption muted ellipsis">{{en.time}}<text wx:if="{{en.endTime}}"> – {{en.endTime}}</text> · {{en.cfg.label}}<text wx:if="{{en.metaText}}"> · {{en.metaText}}</text></view>
+          <view class="caption muted" wx:if="{{en.note}}">{{en.note}}</view>
+          <view class="wrap mt-8" wx:if="{{en.expenses.length}}"><view class="chip" wx:for="{{en.expenses}}" wx:key="id" wx:for-item="ex">{{ex.cat.emoji}} {{ex.amount}}<text wx:if="{{ex.home}}"> ≈ {{ex.home}}</text></view></view>
+          <scroll-view scroll-x class="photo-strip" wx:if="{{en.photos.length}}"><image wx:for="{{en.photos}}" wx:key="id" wx:for-item="p" class="thumb" src="{{p.thumb}}" mode="aspectFill" lazy-load data-url="{{p.full}}" data-group="{{day.index}}" catchtap="previewPhoto" /></scroll-view>
+        </view>
+      </view>
+      <view class="entry card-like" wx:for="{{day.expenses}}" wx:key="id" wx:for-item="ex" hover-class="btn-hover" data-kind="expense" data-ref="{{ex.id}}" bindtap="openRecord">
+        <view class="entry-emoji" style="background: {{ex.cat.color}}20">{{ex.cat.emoji}}</view>
+        <view class="grow"><view class="callout ellipsis">{{ex.title}}</view><view class="caption muted">{{ex.time}} · {{ex.cat.label}}<text wx:if="{{ex.isBaby}}"> · 宝宝</text></view></view>
+        <view class="mono callout">{{ex.amount}}</view>
+      </view>
+      <scroll-view scroll-x class="photo-strip" wx:if="{{day.photos.length}}"><image wx:for="{{day.photos}}" wx:key="id" wx:for-item="p" class="thumb" src="{{p.thumb}}" mode="aspectFill" lazy-load data-url="{{p.full}}" data-group="{{day.index}}" bindtap="previewPhoto" data-kind="photo" data-ref="{{p.id}}" bindlongpress="openRecord" /></scroll-view>
+
+      <!-- 宝宝状态 -->
+      <scroll-view scroll-x class="baby-strip" wx:if="{{day.babyLogs.length}}">
+        <view class="pill pill-fill" wx:for="{{day.babyLogs}}" wx:key="id" wx:for-item="b" data-kind="babyLog" data-ref="{{b.id}}" bindtap="openRecord">{{b.cfg.emoji}} {{b.cfg.label}} {{b.time}}<text wx:if="{{b.note}}"> · {{b.note}}</text></view>
+      </scroll-view>
+
+      <view class="caption faint day-empty" wx:if="{{day.empty && day.index}}">这一天还没有记录</view>
+    </view>
+
+    <view style="height: 220rpx"></view>
+    <view class="fab fab-ai" hover-class="btn-hover" bindtap="openAi">✦</view>
+    <view class="fab" wx:if="{{canEdit}}" hover-class="btn-hover" bindtap="openSheet">+</view>
+  </block>
+
+  <!-- 快速记录弹层 -->
+  <view class="sheet-mask" wx:if="{{sheet}}" bindtap="closeSheet"></view>
+  <view class="sheet" wx:if="{{sheet}}" catchtap="noop">
+    <view class="sheet-handle"></view>
+    <view class="sheet-title">记一笔</view>
+    <view class="grid-4">
+      <view class="tile" hover-class="btn-hover" data-kind="stop" bindtap="quick"><text class="tile-emoji">📍</text>地点</view>
+      <view class="tile" hover-class="btn-hover" data-kind="expense" bindtap="quick"><text class="tile-emoji">💴</text>花费</view>
+      <view class="tile" hover-class="btn-hover" data-kind="photo" bindtap="quick"><text class="tile-emoji">📷</text>照片</view>
+      <view class="tile" hover-class="btn-hover" data-kind="baby" bindtap="quick"><text class="tile-emoji">🍼</text>宝宝</view>
+    </view>
+    <view class="section-title">条目</view>
+    <view class="grid-3">
+      <view class="tile" wx:for="{{entryTypes}}" wx:key="key" hover-class="btn-hover" data-kind="entry" data-type="{{item.key}}" bindtap="quick"><text class="tile-emoji">{{item.emoji}}</text>{{item.label}}</view>
+    </view>
+  </view>
+</view>

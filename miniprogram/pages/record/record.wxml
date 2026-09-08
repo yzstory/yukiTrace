@@ -1,0 +1,45 @@
+<view class="page">
+  <view class="loading" wx:if="{{loading && !fields.length}}">正在读取…</view>
+  <block wx:else>
+    <image wx:if="{{image}}" class="photo" src="{{image}}" mode="widthFix" bindtap="preview" />
+    <view class="caption muted mb-8" wx:if="{{extra.length}}"><text wx:for="{{extra}}" wx:key="*this">{{item}}{{index < extra.length - 1 ? '  ·  ' : ''}}</text></view>
+
+    <view class="form-group">
+      <block wx:for="{{fields}}" wx:key="key">
+        <view class="field" wx:if="{{item.type === 'textarea'}}"><text class="field-label">{{item.label}}</text><textarea class="field-textarea" value="{{values[item.key]}}" data-key="{{item.key}}" bindinput="onInput" auto-height disabled="{{!canEdit}}" maxlength="10000" /></view>
+        <view class="field field-inline" wx:elif="{{item.type === 'datetime-local'}}">
+          <text class="field-label">{{item.label}}</text>
+          <view class="row">
+            <picker mode="date" value="{{item.date}}" data-index="{{index}}" bindchange="onDate" disabled="{{!canEdit}}"><text class="field-value {{item.date ? '' : 'placeholder'}}">{{item.date || '未填'}}</text></picker>
+            <picker wx:if="{{item.date}}" mode="time" value="{{item.time}}" data-index="{{index}}" bindchange="onTime" disabled="{{!canEdit}}"><text class="field-value">{{item.time}}</text></picker>
+            <text wx:if="{{item.date && !item.required && canEdit}}" class="caption primary" data-index="{{index}}" bindtap="clearDateTime">清除</text>
+          </view>
+        </view>
+        <picker wx:elif="{{item.type === 'stop'}}" range="{{stops}}" range-key="name" value="{{stopIndex}}" bindchange="onStop" disabled="{{!canEdit}}"><view class="field field-inline"><text class="field-label">{{item.label}}</text><text class="field-value ellipsis" style="max-width: 60%">{{stops[stopIndex].name}}</text></view></picker>
+        <picker wx:elif="{{item.type === 'currency'}}" range="{{curLabels}}" value="{{curIndex}}" bindchange="onCurrency" disabled="{{!canEdit}}"><view class="field field-inline"><text class="field-label">{{item.label}}</text><text class="field-value">{{values[item.key]}}</text></view></picker>
+        <view class="field" wx:else><text class="field-label">{{item.label}}</text><input class="field-input" type="{{item.type === 'number' ? 'digit' : 'text'}}" value="{{values[item.key]}}" data-key="{{item.key}}" bindinput="onInput" disabled="{{!canEdit}}" /></view>
+      </block>
+    </view>
+
+    <view class="row mt-16" wx:if="{{canEdit}}">
+      <button class="btn btn-primary grow" hover-class="btn-hover" loading="{{busy}}" bindtap="save">保存</button>
+      <button class="btn btn-danger" hover-class="btn-hover" bindtap="remove">删除</button>
+    </view>
+
+    <view class="section-title">操作历史</view>
+    <view class="empty" wx:if="{{!history.length}}">还没有历史记录</view>
+    <view class="form-group" wx:else>
+      <view class="field" wx:for="{{history}}" wx:key="id">
+        <view class="row-between">
+          <text class="callout {{item.undone ? 'faint' : ''}}">{{item.text}}{{item.undone ? '（已撤销）' : ''}}</text>
+          <text class="caption faint">{{item.time}}</text>
+        </view>
+        <text class="caption muted" wx:if="{{item.changes}}">改动：{{item.changes}}</text>
+        <view class="row mt-8" wx:if="{{item.pendingAi && canEdit}}">
+          <button class="btn btn-sm btn-primary" hover-class="btn-hover" bindtap="confirm">核对无误</button>
+          <button class="btn btn-sm" hover-class="btn-hover" data-id="{{item.id}}" bindtap="undo">撤销</button>
+        </view>
+      </view>
+    </view>
+  </block>
+</view>

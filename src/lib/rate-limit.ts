@@ -40,6 +40,8 @@ export const LIMITS = {
   aiReceipt: { limit: 20, windowMs: 60 * 60_000 },
   aiGenerate: { limit: 20, windowMs: 60 * 60_000 },
   upload: { limit: 200, windowMs: 60 * 60_000 },
+  /** /api/v1 的写接口（小程序 / App / 脚本）：手记一笔账远达不到，批量脚本会被挡下 */
+  apiWrite: { limit: 120, windowMs: 60_000 },
   login: { limit: 10, windowMs: 10 * 60_000 },
 } as const;
 

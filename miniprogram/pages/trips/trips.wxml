@@ -1,0 +1,39 @@
+<view class="page page-tab">
+  <view class="header">
+    <view class="large-title">旅程</view>
+    <view class="subhead muted" wx:if="{{user}}">{{user.name}}，一家人走过的路都在这里</view>
+  </view>
+
+  <view class="loading" wx:if="{{loading && !loaded}}">正在读取旅程…</view>
+
+  <view class="empty" wx:elif="{{trips.length === 0}}">
+    <view class="empty-emoji">🧳</view>
+    <view>还没有旅程</view>
+    <view class="caption faint mt-8">点右下角 + 创建第一段带娃旅行</view>
+  </view>
+
+  <view class="stack" wx:else>
+    <view class="trip-card" wx:for="{{trips}}" wx:key="id" data-id="{{item.id}}" bindtap="open" hover-class="trip-hover">
+      <image wx:if="{{item.cover}}" class="trip-cover" src="{{item.cover}}" mode="aspectFill" lazy-load />
+      <view wx:else class="trip-cover trip-cover-empty" style="background: linear-gradient(135deg, #cfe3ff, #f7d7e8)"></view>
+      <view class="trip-shade"></view>
+      <view class="trip-body">
+        <view class="row">
+          <view class="chip chip-glass" wx:if="{{item.ongoing}}">进行中</view>
+          <view class="chip chip-glass" wx:if="{{item.age}}">👶 {{item.age}}</view>
+        </view>
+        <view class="trip-title ellipsis">{{item.title}}</view>
+        <view class="trip-meta">{{item.range}} · {{item.days}} 天</view>
+        <view class="trip-meta ellipsis" wx:if="{{item.cityText}}">{{item.cityText}}</view>
+        <view class="trip-stats">
+          <text>{{item.stopCount}} 站</text>
+          <text>{{item.photoCount}} 张照片</text>
+          <text wx:if="{{item.total}}">{{item.total}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="fab fab-ai" hover-class="btn-hover" bindtap="openAi">✦</view>
+  <view class="fab fab-tab" hover-class="btn-hover" bindtap="create">+</view>
+</view>

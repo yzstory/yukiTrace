@@ -1,0 +1,17 @@
+.hero { padding: 36rpx 32rpx; }
+.kpis { display: flex; gap: 12rpx; }
+.kpi { flex: 1; background: var(--bg); border-radius: 20rpx; padding: 16rpx; text-align: center; }
+.filters { white-space: nowrap; margin: 24rpx 0 8rpx; }
+.filters .pill { margin-right: 12rpx; }
+.cat { padding: 12rpx 0; }
+.bar { height: 12rpx; background: var(--fill); border-radius: 6rpx; margin-top: 10rpx; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 6rpx; }
+.chart { white-space: nowrap; height: 260rpx; }
+.col { display: inline-flex; flex-direction: column; align-items: center; justify-content: flex-end; width: 80rpx; height: 100%; vertical-align: bottom; }
+.col-val { height: 40rpx; font-variant-numeric: tabular-nums; font-size: 20rpx; color: var(--label-2); }
+.col-bar { width: 40rpx; height: 160rpx; display: flex; align-items: flex-end; background: var(--fill); border-radius: 8rpx; overflow: hidden; }
+.col-fill { width: 100%; background: var(--blue); border-radius: 8rpx; }
+.group { margin-top: 16rpx; }
+.group-head { padding: 0 8rpx 8rpx; }
+.emoji { width: 64rpx; height: 64rpx; border-radius: 18rpx; display: flex; align-items: center; justify-content: center; font-size: 30rpx; flex-shrink: 0; }
+.right { text-align: right; }

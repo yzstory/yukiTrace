@@ -1,0 +1,30 @@
+<view class="wrap-page">
+  <map id="map" class="map" latitude="{{lat}}" longitude="{{lng}}" scale="11" markers="{{markers}}" polyline="{{polyline}}" show-location bindmarkertap="onMarker" enable-rotate="{{false}}" enable-poi="{{true}}" />
+
+  <scroll-view scroll-x class="filters" wx:if="{{days.length > 1}}">
+    <view class="pill {{dayFilter === 0 ? 'pill-on' : ''}}" data-day="0" bindtap="setDay">全部</view>
+    <view class="pill {{dayFilter === item ? 'pill-on' : ''}}" wx:for="{{days}}" wx:key="*this" data-day="{{item}}" bindtap="setDay">Day {{item}}</view>
+  </scroll-view>
+
+  <view class="empty-tip" wx:if="{{!stops.length}}">还没有地点，回到旅程添加第一站</view>
+
+  <view class="bottom">
+    <view class="detail card" wx:if="{{selected}}">
+      <view class="row">
+        <view class="grow">
+          <view class="headline ellipsis">{{selected.emoji}} {{selected.name}}</view>
+          <view class="caption muted ellipsis">{{selected.time}}<text wx:if="{{selected.address}}"> · {{selected.address}}</text></view>
+        </view>
+        <view class="btn btn-sm" hover-class="btn-hover" bindtap="navigate">导航</view>
+        <view class="btn btn-sm btn-primary" hover-class="btn-hover" data-id="{{selected.id}}" bindtap="openStop">详情</view>
+      </view>
+    </view>
+    <scroll-view scroll-x class="cards" enhanced show-scrollbar="{{false}}">
+      <view class="stop-card {{selected && selected.id === item.id ? 'stop-on' : ''}}" wx:for="{{shown}}" wx:key="id" data-id="{{item.id}}" bindtap="onCard">
+        <view class="row"><view class="num" style="background: {{item.color}}">{{item.idx}}</view><text class="callout bold ellipsis grow">{{item.name}}</text></view>
+        <view class="caption muted ellipsis">{{item.time}}<text wx:if="{{item.leg}}"> · ← {{item.leg}}</text></view>
+        <view class="caption faint">{{item.entries}} 条记录 · {{item.photos}} 张照片</view>
+      </view>
+    </scroll-view>
+  </view>
+</view>

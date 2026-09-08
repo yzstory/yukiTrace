@@ -1,0 +1,29 @@
+<view class="page">
+  <view class="loading" wx:if="{{loading}}">正在整理…</view>
+  <block wx:elif="{{d}}">
+    <view class="poster-preview">
+      <image wx:if="{{d.cover}}" class="pv-cover" src="{{d.cover}}" mode="aspectFill" />
+      <view class="pv-body">
+        <view class="title-1">{{d.title}}</view>
+        <view class="footnote" style="opacity:.85">{{d.dateRange}} · {{d.days}} 天</view>
+        <view class="pv-grid mt-16">
+          <view class="pv-cell"><view class="title-3">{{d.stopCount}}</view><view class="caption">个地点</view></view>
+          <view class="pv-cell"><view class="title-3">{{d.distanceText}}</view><view class="caption">路程</view></view>
+          <view class="pv-cell"><view class="title-3 ellipsis">{{d.totalText}}</view><view class="caption">总花费</view></view>
+          <view class="pv-cell"><view class="title-3">{{d.photoCount}}</view><view class="caption">张照片</view></view>
+        </view>
+        <view class="footnote mt-16" wx:if="{{d.cityText}}">📍 {{d.cityText}}</view>
+        <view class="footnote mt-8" wx:if="{{d.topCategory}}">💴 {{d.topCategory.label}}花得最多 {{d.topCategory.text}}（{{d.topCategory.pct}}%）· 日均 {{d.dailyAvgText}}</view>
+        <view class="footnote mt-8" wx:if="{{d.flightCount}}">✈️ {{d.flightCount}} 次飞行<text wx:if="{{d.flightHours}}"> · 约 {{d.flightHours}} 小时</text></view>
+        <view class="footnote mt-8" wx:if="{{d.babyName}}">👶 {{d.babyName}}<text wx:if="{{d.babyAgeText}}"> · {{d.babyAgeText}}</text><text wx:if="{{d.babyTotalText}}"> · 宝宝相关 {{d.babyTotalText}}</text></view>
+        <view class="footnote mt-8" wx:for="{{d.babyFirsts}}" wx:key="*this">🌟 第一次：{{item}}</view>
+        <view class="mt-16" wx:if="{{d.bestDay}}"><view class="caption" style="opacity:.7">最丰富的一天 · Day {{d.bestDay.index}} {{d.bestDay.date}}</view><view class="callout">{{d.bestDay.text}}</view></view>
+        <scroll-view scroll-x class="pv-photos mt-16" wx:if="{{d.photos.length}}"><image wx:for="{{d.photos}}" wx:key="*this" class="pv-ph" src="{{item}}" mode="aspectFill" /></scroll-view>
+      </view>
+    </view>
+    <button class="btn btn-primary btn-block mt-16" hover-class="btn-hover" loading="{{saving}}" bindtap="save">保存长图到相册</button>
+    <button class="btn btn-block mt-8" open-type="share" hover-class="btn-hover">分享给家人</button>
+    <!-- 离屏画布：只用于生成图片 -->
+    <canvas type="2d" id="poster" class="poster-canvas"></canvas>
+  </block>
+</view>
