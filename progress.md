@@ -1,6 +1,9 @@
 # 进度日志
 
 ## 2026-09-08 阶段 26：选定手写字标、全部提交发布
+- 功能提交 be40c8b 已推送 origin/main（174 文件）；生产镜像 222f5fa20cb4 已启动，token_scope / wechat_open_id 两项迁移成功。
+- HTTPS 登录页 200、TLS 校验成功；线上字标及 icon-192 SHA256 与本地一致。带短时内存会话只读验证 trips 分页、footprint、growth、years、summary 全部 200，匿名 API 401，未创建生产测试记录。
+- WECHAT_APPID/SECRET 仍未配置：小程序源码与后端已发布到对应位置，但微信登录/真机联调和公众平台审核不宣称完成。数据库、生产配置与旧镜像备份保留。
 - 最终回归：60 项单元/数据库测试、7 项 API/移动端流程、2 项浅深色品牌测试通过；本地生产构建成功。小程序 31 个 JS、全部 JSON 与 22 页文件组合静态校验通过。
 - 已备份生产 database.dump（99 KB）和 app.env 至 backups/release-20260908-handwritten；旧镜像标签 before-handwritten-20260908。HTTPS APP_URL 保持不变。
 - 用户明确选择第四款紫色 Trace 手写字标，并确认包含工作区所有小程序/API/品牌改动提交发布。
